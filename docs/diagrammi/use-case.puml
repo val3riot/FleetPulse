@@ -1,0 +1,40 @@
+@startuml
+left to right direction
+actor "Fleet Operator" as Operator
+actor "Vehicle Simulator" as Simulator
+actor "Operations Engineer" as Ops
+actor "External API Client" as Client
+
+rectangle FleetPulse {
+  usecase "Consultare la dashboard" as UC10
+  usecase "Visualizzare e filtrare i veicoli" as UC11
+  usecase "Registrare un veicolo" as UC1
+  usecase "Consultare il dettaglio veicolo" as UC12
+  usecase "Modificare lo stato" as UC2
+  usecase "Inviare telemetria" as UC3
+  usecase "Consultare lo stato corrente" as UC4
+  usecase "Consultare lo storico" as UC5
+  usecase "Consultare gli alert" as UC6
+  usecase "Consultare il dettaglio alert" as UC13
+  usecase "Aggiornare un alert" as UC7
+  usecase "Monitorare la piattaforma" as UC8
+  usecase "Analizzare un messaggio fallito" as UC9
+}
+
+Operator --> UC1
+Operator --> UC10
+Operator --> UC11
+Operator --> UC12
+Operator --> UC2
+Operator --> UC4
+Operator --> UC5
+Operator --> UC6
+Operator --> UC13
+Operator --> UC7
+Simulator --> UC3
+Client --> UC4
+Client --> UC5
+Client --> UC6
+Ops --> UC8
+Ops --> UC9
+@enduml

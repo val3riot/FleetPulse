@@ -1,0 +1,27 @@
+@startuml
+actor "Fleet Operator" as Operator
+component "Fleet Dashboard" as Dashboard
+component "Vehicle Simulator" as Simulator
+component "Telemetry Gateway" as Gateway
+queue "Kafka\ntelemetry.raw.v1" as Kafka
+component "Telemetry Processor" as Processor
+database "PostgreSQL" as PostgreSQL
+database "Redis" as Redis
+component "Fleet API" as API
+component "Prometheus" as Prometheus
+component "Grafana" as Grafana
+
+Operator --> Dashboard
+Dashboard --> API : REST HTTP/JSON
+Simulator --> Gateway : TCP length-prefixed JSON
+Gateway --> Kafka : publish(key=vehicleId)
+Kafka --> Processor : consume
+Processor --> PostgreSQL : sample e alert
+Processor --> Redis : stato più recente
+API --> PostgreSQL : query autorevoli
+API --> Redis : cache-aside
+Prometheus --> Gateway : scrape
+Prometheus --> Processor : scrape
+Prometheus --> API : scrape
+Grafana --> Prometheus
+@enduml

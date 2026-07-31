@@ -1,0 +1,12 @@
+@startuml
+[*] --> CONNECTED
+CONNECTED --> STREAMING : primo frame valido
+CONNECTED --> REJECTED : traffico iniziale invalido
+STREAMING --> STREAMING : frame accettato
+STREAMING --> DEGRADED : timeout o errore temporaneo
+DEGRADED --> STREAMING : traffico ripristinato
+STREAMING --> CLOSED : EOF o shutdown
+DEGRADED --> CLOSED : timeout policy raggiunta
+REJECTED --> CLOSED
+CLOSED --> [*]
+@enduml

@@ -1,0 +1,15 @@
+@startuml
+participant Kafka
+participant "Telemetry Processor" as Processor
+database PostgreSQL
+
+Kafka -> Processor : evento A
+Processor -> PostgreSQL : insert messageId A
+PostgreSQL --> Processor : commit
+Processor -> Processor : crash prima dell'offset progress
+...
+Kafka -> Processor : riconsegna evento A
+Processor -> PostgreSQL : insert messageId A
+PostgreSQL --> Processor : uniqueness conflict
+Processor -> Processor : già applicato
+@enduml

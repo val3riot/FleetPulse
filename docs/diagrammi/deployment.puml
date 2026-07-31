@@ -1,0 +1,19 @@
+@startuml
+actor "Fleet Operator" as Operator
+node "Developer host" {
+  node "Fleet Dashboard\n(previsto)" as Dashboard
+  node "Docker Compose network" {
+    node "vehicle-simulator"
+    node "telemetry-gateway"
+    node "telemetry-processor"
+    node "fleet-api" as API
+    database "postgres"
+    database "redis"
+    queue "kafka"
+    node "prometheus"
+    node "grafana"
+  }
+}
+Operator --> Dashboard
+Dashboard --> API : REST HTTP/JSON
+@enduml

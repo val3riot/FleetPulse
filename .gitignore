@@ -1,0 +1,65 @@
+# Operating system files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Icon?
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+dist/
+build/
+.next/
+.nuxt/
+out/
+/.cache/
+
+# Environment files
+.env
+.env.*
+!.env.example
+*.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+
+# IDEs and editors
+.idea/
+.vscode/
+*.sublime-workspace
+*.sublime-project
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Visual Studio
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# JetBrains
+/.idea/
+*.iml
+
+# Ignore build artifacts
+target/
+*.o
+*.so
+*.exe
+*.dll
+
+# Ignore secrets
+secrets/
+credentials/
+
+# Ignore temporary folders
+tmp/

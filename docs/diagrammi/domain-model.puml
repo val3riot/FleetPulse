@@ -1,0 +1,11 @@
+@startuml
+hide methods
+skinparam classAttributeIconSize 0
+class Vehicle
+class TelemetrySample
+class VehicleState
+class MaintenanceAlert
+Vehicle "1" -- "0..*" TelemetrySample
+Vehicle "1" -- "0..1" VehicleState
+Vehicle "1" -- "0..*" MaintenanceAlert
+@enduml

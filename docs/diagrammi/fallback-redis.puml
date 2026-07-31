@@ -1,0 +1,14 @@
+@startuml
+actor Client
+participant "Fleet API" as API
+database Redis
+database PostgreSQL
+
+Client -> API : GET stato corrente
+API -> Redis : lettura cache
+Redis --> API : unavailable o miss
+API -> PostgreSQL : query latest sample
+PostgreSQL --> API : latest sample
+API --> Client : stato con freshness
+API -> Redis : repopulate se disponibile
+@enduml

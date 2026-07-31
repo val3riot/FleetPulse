@@ -1,0 +1,18 @@
+@startuml
+participant "Vehicle Simulator" as Simulator
+participant "Telemetry Gateway" as Gateway
+participant Kafka
+participant "Telemetry Processor" as Processor
+database PostgreSQL
+database Redis
+
+Simulator -> Gateway : length + JSON payload
+Gateway -> Gateway : decode e validazione
+Gateway -> Kafka : telemetry.raw.v1(key=vehicleId)
+Kafka --> Gateway : producer acknowledgement
+Gateway --> Simulator : application ACK
+Kafka -> Processor : telemetry event
+Processor -> PostgreSQL : insert sample e alert
+PostgreSQL --> Processor : commit
+Processor -> Redis : update latest state
+@enduml

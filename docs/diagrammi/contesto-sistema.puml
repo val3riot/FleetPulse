@@ -1,0 +1,14 @@
+@startuml
+left to right direction
+actor "Fleet Operator" as Operator
+actor "Operations Engineer" as Ops
+rectangle "Vehicle Simulator" as Simulator
+rectangle "Fleet Dashboard" as Dashboard
+rectangle "Piattaforma FleetPulse" as FleetPulse
+rectangle "Grafana" as Grafana
+Operator --> Dashboard : Funzioni operative
+Dashboard --> FleetPulse : REST HTTP/JSON verso Fleet API
+Simulator --> FleetPulse : Telemetria sintetica via TCP
+Ops --> Grafana : Observability tecnica
+Grafana --> FleetPulse : Query metriche tramite Prometheus
+@enduml
