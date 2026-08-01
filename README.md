@@ -114,8 +114,8 @@ Servizi esposti sull'host con i valori predefiniti:
 
 I container usano `kafka:19092`, mentre i processi eseguiti sull'host usano
 `localhost:9092`. Il frontend non è incluso nel Compose finché non sarà
-implementato. Le migration Flyway e lo schema iniziale verranno introdotti
-separatamente; la configurazione corrente non genera automaticamente lo schema.
+implementato. Flyway applica le migration versionate prima dell'avvio dei
+servizi che usano PostgreSQL; Hibernate non genera né aggiorna lo schema.
 
 Per arrestare i container:
 

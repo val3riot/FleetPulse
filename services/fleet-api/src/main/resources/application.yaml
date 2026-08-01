@@ -4,16 +4,19 @@ spring:
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/fleetpulse}
     username: ${SPRING_DATASOURCE_USERNAME:fleetpulse}
-    password: ${SPRING_DATASOURCE_PASSWORD:change-me}
+    password: ${SPRING_DATASOURCE_PASSWORD}
   data:
     redis:
       host: ${SPRING_DATA_REDIS_HOST:localhost}
       port: ${SPRING_DATA_REDIS_PORT:6379}
-      password: ${SPRING_DATA_REDIS_PASSWORD:change-me}
+      password: ${SPRING_DATA_REDIS_PASSWORD}
   jpa:
     open-in-view: false
     hibernate:
-      ddl-auto: none
+      ddl-auto: validate
+  sql:
+    init:
+      mode: never
 
 server:
   port: 8080

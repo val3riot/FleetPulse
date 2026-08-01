@@ -55,6 +55,7 @@ POSTGRES_DB=fleetpulse
 POSTGRES_USER=fleetpulse
 POSTGRES_PASSWORD=change-me
 POSTGRES_PORT=5432
+FLYWAY_VERSION=13.0.0-alpine
 
 REDIS_VERSION=8.2.8-alpine
 REDIS_PASSWORD=change-me
@@ -105,9 +106,9 @@ Gli URL locali predefiniti sono:
 - Prometheus: `http://localhost:9090`;
 - Grafana: `http://localhost:3000`.
 
-Il frontend non ha ancora un container. Flyway, le migration e lo schema
-iniziale non sono inclusi: fino alla loro introduzione i servizi non devono
-generare o aggiornare automaticamente lo schema tramite Hibernate.
+Il frontend non ha ancora un container. Flyway applica le migration versionate
+prima dell'avvio dei servizi che usano PostgreSQL; Hibernate è configurato per
+non generare o aggiornare automaticamente lo schema.
 
 ## 6. Volume
 
