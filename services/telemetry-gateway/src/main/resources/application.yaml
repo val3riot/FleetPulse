@@ -1,3 +1,18 @@
 spring:
   application:
     name: telemetry-gateway
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+
+server:
+  port: 8080
+
+gateway:
+  tcp:
+    port: ${GATEWAY_TCP_PORT:7000}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus

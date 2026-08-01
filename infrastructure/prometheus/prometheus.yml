@@ -1,0 +1,18 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: fleet-api
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["fleet-api:8080"]
+
+  - job_name: telemetry-gateway
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["telemetry-gateway:8080"]
+
+  - job_name: telemetry-processor
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["telemetry-processor:8080"]

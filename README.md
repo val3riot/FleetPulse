@@ -97,8 +97,25 @@ Maven non deve essere installato: il repository include Maven Wrapper.
 ### Avvio della piattaforma
 
 ```bash
-docker compose up --build
+cp .env.example .env
+docker compose up --build -d
 ```
+
+Servizi esposti sull'host con i valori predefiniti:
+
+- Fleet API: `http://localhost:8080`;
+- Telemetry Gateway (TCP): `localhost:7000`;
+- Telemetry Gateway Actuator: `http://localhost:8081/actuator`;
+- Telemetry Processor Actuator: `http://localhost:8082/actuator`;
+- Prometheus: `http://localhost:9090`;
+- Grafana: `http://localhost:3000`;
+- PostgreSQL, Redis e Kafka: rispettivamente `localhost:5432`, `localhost:6379`
+  e `localhost:9092`, per l'esecuzione dei servizi dall'IDE.
+
+I container usano `kafka:19092`, mentre i processi eseguiti sull'host usano
+`localhost:9092`. Il frontend non è incluso nel Compose finché non sarà
+implementato. Le migration Flyway e lo schema iniziale verranno introdotti
+separatamente; la configurazione corrente non genera automaticamente lo schema.
 
 Per arrestare i container:
 

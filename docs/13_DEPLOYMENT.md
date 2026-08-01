@@ -50,21 +50,29 @@ La configurazione usa:
 Nessun secret reale nel repository.
 
 ```dotenv
+POSTGRES_VERSION=17.10-alpine3.23
 POSTGRES_DB=fleetpulse
 POSTGRES_USER=fleetpulse
 POSTGRES_PASSWORD=change-me
+POSTGRES_PORT=5432
 
-KAFKA_BOOTSTRAP_SERVERS=kafka:9092
-REDIS_HOST=redis
+REDIS_VERSION=8.2.8-alpine
+REDIS_PASSWORD=change-me
 REDIS_PORT=6379
 
-GATEWAY_TCP_PORT=7000
-GATEWAY_MAX_CONNECTIONS=100
-GATEWAY_READ_TIMEOUT=10s
-GATEWAY_MAX_FRAME_SIZE=65536
+KAFKA_VERSION=4.3.1
+KAFKA_PORT=9092
 
-LATEST_STATE_TTL=5m
+FLEET_API_PORT=8080
+GATEWAY_TCP_PORT=7000
+GATEWAY_HTTP_PORT=8081
+PROCESSOR_HTTP_PORT=8082
 ```
+
+All'interno della rete Compose Kafka pubblicizza `kafka:19092`; il listener
+`localhost:9092` è invece riservato ai processi avviati direttamente sull'host.
+PostgreSQL e Redis sono analogamente pubblicati soltanto sull'interfaccia di
+loopback per supportare il workflow dall'IDE.
 
 ## 4. Container design
 
@@ -78,7 +86,30 @@ Le application image dovrebbero:
 - scrivere log su standard output;
 - non conservare stato durevole nel filesystem del container.
 
-## 5. Volume
+## 5. Avvio locale
+
+Prerequisiti: JDK 21, Docker e Docker Compose.
+
+```bash
+cp .env.example .env
+./mvnw clean verify
+docker compose up --build -d
+docker compose ps
+```
+
+Gli URL locali predefiniti sono:
+
+- Fleet API: `http://localhost:8080`;
+- Gateway Actuator: `http://localhost:8081/actuator`;
+- Processor Actuator: `http://localhost:8082/actuator`;
+- Prometheus: `http://localhost:9090`;
+- Grafana: `http://localhost:3000`.
+
+Il frontend non ha ancora un container. Flyway, le migration e lo schema
+iniziale non sono inclusi: fino alla loro introduzione i servizi non devono
+generare o aggiornare automaticamente lo schema tramite Hibernate.
+
+## 6. Volume
 
 Volume persistenti:
 
@@ -88,7 +119,7 @@ Volume persistenti:
 
 Redis persistence non obbligatoria.
 
-## 6. Startup
+## 7. Startup
 
 L'ordine di startup di Compose non dimostra readiness.
 
@@ -98,21 +129,23 @@ Le applicazioni devono:
 - esporre readiness;
 - tollerare dipendenze non ancora pronte.
 
-## 7. Porte
+## 8. Porte
 
-Pubblicare soltanto:
+L'ambiente locale pubblica su `127.0.0.1`:
 
 - Fleet API;
 - TCP Gateway;
-- Grafana;
-- Prometheus quando necessario.
+- endpoint Actuator del gateway e del processor;
+- PostgreSQL, Redis e il listener esterno di Kafka per il workflow dall'IDE;
+- Prometheus e Grafana.
 
 Quando implementato, anche il Fleet Dashboard espone una porta HTTP. Il frontend
 non espone connessioni dirette verso database, broker, cache o servizi interni.
 
-Database e broker restano interni alla Compose network salvo debug.
+La pubblicazione su loopback evita l'esposizione dei servizi sulle altre
+interfacce di rete della macchina di sviluppo.
 
-## 8. Produzione
+## 9. Produzione
 
 Il deployment locale non è production-grade.
 

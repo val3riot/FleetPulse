@@ -1,3 +1,10 @@
 spring:
   application:
     name: vehicle-simulator
+  main:
+    web-application-type: none
+    keep-alive: true
+
+gateway:
+  host: ${GATEWAY_HOST:localhost}
+  port: ${GATEWAY_PORT:7000}
