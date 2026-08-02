@@ -59,6 +59,8 @@ class MaintenanceAlert {
   +String description
   +AlertStatus status
   +Instant createdAt
+  +Instant acknowledgedAt
+  +Instant closedAt
 }
 
 Vehicle "1" -- "0..*" TelemetrySample
@@ -107,7 +109,9 @@ Rappresenta una condizione deterministica derivata da un sample.
 
 - combinazione `sourceMessageId + type` univoca;
 - transizioni di stato controllate;
-- `type` e source message immutabili.
+- `type` e source message immutabili;
+- `acknowledgedAt` non precedente a `createdAt`;
+- `closedAt` non precedente a `acknowledgedAt`, quando presente, altrimenti a `createdAt`.
 
 ## 6. Stato degli alert
 

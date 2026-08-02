@@ -57,6 +57,23 @@ Testcontainers fornisce istanze reali di:
 - ordering e pagination;
 - transaction rollback.
 
+### Fleet API REST
+
+- avvio del contesto Spring;
+- creazione valida con `201 Created` e header `Location`;
+- response `VehicleResponse`;
+- validazione di ogni campo di `CreateVehicleRequest`;
+- body mancante e JSON malformato;
+- enum e tipi non convertibili;
+- conflitto su codice esterno e targa;
+- conversione delle violazioni reali dei constraint PostgreSQL in `409`;
+- richieste concorrenti con una sola creazione valida;
+- `404` per risorse assenti;
+- `503 SERVICE_UNAVAILABLE` per database indisponibile;
+- serializzazione uniforme di `ApiErrorResponse`;
+- `details` tipizzati per Bean Validation;
+- coerenza tra OpenAPI e controller.
+
 ### Kafka
 
 - pubblicazione;
@@ -146,5 +163,7 @@ disconnect probability: 1%
 - nessun retry infinito;
 - nessun secret;
 - avvio da database vuoto;
+- contratto REST ed errori coperti da test;
+- OpenAPI coerente con l'implementazione;
 - shutdown e restart ripetibili;
 - idempotency verificata.

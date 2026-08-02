@@ -68,20 +68,23 @@ Fleet Operator.
 
 ### Flusso principale
 
-1. L'attore invia i dati di registrazione.
-2. Fleet API valida i campi.
-3. Fleet API persiste il veicolo.
-4. Fleet API restituisce la risorsa creata.
+1. L'attore invia codice esterno, targa e parametri di manutenzione.
+2. Fleet API valida i campi e assegna un nuovo UUID.
+3. Fleet API assegna lo stato iniziale `ACTIVE`.
+4. Fleet API persiste il veicolo.
+5. Fleet API restituisce `201 Created`, la risorsa creata e l'header `Location`.
 
 ### Flussi alternativi
 
-- codice o targa duplicati: `409 Conflict`;
-- campo non valido: `400 Bad Request`;
-- database non disponibile: errore temporaneo e log diagnostico.
+- codice esterno duplicato: `409 VEHICLE_EXTERNAL_CODE_CONFLICT`;
+- targa duplicata: `409 VEHICLE_PLATE_CONFLICT`;
+- campo non valido: `400 REQUEST_INVALID`;
+- JSON non decodificabile: `400 REQUEST_MALFORMED_JSON`;
+- database non disponibile: `503 SERVICE_UNAVAILABLE` e log diagnostico.
 
 ### Postcondizioni
 
-Il veicolo esiste con uno stato operativo esplicito.
+Il veicolo esiste con stato iniziale `ACTIVE`.
 
 ## 4. UC-02 — Inviare telemetria
 

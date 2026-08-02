@@ -6,12 +6,14 @@
 
 Il sistema deve permettere di registrare un veicolo con:
 
-- identificativo univoco;
+- identificativo univoco generato dal backend;
 - codice esterno;
 - targa;
-- stato operativo;
 - intervallo di manutenzione;
 - soglia chilometrica della prossima manutenzione.
+
+Il backend deve assegnare al nuovo veicolo lo stato iniziale `ACTIVE`; il client
+non può scegliere lo stato durante la registrazione.
 
 ### RF-002 — Abilitazione e disabilitazione della telemetria
 
@@ -80,6 +82,18 @@ Gli eventi permanentemente non elaborabili devono essere pubblicati su una dead-
 ### RF-016 — Endpoint operativi
 
 Ogni servizio applicativo deve esporre health endpoint e metriche.
+
+### RF-017 — Contratto degli errori REST
+
+Fleet API deve restituire errori strutturati con HTTP status, codice stabile,
+messaggio, path e dettagli di validazione tipizzati. Le violazioni dei constraint
+di unicità devono essere convertite negli stessi errori `409` anche in presenza
+di richieste concorrenti.
+
+### RF-018 — OpenAPI
+
+Fleet API deve pubblicare un documento OpenAPI coerente con request, response,
+paginazione, enum ed errori documentati.
 
 ### Requisiti del Fleet Dashboard
 
