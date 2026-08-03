@@ -30,16 +30,20 @@ La separazione crea failure domain indipendenti senza introdurre un servizio per
 - limita le connessioni;
 - ricostruisce i frame;
 - rifiuta input malformati;
-- valida schema e campi;
+- valida schema e vincoli tecnici del payload;
+- applica backpressure;
 - pubblica su Kafka;
 - invia ACK solo dopo producer acknowledgement;
 - espone metriche di connessione e frame.
 
-Non persiste lo storico.
+Non accede a PostgreSQL o Fleet API, non mantiene un registry locale e non
+valida esistenza o stato operativo del veicolo.
 
 ### Telemetry Processor
 
 - consuma `telemetry.raw.v1`;
+- verifica esistenza e stato operativo del veicolo in PostgreSQL;
+- pubblica i rifiuti di dominio su `telemetry.rejected.v1`;
 - garantisce application idempotency;
 - persiste i sample;
 - valuta le regole;
@@ -73,13 +77,16 @@ all'observability.
 
 1. Il simulator apre una connessione.
 2. Invia un frame length-prefixed.
-3. Il gateway ricostruisce e valida.
+3. Il gateway ricostruisce il frame e applica la validazione tecnica.
 4. Pubblica su Kafka con key `vehicleId`.
-5. Dopo l'acknowledgement Kafka risponde al simulator.
+5. Dopo l'acknowledgement Kafka risponde `ACCEPTED` al simulator.
 6. Il processor consuma.
-7. PostgreSQL persiste sample e alert.
-8. Redis viene aggiornato.
-9. Fleet API espone i dati.
+7. Il processor verifica esistenza e stato del veicolo in PostgreSQL.
+8. Per un veicolo `ACTIVE`, PostgreSQL persiste sample e alert e Redis viene
+   aggiornato.
+9. Per un veicolo sconosciuto o `DISABLED`, il processor non applica side
+   effect e pubblica il rifiuto su `telemetry.rejected.v1`.
+10. Fleet API espone i dati persistiti.
 
 ## 4. Flussi di consultazione
 
@@ -103,13 +110,21 @@ Operations Engineer -> Grafana -> Prometheus -> metriche dei servizi
 
 ### ACK del gateway
 
-Un ACK positivo significa che Kafka ha accettato l'evento secondo la producer acknowledgement policy.
+`ACCEPTED` significa esclusivamente che il gateway ha accettato il frame, la
+validazione tecnica è riuscita e Kafka ha confermato la pubblicazione secondo
+la producer acknowledgement policy.
 
 Non significa che:
 
+- il veicolo esista;
+- il veicolo sia `ACTIVE`;
 - PostgreSQL contenga già il sample;
 - Redis sia già aggiornato;
-- gli alert siano già stati creati.
+- gli alert siano già stati creati;
+- il processor abbia completato l'elaborazione.
+
+`UNKNOWN_VEHICLE` e `VEHICLE_DISABLED` sono rifiuti asincroni del processor,
+non NACK sincroni del gateway.
 
 ### Transazione PostgreSQL
 
@@ -139,7 +154,8 @@ I virtual threads non eliminano la necessità di timeout, limiti e backpressure.
 | Tipo | Esempio | Gestione |
 |---|---|---|
 | Client error | Frame troppo grande | NACK o chiusura |
-| Permanent message error | Schema non supportato | Dead-letter topic |
+| Domain rejection | Veicolo sconosciuto o disabilitato | Rejection event, nessun side effect |
+| Permanent message error | Contratto Kafka non supportato | Dead-letter topic |
 | Transient infrastructure error | Database temporaneamente irraggiungibile | Bounded retry |
 | Cache error | Redis non disponibile | Fallback |
 | Capacity error | Limite connessioni | Rifiuto esplicito |

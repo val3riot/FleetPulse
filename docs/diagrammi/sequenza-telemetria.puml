@@ -5,14 +5,21 @@ participant Kafka
 participant "Telemetry Processor" as Processor
 database PostgreSQL
 database Redis
+queue "telemetry.rejected.v1" as Rejected
 
 Simulator -> Gateway : length + JSON payload
-Gateway -> Gateway : decode e validazione
+Gateway -> Gateway : framing e validazione tecnica
 Gateway -> Kafka : telemetry.raw.v1(key=vehicleId)
 Kafka --> Gateway : producer acknowledgement
-Gateway --> Simulator : application ACK
+Gateway --> Simulator : ACCEPTED (pubblicazione Kafka)
 Kafka -> Processor : telemetry event
-Processor -> PostgreSQL : insert sample e alert
-PostgreSQL --> Processor : commit
-Processor -> Redis : update latest state
+Processor -> PostgreSQL : lookup vehicle
+alt vehicle ACTIVE
+    Processor -> PostgreSQL : insert sample e alert
+    PostgreSQL --> Processor : commit
+    Processor -> Redis : update latest state
+else vehicle UNKNOWN o DISABLED
+    Processor -> Rejected : rejection event
+    Processor -> Processor : log e metrica per reason
+end
 @enduml

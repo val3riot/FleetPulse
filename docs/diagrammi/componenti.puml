@@ -4,6 +4,7 @@ component "Fleet Dashboard" as Dashboard
 component "Vehicle Simulator" as Simulator
 component "Telemetry Gateway" as Gateway
 queue "Kafka\ntelemetry.raw.v1" as Kafka
+queue "Kafka\ntelemetry.rejected.v1" as Rejected
 component "Telemetry Processor" as Processor
 database "PostgreSQL" as PostgreSQL
 database "Redis" as Redis
@@ -16,7 +17,8 @@ Dashboard --> API : REST HTTP/JSON
 Simulator --> Gateway : TCP length-prefixed JSON
 Gateway --> Kafka : publish(key=vehicleId)
 Kafka --> Processor : consume
-Processor --> PostgreSQL : sample e alert
+Processor --> PostgreSQL : lookup vehicle, sample e alert
+Processor --> Rejected : domain rejection
 Processor --> Redis : stato più recente
 API --> PostgreSQL : query autorevoli
 API --> Redis : cache-aside

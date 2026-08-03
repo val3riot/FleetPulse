@@ -18,15 +18,18 @@ FleetPulse non assume:
 |---|---|
 | TCP frame invalido | Rifiuto senza arrestare il gateway |
 | TCP client lento | Timeout e protezione degli altri client |
-| Limite connessioni raggiunto | Rifiuto esplicito |
-| Kafka indisponibile | Nessun ACK positivo falso |
+| Limite connessioni raggiunto | NACK tecnico o rifiuto esplicito |
+| Kafka indisponibile al gateway | NACK tecnico, nessun `ACCEPTED` |
 | Processor indisponibile | Eventi trattenuti da Kafka |
 | Evento duplicato | Nessun side effect duplicato |
-| PostgreSQL indisponibile | Bounded retry e failure visibile |
-| Redis indisponibile | Persistenza valida e fallback API |
+| PostgreSQL temporaneamente indisponibile | Il processor non completa il record e applica bounded retry |
+| Veicolo inesistente | Rejection asincrona `UNKNOWN_VEHICLE` |
+| Veicolo disabilitato | Rejection asincrona `VEHICLE_DISABLED` |
+| Rejection topic temporaneamente indisponibile | Retry tecnico, nessuna perdita silenziosa |
+| Redis indisponibile | PostgreSQL resta source of truth; persistenza valida e fallback API |
 | Crash prima dell'offset progress | Replay gestito idempotentemente |
 | Cache stale | Freshness esposta tramite `lastSeenAt` |
-| Event version non supportata | Dead-letter topic |
+| Errore tecnico non recuperabile | Dead-letter secondo la policy prevista |
 
 ## 3. Idempotency
 
@@ -103,7 +106,27 @@ Se Kafka accetta un evento ma l'ACK TCP si perde, il client può ritentare.
 
 Il retry usa lo stesso `messageId`.
 
-## 8. Backpressure
+`ACCEPTED` certifica soltanto la validazione tecnica e la pubblicazione Kafka.
+Non certifica esistenza o stato del veicolo, persistenza, aggiornamento Redis,
+generazione degli alert o completamento del processor.
+
+## 8. Rifiuti di dominio ed errori tecnici
+
+`UNKNOWN_VEHICLE` e `VEHICLE_DISABLED` sono esiti permanenti di dominio. Il
+processor non applica side effect e pubblica l'esito su
+`telemetry.rejected.v1`, con log e metriche distinti. La stessa regola di
+dominio non viene ritentata indefinitamente.
+
+Un payload Kafka non deserializzabile, un contratto incompatibile o un errore
+tecnico che esaurisce i retry viene invece indirizzato a
+`telemetry.dead-letter.v1`. Gli errori tecnici temporanei, come PostgreSQL non
+disponibile, sono soggetti a bounded retry.
+
+Se la pubblicazione del rejection event fallisce, il record originale non deve
+essere perso. L'offset può avanzare soltanto dopo che l'esito è osservabile; il
+dettaglio della coordinazione Kafka è definito dalle ticket di implementazione.
+
+## 9. Backpressure
 
 Controlli previsti:
 
@@ -115,7 +138,7 @@ Controlli previsti:
 - consumer concurrency configurabile;
 - reconnect limitato nel simulator.
 
-## 9. Graceful degradation
+## 10. Graceful degradation
 
 Esempio:
 

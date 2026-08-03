@@ -31,12 +31,16 @@ sarà implementato. Non fa ancora parte dell'orchestrazione eseguibile.
 
 | Servizio | Dipendenze necessarie | Dipendenze degradabili |
 |---|---|---|
-| Telemetry Gateway | Kafka | Accesso al vehicle registry, secondo design |
+| Telemetry Gateway | Kafka | Nessuna |
 | Telemetry Processor | Kafka, PostgreSQL | Redis |
 | Fleet API | PostgreSQL | Redis |
 | Fleet Dashboard | Fleet API | Nessuna |
 | Prometheus | Metrics endpoint | Nessuna |
 | Grafana | Prometheus | Nessuna |
+
+Il gateway non accede a PostgreSQL, non chiama Fleet API e non mantiene un
+registry dei veicoli. La validazione di esistenza e stato appartiene al
+processor.
 
 ## 3. Configurazione
 

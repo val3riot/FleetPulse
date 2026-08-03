@@ -28,7 +28,9 @@ La test suite verifica:
 
 ### Domain
 
-- validazione dei veicoli;
+- validazione di esistenza e stato dei veicoli nel processor;
+- classificazione `UNKNOWN_VEHICLE` e `VEHICLE_DISABLED`;
+- assenza di side effect per la telemetria rifiutata;
 - sanity range;
 - soglie alert;
 - transizioni degli alert;
@@ -80,6 +82,7 @@ Testcontainers fornisce istanze reali di:
 - record key;
 - consumer delivery;
 - duplicate processing;
+- rejection publication;
 - dead-letter publication.
 
 ### Redis
@@ -135,6 +138,13 @@ Testcontainers fornisce istanze reali di:
 1. invia frame malformato;
 2. verifica rifiuto;
 3. verifica gateway ancora disponibile.
+
+### E2E-006 — Rifiuto asincrono del veicolo
+
+1. invia telemetria per un veicolo sconosciuto o disabilitato;
+2. verifica che il gateway restituisca `ACCEPTED` dopo la pubblicazione Kafka;
+3. verifica il rejection event su `telemetry.rejected.v1`;
+4. verifica l'assenza di sample, aggiornamenti Redis e alert.
 
 ## 5. Failure injection
 

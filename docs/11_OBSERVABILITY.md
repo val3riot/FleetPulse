@@ -55,6 +55,8 @@ fleetpulse_gateway_ack_latency
 fleetpulse_processor_events_total
 fleetpulse_processor_duplicates_total
 fleetpulse_processor_failures_total
+fleetpulse_processor_rejections_total{reason="UNKNOWN_VEHICLE"}
+fleetpulse_processor_rejections_total{reason="VEHICLE_DISABLED"}
 fleetpulse_processor_dead_letter_total
 fleetpulse_processing_latency
 fleetpulse_redis_update_failures_total
@@ -105,6 +107,7 @@ Per un `messageId` devono essere individuabili:
 1. accettazione nel gateway;
 2. risultato della pubblicazione;
 3. consumo;
-4. persistenza;
-5. aggiornamento Redis;
-6. eventuale alert.
+4. eventuale rifiuto di dominio;
+5. persistenza;
+6. aggiornamento Redis;
+7. eventuale alert o dead-letter.

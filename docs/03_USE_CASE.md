@@ -105,13 +105,13 @@ Vehicle Simulator.
 4. Il gateway ricostruisce e valida il frame.
 5. Il gateway pubblica l'evento su Kafka.
 6. Kafka conferma l'accettazione.
-7. Il gateway restituisce un application ACK.
+7. Il gateway restituisce `ACCEPTED`, che conferma esclusivamente la
+   pubblicazione Kafka.
 
 ### Flussi alternativi
 
 - lunghezza non valida: rifiuto;
 - protocol version non supportata: NACK;
-- veicolo sconosciuto o disabilitato: rifiuto;
 - timeout Kafka: nessun ACK positivo;
 - disconnessione a metà frame: frame incompleto scartato.
 
@@ -123,20 +123,26 @@ Kafka consegna un evento.
 
 ### Flusso principale
 
-1. Il processor deserializza e valida.
-2. Verifica l'idempotency key.
-3. Persiste il sample.
-4. Valuta le regole di alert.
-5. Persiste gli alert.
-6. Aggiorna Redis.
-7. Completa l'elaborazione.
+1. Il processor deserializza e valida il contratto.
+2. Verifica esistenza e stato del veicolo in PostgreSQL.
+3. Verifica l'idempotency key.
+4. Persiste il sample.
+5. Valuta le regole di alert.
+6. Persiste gli alert.
+7. Aggiorna Redis.
+8. Completa l'elaborazione.
 
 ### Flussi alternativi
 
 - duplicate `messageId`: nessun nuovo side effect;
+- veicolo sconosciuto: nessun side effect e rejection asincrona
+  `UNKNOWN_VEHICLE`;
+- veicolo disabilitato: nessun side effect e rejection asincrona
+  `VEHICLE_DISABLED`;
 - PostgreSQL non disponibile: bounded retry;
 - Redis non disponibile: persistenza valida, stato degradato;
-- evento permanentemente invalido: dead-letter topic.
+- evento non elaborabile o errore tecnico con retry esauriti:
+  `telemetry.dead-letter.v1`.
 
 ## 6. UC-04 — Consultare lo stato corrente
 
@@ -183,8 +189,9 @@ L'Operations Engineer consulta:
 2. Verifica dell'accettazione nel gateway.
 3. Verifica della producer acknowledgement.
 4. Verifica del consumo.
-5. Verifica della persistenza.
-6. Verifica della dead-letter topic.
+5. Verifica dell'eventuale rifiuto su `telemetry.rejected.v1`.
+6. Verifica della persistenza.
+7. Verifica dell'eventuale dead-letter su `telemetry.dead-letter.v1`.
 
 ## 12. UC-10 — Consultare la dashboard
 

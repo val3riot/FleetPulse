@@ -67,7 +67,9 @@ Gli eventi accettati devono restare elaborabili dopo indisponibilità temporanee
 
 ### 5.2 Observability
 
-Un operatore deve poter capire se un messaggio è stato rifiutato dal gateway, accodato in Kafka, fallito durante l'elaborazione o persistito correttamente.
+Un operatore deve poter capire se un messaggio è stato rifiutato tecnicamente
+dal gateway, accodato in Kafka, rifiutato dal dominio nel processor, fallito
+durante l'elaborazione o persistito correttamente.
 
 ### 5.3 Maintainability
 

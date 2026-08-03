@@ -4,8 +4,13 @@
 
 | Topic | Key | Producer | Consumer | Scopo |
 |---|---|---|---|---|
-| `telemetry.raw.v1` | `vehicleId` | Telemetry Gateway | Telemetry Processor | Telemetria accettata |
-| `telemetry.dead-letter.v1` | `vehicleId` | Telemetry Processor | Operations tooling | Eventi permanentemente falliti |
+| `telemetry.raw.v1` | `vehicleId` | Telemetry Gateway | Telemetry Processor | Telemetria pubblicata dal gateway |
+| `telemetry.rejected.v1` | `vehicleId` | Telemetry Processor | Operations tooling | Telemetria elaborata ma rifiutata dal dominio |
+| `telemetry.dead-letter.v1` | `vehicleId` | Telemetry Processor | Operations tooling | Messaggi non elaborabili o errori tecnici con retry esauriti |
+
+La presenza di `telemetry.rejected.v1` in questo modello definisce il contratto
+architetturale. Creazione e configurazione effettiva del topic appartengono alle
+ticket Kafka dedicate.
 
 ## 2. Event schema
 
@@ -54,14 +59,16 @@ Un evento può essere riconsegnato quando:
 
 ## 5. Sequenza del consumer
 
-1. ricezione;
-2. validazione;
-3. inizio transaction;
-4. inserimento idempotente;
-5. generazione degli alert;
-6. commit;
-7. aggiornamento Redis;
-8. avanzamento del consumer.
+1. ricezione e validazione tecnica del contratto;
+2. verifica di esistenza e stato del veicolo;
+3. per un veicolo `ACTIVE`, inizio transaction e inserimento idempotente;
+4. generazione degli alert;
+5. commit PostgreSQL;
+6. aggiornamento Redis;
+7. avanzamento dell'offset.
+
+Per un veicolo sconosciuto o `DISABLED`, il processor non avvia i side effect
+di dominio e segue il flusso di rifiuto asincrono descritto nella sezione 7.
 
 ## 6. Classificazione dei retry
 
@@ -79,7 +86,41 @@ Un evento può essere riconsegnato quando:
 - valore di dominio impossibile;
 - violazione permanente di un vincolo.
 
-## 7. Dead-letter event
+La classificazione non retryable evita di ripetere indefinitamente la stessa
+elaborazione. Prima di avanzare l'offset, il relativo esito deve essere reso
+osservabile su `telemetry.rejected.v1` oppure `telemetry.dead-letter.v1`, secondo
+la natura del problema.
+
+## 7. Telemetry rejection event
+
+`UNKNOWN_VEHICLE` e `VEHICLE_DISABLED` sono rifiuti permanenti di dominio. Non
+producono righe in `telemetry_samples`, aggiornamenti Redis o alert. Producono
+log strutturati, metriche distinte per `reason` e un evento su
+`telemetry.rejected.v1`.
+
+Contratto minimo concettuale:
+
+```json
+{
+  "messageId": "dc0fc799-0913-4e72-bd2d-8ee8ccf52e22",
+  "vehicleId": "97e194a8-64b3-4885-b1e6-25fd482f58c0",
+  "reason": "UNKNOWN_VEHICLE",
+  "rejectedAt": "2026-08-01T10:16:00Z",
+  "sourceTopic": "telemetry.raw.v1",
+  "sourcePartition": 1,
+  "sourceOffset": 1254
+}
+```
+
+L'elaborazione è conclusa soltanto dopo che il rifiuto è stato pubblicato. Se
+la pubblicazione fallisce, l'errore è tecnico: si applica la policy di retry e
+l'offset non deve essere avanzato nascondendo la perdita dell'esito.
+
+## 8. Dead-letter event
+
+`telemetry.dead-letter.v1` non contiene rifiuti di eligibility. È riservato a
+payload Kafka non deserializzabili, contratti incompatibili e fallimenti tecnici
+che hanno esaurito la politica di retry.
 
 ```json
 {
@@ -95,7 +136,7 @@ Un evento può essere riconsegnato quando:
 }
 ```
 
-## 8. Schema evolution
+## 9. Schema evolution
 
 - nuovi campi additive preferibilmente opzionali;
 - breaking change con nuova versione;

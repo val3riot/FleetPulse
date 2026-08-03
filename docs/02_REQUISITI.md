@@ -17,7 +17,8 @@ non può scegliere lo stato durante la registrazione.
 
 ### RF-002 — Abilitazione e disabilitazione della telemetria
 
-Il sistema deve accettare telemetria soltanto dai veicoli in stato `ACTIVE`.
+Il sistema deve elaborare e persistere telemetria soltanto per i veicoli in
+stato `ACTIVE`.
 
 ### RF-003 — Connessioni TCP
 
@@ -36,8 +37,10 @@ Il gateway deve validare:
 - identificativi obbligatori;
 - sequence number;
 - timestamp;
-- intervalli numerici;
-- esistenza e stato del veicolo.
+- intervalli numerici.
+
+Il Telemetry Processor deve verificare l'esistenza e lo stato del veicolo prima
+di applicare side effect di dominio.
 
 ### RF-006 — Pubblicazione su Kafka
 
@@ -45,7 +48,9 @@ Il gateway deve pubblicare la telemetria valida usando `vehicleId` come record k
 
 ### RF-007 — Application acknowledgement
 
-Il gateway deve inviare un ACK positivo soltanto dopo la producer acknowledgement di Kafka.
+Il gateway deve inviare `ACCEPTED` soltanto dopo la producer acknowledgement di
+Kafka. L'esito conferma la pubblicazione, non l'accettazione definitiva da parte
+del dominio.
 
 ### RF-008 — Persistenza dello storico
 
@@ -77,7 +82,9 @@ Fleet API deve permettere di leggere gli alert e applicare le transizioni suppor
 
 ### RF-015 — Dead-letter topic
 
-Gli eventi permanentemente non elaborabili devono essere pubblicati su una dead-letter topic con metadati diagnostici.
+I messaggi non elaborabili e gli errori tecnici che esauriscono la politica di
+retry devono essere pubblicati su `telemetry.dead-letter.v1` con metadati
+diagnostici.
 
 ### RF-016 — Endpoint operativi
 
@@ -94,6 +101,13 @@ di richieste concorrenti.
 
 Fleet API deve pubblicare un documento OpenAPI coerente con request, response,
 paginazione, enum ed errori documentati.
+
+### RF-019 — Rifiuto asincrono della telemetria
+
+La telemetria relativa a un veicolo inesistente o disabilitato non deve essere
+persistita né produrre aggiornamenti Redis o alert. Il processor deve rendere il
+rifiuto osservabile su `telemetry.rejected.v1`, con reason
+`UNKNOWN_VEHICLE` o `VEHICLE_DISABLED`, log strutturati e metriche distinte.
 
 ### Requisiti del Fleet Dashboard
 

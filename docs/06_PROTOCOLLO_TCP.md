@@ -77,7 +77,7 @@ una socket read = un messaggio applicativo
 }
 ```
 
-### Rejected
+### Rejected sincrono
 
 ```json
 {
@@ -93,11 +93,22 @@ una socket read = un messaggio applicativo
 
 `ACCEPTED` significa:
 
-- frame ricostruito;
-- messaggio valido;
+- frame accettato e ricostruito;
+- validazione tecnica riuscita;
 - Kafka ha confermato l'accettazione.
 
-Non significa che il consumer abbia già persistito il dato.
+Non significa che:
+
+- il veicolo esista;
+- il veicolo sia `ACTIVE`;
+- il consumer abbia persistito il dato;
+- Redis sia stato aggiornato;
+- un alert sia stato generato;
+- il processor abbia completato l'elaborazione.
+
+La verifica di esistenza e stato del veicolo avviene nel processor.
+`UNKNOWN_VEHICLE` e `VEHICLE_DISABLED` sono rifiuti asincroni di dominio e non
+sono NACK del protocollo TCP.
 
 ## 8. Lifecycle della connessione
 
@@ -124,11 +135,13 @@ CLOSED --> [*]
 | `INVALID_FRAME_LENGTH` | Lunghezza non valida |
 | `MALFORMED_PAYLOAD` | Payload non decodificabile |
 | `UNSUPPORTED_PROTOCOL_VERSION` | Versione non supportata |
-| `UNKNOWN_VEHICLE` | Veicolo non registrato |
-| `VEHICLE_DISABLED` | Veicolo non abilitato |
 | `INVALID_TELEMETRY` | Validazione fallita |
 | `UPSTREAM_UNAVAILABLE` | Kafka non confermato |
 | `CAPACITY_LIMIT_REACHED` | Capacità del gateway esaurita |
+
+Questi codici descrivono esclusivamente condizioni tecniche o di capacità che
+il gateway può osservare. I rifiuti di dominio sono documentati nel modello
+eventi.
 
 ## 10. Retry del client
 
