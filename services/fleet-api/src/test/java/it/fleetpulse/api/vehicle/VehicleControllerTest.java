@@ -5,6 +5,7 @@ import it.fleetpulse.api.common.DatabaseAvailabilityClassifier;
 import it.fleetpulse.api.common.DatabaseConstraintErrorResolver;
 import it.fleetpulse.api.common.ErrorCode;
 import it.fleetpulse.api.common.GlobalExceptionHandler;
+import it.fleetpulse.api.common.PagedResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -16,6 +17,8 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -26,10 +29,12 @@ import java.sql.SQLException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
 
 import static org.hamcrest.Matchers.hasItem;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -39,6 +44,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         GlobalExceptionHandler.class,
         DatabaseConstraintErrorResolver.class,
         DatabaseAvailabilityClassifier.class,
+        VehiclePageableFactory.class,
         VehicleControllerTest.FixedClockConfiguration.class
 })
 class VehicleControllerTest {
@@ -324,6 +330,112 @@ class VehicleControllerTest {
                 .andExpect(jsonPath("$.path").value(path))
                 .andExpect(jsonPath("$.details").isArray())
                 .andExpect(jsonPath("$.error").doesNotExist());
+    }
+
+    /**
+     * Verifica la risposta paginata e i parametri di default senza Content-Type.
+     */
+    @Test
+    @DisplayName("GET lista usa i default e non richiede Content-Type")
+    void listsVehiclesWithDefaults() throws Exception {
+        PagedResponse<VehicleResponse> page = new PagedResponse<>(
+                List.of(response()), 0, 20, 1, 1, true, true
+        );
+        PageRequest expectedPageable = PageRequest.of(
+                0,
+                20,
+                Sort.by(Sort.Direction.DESC, "createdAt")
+                        .and(Sort.by(Sort.Direction.ASC, "id"))
+        );
+        when(service.search(new VehicleSearchCriteria(null, null), expectedPageable))
+                .thenReturn(page);
+
+        mockMvc.perform(get(VEHICLES_PATH))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.content[0].id").value(ID.toString()))
+                .andExpect(jsonPath("$.content[0].status").value("ACTIVE"))
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(20))
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.totalPages").value(1))
+                .andExpect(jsonPath("$.first").value(true))
+                .andExpect(jsonPath("$.last").value(true));
+
+        verify(service).search(new VehicleSearchCriteria(null, null), expectedPageable);
+    }
+
+    /**
+     * Verifica il passaggio di ricerca, stato, pagina e sort al servizio.
+     */
+    @Test
+    @DisplayName("GET lista propaga filtri e paginazione")
+    void listsVehiclesWithFilters() throws Exception {
+        PageRequest expectedPageable = PageRequest.of(
+                2,
+                50,
+                Sort.by(Sort.Direction.ASC, "plate")
+                        .and(Sort.by(Sort.Direction.ASC, "id"))
+        );
+        VehicleSearchCriteria criteria = new VehicleSearchCriteria("fp", VehicleStatus.ACTIVE);
+        when(service.search(criteria, expectedPageable))
+                .thenReturn(new PagedResponse<>(List.of(), 2, 50, 0, 0, false, true));
+
+        mockMvc.perform(get(VEHICLES_PATH)
+                        .param("query", "fp")
+                        .param("status", "ACTIVE")
+                        .param("page", "2")
+                        .param("size", "50")
+                        .param("sort", "plate,asc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isEmpty())
+                .andExpect(jsonPath("$.page").value(2))
+                .andExpect(jsonPath("$.size").value(50));
+
+        verify(service).search(criteria, expectedPageable);
+    }
+
+    /**
+     * Verifica che i parametri lista non validi producano REQUEST_INVALID.
+     */
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("invalidListParameters")
+    @DisplayName("GET lista rifiuta paginazione e sort non validi")
+    void rejectsInvalidListParameters(String name, String parameter, String value) throws Exception {
+        expectError(
+                mockMvc.perform(get(VEHICLES_PATH).param(parameter, value)),
+                400,
+                ErrorCode.REQUEST_INVALID,
+                VEHICLES_PATH
+        );
+    }
+
+    /**
+     * Verifica che uno status sconosciuto produca REQUEST_INVALID.
+     */
+    @Test
+    @DisplayName("GET lista rifiuta uno status sconosciuto")
+    void rejectsUnknownStatus() throws Exception {
+        expectError(
+                mockMvc.perform(get(VEHICLES_PATH).param("status", "UNKNOWN")),
+                400,
+                ErrorCode.REQUEST_INVALID,
+                VEHICLES_PATH
+        );
+    }
+
+    /**
+     * Fornisce i parametri lista non validi coperti dalla slice MVC.
+     */
+    private static Stream<Arguments> invalidListParameters() {
+        return Stream.of(
+                Arguments.of("page negativa", "page", "-1"),
+                Arguments.of("size zero", "size", "0"),
+                Arguments.of("size oltre il massimo", "size", "101"),
+                Arguments.of("sort malformato", "sort", "plate"),
+                Arguments.of("campo sort sconosciuto", "sort", "odometer,asc"),
+                Arguments.of("direzione sort sconosciuta", "sort", "plate,sideways")
+        );
     }
 
     /**

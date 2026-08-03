@@ -116,6 +116,144 @@ class VehicleApiIntegrationTest extends PostgreSqlIntegrationSupport {
     }
 
     /**
+     * Verifica che una collection senza risultati restituisca una pagina valida.
+     */
+    @Test
+    @DisplayName("GET lista restituisce una pagina vuota valida")
+    void returnsEmptyVehiclePage() throws Exception {
+        mockMvc.perform(get(VEHICLES_PATH))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isEmpty())
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(20))
+                .andExpect(jsonPath("$.totalElements").value(0))
+                .andExpect(jsonPath("$.totalPages").value(0))
+                .andExpect(jsonPath("$.first").value(true))
+                .andExpect(jsonPath("$.last").value(true));
+    }
+
+    /**
+     * Verifica la ricerca case-insensitive su codice esterno e targa reali.
+     */
+    @Test
+    @DisplayName("GET lista cerca codice esterno e targa ignorando il case")
+    void searchesExternalCodeAndPlateCaseInsensitively() throws Exception {
+        repository.saveAllAndFlush(List.of(
+                entity("Delivery-North", "FP301AA"),
+                entity("VAN-SOUTH", "MiXeD302"),
+                entity("TRUCK-WEST", "FP303AA")
+        ));
+
+        mockMvc.perform(get(VEHICLES_PATH)
+                        .param("query", "DeLiVeRy"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].externalCode").value("Delivery-North"));
+
+        mockMvc.perform(get(VEHICLES_PATH)
+                        .param("query", "mixed"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].plate").value("MiXeD302"));
+    }
+
+    /**
+     * Verifica il filtro per stato e la combinazione con la ricerca testuale.
+     */
+    @Test
+    @DisplayName("GET lista combina query e status")
+    void filtersByQueryAndStatus() throws Exception {
+        repository.saveAllAndFlush(List.of(
+                entity("VAN-ACTIVE", "FP304AA", VehicleStatus.ACTIVE, NOW),
+                entity("VAN-DISABLED", "FP305AA", VehicleStatus.DISABLED, NOW),
+                entity("TRUCK-DISABLED", "FP306AA", VehicleStatus.DISABLED, NOW)
+        ));
+
+        mockMvc.perform(get(VEHICLES_PATH)
+                        .param("query", "van")
+                        .param("status", "DISABLED"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].externalCode").value("VAN-DISABLED"))
+                .andExpect(jsonPath("$.content[0].status").value("DISABLED"));
+    }
+
+    /**
+     * Verifica paginazione e ordinamento stabile attraversando due pagine reali.
+     */
+    @Test
+    @DisplayName("GET lista pagina i risultati con ordering deterministico")
+    void paginatesWithDeterministicOrdering() throws Exception {
+        repository.saveAllAndFlush(List.of(
+                entity("VAN-C", "FP307AA"),
+                entity("VAN-A", "FP308AA"),
+                entity("VAN-D", "FP309AA"),
+                entity("VAN-B", "FP310AA"),
+                entity("VAN-E", "FP311AA")
+        ));
+
+        MvcResult firstPage = mockMvc.perform(get(VEHICLES_PATH)
+                        .param("page", "0")
+                        .param("size", "2")
+                        .param("sort", "externalCode,asc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(5))
+                .andExpect(jsonPath("$.totalPages").value(3))
+                .andExpect(jsonPath("$.first").value(true))
+                .andExpect(jsonPath("$.last").value(false))
+                .andReturn();
+        MvcResult secondPage = mockMvc.perform(get(VEHICLES_PATH)
+                        .param("page", "1")
+                        .param("size", "2")
+                        .param("sort", "externalCode,asc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.first").value(false))
+                .andExpect(jsonPath("$.last").value(false))
+                .andReturn();
+
+        List<String> firstCodes = JsonPath.read(
+                firstPage.getResponse().getContentAsString(),
+                "$.content[*].externalCode"
+        );
+        List<String> secondCodes = JsonPath.read(
+                secondPage.getResponse().getContentAsString(),
+                "$.content[*].externalCode"
+        );
+        assertThat(firstCodes).containsExactly("VAN-A", "VAN-B");
+        assertThat(secondCodes).containsExactly("VAN-C", "VAN-D");
+        assertThat(firstCodes).doesNotContainAnyElementsOf(secondCodes);
+    }
+
+    /**
+     * Verifica il tie-breaker UUID quando il campo sort ha valori uguali.
+     */
+    @Test
+    @DisplayName("GET lista usa UUID come tie-breaker stabile")
+    void usesStableIdTieBreaker() throws Exception {
+        List<VehicleEntity> saved = repository.saveAllAndFlush(List.of(
+                entity("TIE-A", "FP312AA"),
+                entity("TIE-B", "FP313AA"),
+                entity("TIE-C", "FP314AA")
+        ));
+        List<String> expectedIds = saved.stream()
+                .map(VehicleEntity::getId)
+                .map(UUID::toString)
+                .sorted()
+                .toList();
+
+        MvcResult result = mockMvc.perform(get(VEHICLES_PATH)
+                        .param("sort", "status,asc"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        List<String> actualIds = JsonPath.read(
+                result.getResponse().getContentAsString(),
+                "$.content[*].id"
+        );
+        assertThat(actualIds).containsExactlyElementsOf(expectedIds);
+    }
+
+    /**
      * Forza il constraint reale sul codice esterno oltre il pre-check e verifica il 409.
      */
     @Test
@@ -234,7 +372,19 @@ class VehicleApiIntegrationTest extends PostgreSqlIntegrationSupport {
      * Costruisce un'entity valida per predisporre gli scenari API.
      */
     private VehicleEntity entity(String externalCode, String plate) {
-        return new VehicleEntity(externalCode, plate, VehicleStatus.ACTIVE, 15_000, 90_000L, NOW);
+        return entity(externalCode, plate, VehicleStatus.ACTIVE, NOW);
+    }
+
+    /**
+     * Costruisce un'entity con stato e timestamp scelti dallo scenario.
+     */
+    private VehicleEntity entity(
+            String externalCode,
+            String plate,
+            VehicleStatus status,
+            Instant createdAt
+    ) {
+        return new VehicleEntity(externalCode, plate, status, 15_000, 90_000L, createdAt);
     }
 
     @TestConfiguration(proxyBeanMethods = false)

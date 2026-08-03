@@ -2,6 +2,7 @@ package it.fleetpulse.api.vehicle;
 
 import it.fleetpulse.api.common.ApplicationException;
 import it.fleetpulse.api.common.ErrorCode;
+import it.fleetpulse.api.common.PagedResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -9,10 +10,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -137,6 +144,37 @@ class VehicleServiceTest {
     }
 
     /**
+     * Verifica che la ricerca deleghi filtri e pageable e mappi la pagina risultante.
+     */
+    @Test
+    @DisplayName("Cerca e mappa una pagina di veicoli")
+    void searchesVehicles() {
+        VehicleSearchCriteria criteria = new VehicleSearchCriteria("van", VehicleStatus.ACTIVE);
+        Pageable pageable = PageRequest.of(
+                1,
+                2,
+                Sort.by(Sort.Direction.ASC, "externalCode")
+        );
+        VehicleEntity entity = entity("VAN-001", "FP001AA");
+        VehicleResponse mapped = response();
+        when(repository.findAll(anySpecification(), eq(pageable)))
+                .thenReturn(new PageImpl<>(List.of(entity), pageable, 3));
+        when(mapper.toResponse(entity)).thenReturn(mapped);
+
+        PagedResponse<VehicleResponse> result = service.search(criteria, pageable);
+
+        assertThat(result.content()).containsExactly(mapped);
+        assertThat(result.page()).isEqualTo(1);
+        assertThat(result.size()).isEqualTo(2);
+        assertThat(result.totalElements()).isEqualTo(3);
+        assertThat(result.totalPages()).isEqualTo(2);
+        assertThat(result.first()).isFalse();
+        assertThat(result.last()).isTrue();
+        verify(repository).findAll(anySpecification(), eq(pageable));
+        verify(mapper).toResponse(entity);
+    }
+
+    /**
      * Costruisce una request valida condivisa dai test del service.
      */
     private CreateVehicleRequest request() {
@@ -163,5 +201,12 @@ class VehicleServiceTest {
                 90_000L,
                 NOW
         );
+    }
+
+    /**
+     * Fornisce un matcher tipizzato per la specification passata al repository.
+     */
+    private Specification<VehicleEntity> anySpecification() {
+        return any();
     }
 }

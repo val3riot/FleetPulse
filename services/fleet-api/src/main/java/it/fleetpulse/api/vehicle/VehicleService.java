@@ -2,6 +2,9 @@ package it.fleetpulse.api.vehicle;
 
 import it.fleetpulse.api.common.ApplicationException;
 import it.fleetpulse.api.common.ErrorCode;
+import it.fleetpulse.api.common.PagedResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -52,5 +55,21 @@ public class VehicleService {
         VehicleEntity entity = vehicleRepository.findById(id).orElseThrow(() ->
                 new ApplicationException(ErrorCode.VEHICLE_NOT_FOUND));
         return vehicleMapper.toResponse(entity);
+    }
+
+    /**
+     * Cerca i veicoli applicando filtri, paginazione e ordinamento richiesti.
+     */
+    @Transactional(readOnly = true)
+    public PagedResponse<VehicleResponse> search(
+            VehicleSearchCriteria criteria,
+            Pageable pageable
+    ) {
+        Page<VehicleEntity> result = vehicleRepository.findAll(
+                VehicleSpecifications.from(criteria),
+                pageable
+        );
+
+        return PagedResponse.from(result, vehicleMapper::toResponse);
     }
 }
