@@ -1,6 +1,8 @@
 package it.fleetpulse.api.common;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,6 +18,8 @@ import org.springframework.transaction.CannotCreateTransactionException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingPathVariableException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.ServletWebRequest;
@@ -24,7 +28,9 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 
 import java.time.Clock;
 import java.time.Instant;
-import java.util.*;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 @RestControllerAdvice
@@ -34,12 +40,17 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     private final Clock clock;
     private final DatabaseConstraintErrorResolver constraintResolver;
     private final DatabaseAvailabilityClassifier availabilityClassifier;
+
+    /**
+     * Crea il gestore con clock e classificatori degli errori database.
+     */
     public GlobalExceptionHandler(
             Clock clock,
-            DatabaseConstraintErrorResolver constraintResolver, DatabaseAvailabilityClassifier availabilityClassifier
+            DatabaseConstraintErrorResolver constraintResolver,
+            DatabaseAvailabilityClassifier availabilityClassifier
     ) {
         this.clock = clock;
-        this.constraintResolver  = constraintResolver;
+        this.constraintResolver = constraintResolver;
         this.availabilityClassifier = availabilityClassifier;
     }
 
@@ -51,7 +62,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     public ResponseEntity<Object> handleApplicationException(
             ApplicationException exception,
             HttpServletRequest request
-    ){
+    ) {
         ErrorCode errorCode = exception.getErrorCode();
         log.debug(
                 "Application error {} while processing {} {}",
@@ -65,7 +76,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 request.getRequestURI(),
                 List.of(),
                 HttpHeaders.EMPTY
-                );
+        );
     }
 
     @Override
@@ -221,6 +232,62 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         );
     }
 
+    /**
+     * Converte le violazioni dei vincoli sui parametri in una richiesta non valida.
+     */
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<Object> handleConstraintViolation(
+            ConstraintViolationException exception,
+            HttpServletRequest request
+    ) {
+        List<ValidationErrorDetail> details = exception.getConstraintViolations()
+                .stream()
+                .map(this::toValidationDetail)
+                .toList();
+
+        return buildResponse(
+                ErrorCode.REQUEST_INVALID,
+                ErrorCode.REQUEST_INVALID.getDefaultMessage(),
+                request.getRequestURI(),
+                details,
+                HttpHeaders.EMPTY
+        );
+    }
+
+    /**
+     * Converte un query parameter obbligatorio assente in una richiesta non valida.
+     */
+    @Override
+    protected ResponseEntity<Object> handleMissingServletRequestParameter(
+            MissingServletRequestParameterException exception,
+            HttpHeaders headers,
+            HttpStatusCode status,
+            WebRequest request
+    ) {
+        return invalidParameterResponse(
+                exception.getParameterName(),
+                path(request),
+                headers
+        );
+    }
+
+    /**
+     * Converte una path variable obbligatoria assente in una richiesta non valida.
+     */
+    @Override
+    protected ResponseEntity<Object> handleMissingPathVariable(
+            MissingPathVariableException exception,
+            HttpHeaders headers,
+            HttpStatusCode status,
+            WebRequest request
+    ) {
+        return invalidParameterResponse(
+                exception.getVariableName(),
+                path(request),
+                headers
+        );
+    }
+
     /*
      * Vincoli univoci realmente rilevati dal database.
      */
@@ -362,6 +429,9 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
 
+    /**
+     * Costruisce la risposta REST uniforme associata a un codice applicativo.
+     */
     private ResponseEntity<Object> buildResponse(
             ErrorCode errorCode,
             String message,
@@ -385,6 +455,9 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         );
     }
 
+    /**
+     * Seleziona il messaggio pubblico dell'errore applicativo.
+     */
     private String publicMessage(
             ApplicationException exception,
             ErrorCode errorCode
@@ -394,6 +467,9 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 : exception.getMessage();
     }
 
+    /**
+     * Estrae il path HTTP dalla richiesta web corrente.
+     */
     private String path(WebRequest request) {
         if (request instanceof ServletWebRequest servletWebRequest) {
             return servletWebRequest
@@ -402,6 +478,39 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         }
 
         return "";
+    }
+
+    /**
+     * Costruisce una risposta di parametro non valido con dettaglio field-level.
+     */
+    private ResponseEntity<Object> invalidParameterResponse(
+            String field,
+            String path,
+            HttpHeaders headers
+    ) {
+        return buildResponse(
+                ErrorCode.REQUEST_INVALID,
+                ErrorCode.REQUEST_INVALID.getDefaultMessage(),
+                path,
+                List.of(new ValidationErrorDetail(field, "is required")),
+                headers
+        );
+    }
+
+    /**
+     * Converte una constraint violation nel dettaglio pubblico corrispondente.
+     */
+    private ValidationErrorDetail toValidationDetail(ConstraintViolation<?> violation) {
+        String propertyPath = violation.getPropertyPath().toString();
+        int separator = propertyPath.lastIndexOf('.');
+        String field = propertyPath.isBlank()
+                ? "request"
+                : propertyPath.substring(separator + 1);
+
+        return new ValidationErrorDetail(
+                field,
+                Objects.requireNonNullElse(violation.getMessage(), "invalid value")
+        );
     }
 
 }

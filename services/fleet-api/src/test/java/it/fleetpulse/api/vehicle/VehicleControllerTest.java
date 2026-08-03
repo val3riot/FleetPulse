@@ -6,6 +6,7 @@ import it.fleetpulse.api.common.DatabaseConstraintErrorResolver;
 import it.fleetpulse.api.common.ErrorCode;
 import it.fleetpulse.api.common.GlobalExceptionHandler;
 import it.fleetpulse.api.common.PagedResponse;
+import jakarta.validation.ConstraintViolationException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -17,6 +18,8 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DataRetrievalFailureException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
@@ -45,6 +48,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         DatabaseConstraintErrorResolver.class,
         DatabaseAvailabilityClassifier.class,
         VehiclePageableFactory.class,
+        VehicleControllerTest.BindingTestController.class,
         VehicleControllerTest.FixedClockConfiguration.class
 })
 class VehicleControllerTest {
@@ -300,6 +304,78 @@ class VehicleControllerTest {
                 VEHICLES_PATH + "/" + ID
         ).andExpect(content().string(org.hamcrest.Matchers.not(
                 org.hamcrest.Matchers.containsString("secret technical detail"))));
+    }
+
+    /**
+     * Verifica la conversione delle constraint violation prodotte fuori dal body binding.
+     */
+    @Test
+    @DisplayName("Constraint violation restituisce REQUEST_INVALID")
+    void mapsConstraintViolation() throws Exception {
+        when(service.findById(ID)).thenThrow(new ConstraintViolationException(java.util.Set.of()));
+
+        expectError(
+                mockMvc.perform(get(VEHICLES_PATH + "/{vehicleId}", ID)),
+                400,
+                ErrorCode.REQUEST_INVALID,
+                VEHICLES_PATH + "/" + ID
+        );
+    }
+
+    /**
+     * Verifica la risposta uniforme per un query parameter obbligatorio assente.
+     */
+    @Test
+    @DisplayName("Query parameter obbligatorio assente restituisce REQUEST_INVALID")
+    void mapsMissingRequestParameter() throws Exception {
+        expectError(
+                mockMvc.perform(get("/test/required-parameter")),
+                400,
+                ErrorCode.REQUEST_INVALID,
+                "/test/required-parameter"
+        ).andExpect(jsonPath("$.details[0].field").value("value"));
+    }
+
+    /**
+     * Verifica la risposta uniforme per una path variable dichiarata ma non disponibile.
+     */
+    @Test
+    @DisplayName("Path variable obbligatoria assente restituisce REQUEST_INVALID")
+    void mapsMissingPathVariable() throws Exception {
+        expectError(
+                mockMvc.perform(get("/test/missing-path-variable")),
+                400,
+                ErrorCode.REQUEST_INVALID,
+                "/test/missing-path-variable"
+        ).andExpect(jsonPath("$.details[0].field").value("missing"));
+    }
+
+    /**
+     * Verifica che un constraint database sconosciuto non venga classificato come conflitto.
+     */
+    @Test
+    @DisplayName("Constraint database sconosciuto restituisce INTERNAL_ERROR")
+    void mapsUnknownDatabaseConstraintToInternalError() throws Exception {
+        when(service.create(org.mockito.ArgumentMatchers.any()))
+                .thenThrow(new DataIntegrityViolationException("unknown constraint"));
+
+        expectError(postValidVehicle(), 500, ErrorCode.INTERNAL_ERROR, VEHICLES_PATH);
+    }
+
+    /**
+     * Verifica che un errore dati non legato alla connessione non diventi un 503.
+     */
+    @Test
+    @DisplayName("Data access non di connessione restituisce INTERNAL_ERROR")
+    void mapsNonConnectionDataAccessErrorToInternalError() throws Exception {
+        when(service.findById(ID)).thenThrow(new DataRetrievalFailureException("query failed"));
+
+        expectError(
+                mockMvc.perform(get(VEHICLES_PATH + "/{vehicleId}", ID)),
+                500,
+                ErrorCode.INTERNAL_ERROR,
+                VEHICLES_PATH + "/" + ID
+        );
     }
 
     /**
@@ -614,6 +690,30 @@ class VehicleControllerTest {
         @Bean
         Clock fixedClock() {
             return Clock.fixed(NOW, ZoneOffset.UTC);
+        }
+    }
+
+    @org.springframework.web.bind.annotation.RestController
+    static class BindingTestController {
+
+        /**
+         * Espone un parametro obbligatorio per verificare il relativo errore MVC.
+         */
+        @org.springframework.web.bind.annotation.GetMapping("/test/required-parameter")
+        String requiredParameter(
+                @org.springframework.web.bind.annotation.RequestParam String value
+        ) {
+            return value;
+        }
+
+        /**
+         * Dichiara una variabile non presente nel mapping per esercitare l'handler dedicato.
+         */
+        @org.springframework.web.bind.annotation.GetMapping("/test/missing-path-variable")
+        String missingPathVariable(
+                @org.springframework.web.bind.annotation.PathVariable String missing
+        ) {
+            return missing;
         }
     }
 }

@@ -20,6 +20,10 @@ public enum ErrorCode {
             HttpStatus.NOT_FOUND,
             "Vehicle not found"
     ),
+    VEHICLE_STATE_NOT_AVAILABLE(
+            HttpStatus.NOT_FOUND,
+            "Vehicle state is not available"
+    ),
     VEHICLE_PLATE_CONFLICT(
             HttpStatus.CONFLICT,
             "Plate already present"
