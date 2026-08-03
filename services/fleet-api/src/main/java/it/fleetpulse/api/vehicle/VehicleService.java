@@ -7,7 +7,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.time.Clock;
 import java.util.UUID;
 
@@ -71,5 +70,17 @@ public class VehicleService {
         );
 
         return PagedResponse.from(result, vehicleMapper::toResponse);
+    }
+
+    /**
+     * Modifica lo stato di un veicolo.
+     */
+    @Transactional
+    public VehicleResponse changeStatus(UUID id, ChangeVehicleStatusRequest request) {
+        VehicleEntity entity = vehicleRepository.findById(id)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.VEHICLE_NOT_FOUND));
+        entity.changeStatus(request.status());
+        entity = vehicleRepository.save(entity);
+        return vehicleMapper.toResponse(entity);
     }
 }

@@ -175,6 +175,86 @@ class VehicleServiceTest {
     }
 
     /**
+     * Verifica la transizione da ACTIVE a DISABLED e la response mappata.
+     */
+    @Test
+    @DisplayName("Disabilita un veicolo esistente")
+    void disablesExistingVehicle() {
+        UUID id = UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0");
+        VehicleEntity entity = entity("VAN-001", "FP001AA", VehicleStatus.ACTIVE);
+        ChangeVehicleStatusRequest request = new ChangeVehicleStatusRequest(VehicleStatus.DISABLED);
+        VehicleResponse expected = response(VehicleStatus.DISABLED);
+        when(repository.findById(id)).thenReturn(Optional.of(entity));
+        when(repository.save(entity)).thenReturn(entity);
+        when(mapper.toResponse(entity)).thenReturn(expected);
+
+        VehicleResponse actual = service.changeStatus(id, request);
+
+        assertThat(actual).isSameAs(expected);
+        assertThat(entity.getStatus()).isEqualTo(VehicleStatus.DISABLED);
+        verify(repository).save(entity);
+        verify(mapper).toResponse(entity);
+    }
+
+    /**
+     * Verifica la transizione da DISABLED ad ACTIVE.
+     */
+    @Test
+    @DisplayName("Riattiva un veicolo disabilitato")
+    void activatesDisabledVehicle() {
+        UUID id = UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0");
+        VehicleEntity entity = entity("VAN-001", "FP001AA", VehicleStatus.DISABLED);
+        ChangeVehicleStatusRequest request = new ChangeVehicleStatusRequest(VehicleStatus.ACTIVE);
+        when(repository.findById(id)).thenReturn(Optional.of(entity));
+        when(repository.save(entity)).thenReturn(entity);
+        when(mapper.toResponse(entity)).thenReturn(response(VehicleStatus.ACTIVE));
+
+        service.changeStatus(id, request);
+
+        assertThat(entity.getStatus()).isEqualTo(VehicleStatus.ACTIVE);
+        verify(repository).save(entity);
+    }
+
+    /**
+     * Verifica che impostare lo stato corrente resti un'operazione valida e idempotente.
+     */
+    @Test
+    @DisplayName("Mantiene lo stato quando è già quello richiesto")
+    void keepsCurrentStatusIdempotently() {
+        UUID id = UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0");
+        VehicleEntity entity = entity("VAN-001", "FP001AA", VehicleStatus.ACTIVE);
+        ChangeVehicleStatusRequest request = new ChangeVehicleStatusRequest(VehicleStatus.ACTIVE);
+        when(repository.findById(id)).thenReturn(Optional.of(entity));
+        when(repository.save(entity)).thenReturn(entity);
+        when(mapper.toResponse(entity)).thenReturn(response(VehicleStatus.ACTIVE));
+
+        VehicleResponse actual = service.changeStatus(id, request);
+
+        assertThat(entity.getStatus()).isEqualTo(VehicleStatus.ACTIVE);
+        assertThat(actual.status()).isEqualTo(VehicleStatus.ACTIVE);
+        verify(repository).save(entity);
+    }
+
+    /**
+     * Verifica l'errore documentato quando il veicolo da aggiornare non esiste.
+     */
+    @Test
+    @DisplayName("Cambio stato assente produce VEHICLE_NOT_FOUND")
+    void rejectsStatusChangeForMissingVehicle() {
+        UUID id = UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0");
+        when(repository.findById(id)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.changeStatus(
+                id,
+                new ChangeVehicleStatusRequest(VehicleStatus.DISABLED)
+        )).isInstanceOfSatisfying(ApplicationException.class, exception ->
+                assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.VEHICLE_NOT_FOUND));
+
+        verify(repository, never()).save(any());
+        verifyNoInteractions(mapper);
+    }
+
+    /**
      * Costruisce una request valida condivisa dai test del service.
      */
     private CreateVehicleRequest request() {
@@ -185,18 +265,32 @@ class VehicleServiceTest {
      * Costruisce un'entity coerente con i dati applicativi del test.
      */
     private VehicleEntity entity(String externalCode, String plate) {
-        return new VehicleEntity(externalCode, plate, VehicleStatus.ACTIVE, 15_000, 90_000L, NOW);
+        return entity(externalCode, plate, VehicleStatus.ACTIVE);
+    }
+
+    /**
+     * Costruisce un'entity con lo stato richiesto dallo scenario.
+     */
+    private VehicleEntity entity(String externalCode, String plate, VehicleStatus status) {
+        return new VehicleEntity(externalCode, plate, status, 15_000, 90_000L, NOW);
     }
 
     /**
      * Costruisce la response deterministica attesa dai test.
      */
     private VehicleResponse response() {
+        return response(VehicleStatus.ACTIVE);
+    }
+
+    /**
+     * Costruisce la response deterministica con lo stato richiesto.
+     */
+    private VehicleResponse response(VehicleStatus status) {
         return new VehicleResponse(
                 UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0"),
                 "VAN-001",
                 "FP001AA",
-                VehicleStatus.ACTIVE,
+                status,
                 15_000,
                 90_000L,
                 NOW

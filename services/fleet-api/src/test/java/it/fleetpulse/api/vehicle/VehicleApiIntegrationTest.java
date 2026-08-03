@@ -38,6 +38,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -254,6 +255,61 @@ class VehicleApiIntegrationTest extends PostgreSqlIntegrationSupport {
     }
 
     /**
+     * Verifica la persistenza reale della transizione da ACTIVE a DISABLED.
+     */
+    @Test
+    @DisplayName("PATCH reale disabilita e persiste il veicolo")
+    void disablesVehicleThroughAllLayers() throws Exception {
+        assertPersistedStatusChange(
+                "VAN-STATUS-1",
+                "FP401AA",
+                VehicleStatus.ACTIVE,
+                VehicleStatus.DISABLED
+        );
+    }
+
+    /**
+     * Verifica la persistenza reale della transizione da DISABLED ad ACTIVE.
+     */
+    @Test
+    @DisplayName("PATCH reale riattiva e persiste il veicolo")
+    void activatesVehicleThroughAllLayers() throws Exception {
+        assertPersistedStatusChange(
+                "VAN-STATUS-2",
+                "FP402AA",
+                VehicleStatus.DISABLED,
+                VehicleStatus.ACTIVE
+        );
+    }
+
+    /**
+     * Verifica che richiedere lo stato corrente sia idempotente e non duplichi la riga.
+     */
+    @Test
+    @DisplayName("PATCH reale mantiene idempotentemente lo stato corrente")
+    void keepsCurrentStatusIdempotently() throws Exception {
+        VehicleEntity saved = repository.saveAndFlush(entity(
+                "VAN-STATUS-3",
+                "FP403AA",
+                VehicleStatus.ACTIVE,
+                NOW
+        ));
+
+        mockMvc.perform(patch(VEHICLES_PATH + "/{vehicleId}/status", saved.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"ACTIVE\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(saved.getId().toString()))
+                .andExpect(jsonPath("$.status").value("ACTIVE"));
+
+        assertThat(repository.findById(saved.getId()))
+                .get()
+                .extracting(VehicleEntity::getStatus)
+                .isEqualTo(VehicleStatus.ACTIVE);
+        assertThat(repository.count()).isEqualTo(1L);
+    }
+
+    /**
      * Forza il constraint reale sul codice esterno oltre il pre-check e verifica il 409.
      */
     @Test
@@ -340,6 +396,42 @@ class VehicleApiIntegrationTest extends PostgreSqlIntegrationSupport {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json(externalCode, plate)))
                 .andReturn();
+    }
+
+    /**
+     * Esegue una transizione via API e verifica lo stato realmente memorizzato.
+     */
+    private void assertPersistedStatusChange(
+            String externalCode,
+            String plate,
+            VehicleStatus initialStatus,
+            VehicleStatus requestedStatus
+    ) throws Exception {
+        VehicleEntity saved = repository.saveAndFlush(entity(
+                externalCode,
+                plate,
+                initialStatus,
+                NOW
+        ));
+
+        mockMvc.perform(patch(VEHICLES_PATH + "/{vehicleId}/status", saved.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"%s\"}".formatted(requestedStatus)))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.id").value(saved.getId().toString()))
+                .andExpect(jsonPath("$.status").value(requestedStatus.name()))
+                .andExpect(header().doesNotExist("Location"));
+
+        assertThat(repository.findById(saved.getId()))
+                .get()
+                .extracting(VehicleEntity::getStatus)
+                .isEqualTo(requestedStatus);
+        assertThat(jdbcTemplate.queryForObject(
+                "select status from vehicles where id = ?",
+                String.class,
+                saved.getId()
+        )).isEqualTo(requestedStatus.name());
     }
 
     /**

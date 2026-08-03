@@ -1,6 +1,7 @@
 package it.fleetpulse.api.vehicle;
 
 import java.time.Instant;
+import java.util.Objects;
 import java.util.UUID;
 
 import jakarta.persistence.Column;
@@ -97,5 +98,10 @@ public class VehicleEntity {
     /** Restituisce l'istante di creazione del veicolo. */
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    /** Cambia lo stato del veicolo. */
+    public void changeStatus(VehicleStatus status) {
+        this.status = Objects.requireNonNull(status);
     }
 }

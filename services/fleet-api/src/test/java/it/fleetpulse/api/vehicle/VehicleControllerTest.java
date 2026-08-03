@@ -303,6 +303,115 @@ class VehicleControllerTest {
     }
 
     /**
+     * Verifica il contratto nominale del cambio stato.
+     */
+    @Test
+    @DisplayName("PATCH cambia stato e restituisce il veicolo aggiornato")
+    void changesVehicleStatus() throws Exception {
+        VehicleResponse disabled = response(VehicleStatus.DISABLED);
+        when(service.changeStatus(ID, new ChangeVehicleStatusRequest(VehicleStatus.DISABLED)))
+                .thenReturn(disabled);
+
+        mockMvc.perform(patch(statusPath(ID))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"DISABLED\"}"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.id").value(ID.toString()))
+                .andExpect(jsonPath("$.externalCode").value("VAN-001"))
+                .andExpect(jsonPath("$.plate").value("FP001AA"))
+                .andExpect(jsonPath("$.status").value("DISABLED"))
+                .andExpect(jsonPath("$.serviceIntervalKm").value(15_000))
+                .andExpect(jsonPath("$.nextServiceAtKm").value(90_000))
+                .andExpect(jsonPath("$.createdAt").value(NOW.toString()))
+                .andExpect(header().doesNotExist("Location"));
+
+        verify(service).changeStatus(ID, new ChangeVehicleStatusRequest(VehicleStatus.DISABLED));
+    }
+
+    /**
+     * Verifica Bean Validation quando lo stato non è valorizzato.
+     */
+    @Test
+    @DisplayName("PATCH con stato nullo restituisce REQUEST_INVALID")
+    void rejectsNullStatus() throws Exception {
+        expectError(
+                mockMvc.perform(patch(statusPath(ID))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":null}")),
+                400,
+                ErrorCode.REQUEST_INVALID,
+                statusPath(ID)
+        ).andExpect(jsonPath("$.details[0].field").value("status"));
+    }
+
+    /**
+     * Verifica la classificazione del body assente nel cambio stato.
+     */
+    @Test
+    @DisplayName("PATCH senza body restituisce REQUEST_MALFORMED_JSON")
+    void rejectsMissingStatusBody() throws Exception {
+        expectError(
+                mockMvc.perform(patch(statusPath(ID)).contentType(MediaType.APPLICATION_JSON)),
+                400,
+                ErrorCode.REQUEST_MALFORMED_JSON,
+                statusPath(ID)
+        );
+    }
+
+    /**
+     * Verifica la classificazione di un valore enum sconosciuto.
+     */
+    @Test
+    @DisplayName("PATCH con enum sconosciuto restituisce REQUEST_MALFORMED_JSON")
+    void rejectsUnknownStatusValue() throws Exception {
+        expectError(
+                mockMvc.perform(patch(statusPath(ID))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"UNKNOWN\"}")),
+                400,
+                ErrorCode.REQUEST_MALFORMED_JSON,
+                statusPath(ID)
+        );
+    }
+
+    /**
+     * Verifica la conversione dell'UUID non valido presente nel path.
+     */
+    @Test
+    @DisplayName("PATCH con UUID non valido restituisce REQUEST_INVALID")
+    void rejectsInvalidStatusPathUuid() throws Exception {
+        String path = VEHICLES_PATH + "/not-a-uuid/status";
+        expectError(
+                mockMvc.perform(patch(path)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"ACTIVE\"}")),
+                400,
+                ErrorCode.REQUEST_INVALID,
+                path
+        ).andExpect(jsonPath("$.details[0].field").value("vehicleId"));
+    }
+
+    /**
+     * Verifica l'errore documentato per il cambio stato di un veicolo assente.
+     */
+    @Test
+    @DisplayName("PATCH su veicolo assente restituisce VEHICLE_NOT_FOUND")
+    void mapsMissingVehicleDuringStatusChange() throws Exception {
+        when(service.changeStatus(ID, new ChangeVehicleStatusRequest(VehicleStatus.DISABLED)))
+                .thenThrow(new ApplicationException(ErrorCode.VEHICLE_NOT_FOUND));
+
+        expectError(
+                mockMvc.perform(patch(statusPath(ID))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"DISABLED\"}")),
+                404,
+                ErrorCode.VEHICLE_NOT_FOUND,
+                statusPath(ID)
+        );
+    }
+
+    /**
      * Applica una POST valida riutilizzata dai test degli errori applicativi.
      */
     private ResultActions postValidVehicle() throws Exception {
@@ -479,7 +588,21 @@ class VehicleControllerTest {
      * Costruisce la response nominale usata dal controller mockato.
      */
     private static VehicleResponse response() {
-        return new VehicleResponse(ID, "VAN-001", "FP001AA", VehicleStatus.ACTIVE, 15_000, 90_000L, NOW);
+        return response(VehicleStatus.ACTIVE);
+    }
+
+    /**
+     * Costruisce la response nominale con lo stato richiesto.
+     */
+    private static VehicleResponse response(VehicleStatus status) {
+        return new VehicleResponse(ID, "VAN-001", "FP001AA", status, 15_000, 90_000L, NOW);
+    }
+
+    /**
+     * Costruisce il path del cambio stato per il veicolo indicato.
+     */
+    private static String statusPath(UUID id) {
+        return VEHICLES_PATH + "/" + id + "/status";
     }
 
     @TestConfiguration(proxyBeanMethods = false)
