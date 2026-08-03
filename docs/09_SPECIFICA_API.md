@@ -67,7 +67,7 @@ Le collection paginate usano:
 
 - `page`: indice zero-based, default `0`;
 - `size`: default `20`, massimo `100`;
-- `sort`: uno o più valori nel formato `<field>,<asc|desc>`.
+- `sort`: un solo criterio nel formato `<field>,<asc|desc>`.
 
 Struttura comune:
 
@@ -101,6 +101,17 @@ Parametri:
 | `page` | no | Default `0` |
 | `size` | no | Default `20`, massimo `100` |
 | `sort` | no | Campi ammessi: `createdAt`, `externalCode`, `plate`, `status`; default `createdAt,desc` |
+
+Il parametro `sort` supporta un solo criterio nel formato
+`<field>,<direction>`. L'applicazione aggiunge internamente un ordinamento
+secondario per `id`, non configurabile dal client, per rendere deterministico
+l'ordine degli elementi che hanno lo stesso valore nel campo principale.
+
+Non sono supportati criteri multipli come:
+
+```text
+sort=createdAt,desc&sort=plate,asc
+```
 
 `200 OK`:
 
