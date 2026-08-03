@@ -26,3 +26,19 @@ management:
     web:
       exposure:
         include: health,info,prometheus
+
+springdoc:
+  packages-to-scan: it.fleetpulse.api
+  paths-to-match: /api/v1/**
+
+  api-docs:
+    path: /v3/api-docs
+    version: openapi_3_1
+
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+    display-request-duration: true
+
+  writer-with-order-by-keys: true

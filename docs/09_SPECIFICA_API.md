@@ -26,6 +26,11 @@ L'MVP non implementa autenticazione o autorizzazione. Fleet API è destinata al
 solo deployment locale isolato; l'esposizione pubblica richiede una successiva
 integrazione di security.
 
+La specifica OpenAPI pubblicata descrive esclusivamente gli endpoint operativi
+del modulo veicoli elencati nella sezione 2. Gli endpoint delle sezioni
+successive rappresentano il contratto pianificato e non devono essere
+considerati disponibili finché le relative ticket non risultano completate.
+
 ### 1.1 Error response
 
 Tutti gli errori applicativi e gli errori HTTP gestiti usano la stessa struttura:

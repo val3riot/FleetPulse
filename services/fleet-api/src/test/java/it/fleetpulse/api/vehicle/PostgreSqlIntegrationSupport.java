@@ -7,7 +7,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 @Testcontainers
-abstract class PostgreSqlIntegrationSupport {
+public abstract class PostgreSqlIntegrationSupport {
 
     @Container
     protected static final PostgreSQLContainer POSTGRESQL = new PostgreSQLContainer("postgres:17.10-alpine3.23")
