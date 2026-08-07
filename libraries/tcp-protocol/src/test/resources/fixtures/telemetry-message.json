@@ -1,0 +1,13 @@
+{
+  "protocolVersion": 1,
+  "messageId": "dc0fc799-0913-4e72-bd2d-8ee8ccf52e22",
+  "vehicleId": "97e194a8-64b3-4885-b1e6-25fd482f58c0",
+  "sequenceNumber": 42,
+  "observedAt": "2026-08-01T10:15:30Z",
+  "speedKmh": 72.4,
+  "engineTemperatureC": 91.8,
+  "batteryVoltage": 12.6,
+  "odometerKm": 85312,
+  "latitude": 41.9028,
+  "longitude": 12.4964
+}

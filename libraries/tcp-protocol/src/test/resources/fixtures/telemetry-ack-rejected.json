@@ -1,0 +1,7 @@
+{
+  "protocolVersion": 1,
+  "messageId": "dc0fc799-0913-4e72-bd2d-8ee8ccf52e22",
+  "status": "REJECTED",
+  "receivedAt": "2026-08-01T10:15:30.083Z",
+  "errorCode": "UNSUPPORTED_PROTOCOL_VERSION"
+}

@@ -1,0 +1,11 @@
+package it.fleetpulse.protocol;
+
+public enum ProtocolErrorCode {
+    FRAME_TOO_LARGE,
+    INVALID_FRAME_LENGTH,
+    MALFORMED_PAYLOAD,
+    UNSUPPORTED_PROTOCOL_VERSION,
+    INVALID_TELEMETRY,
+    UPSTREAM_UNAVAILABLE,
+    CAPACITY_LIMIT_REACHED
+}
