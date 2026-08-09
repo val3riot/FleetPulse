@@ -17,6 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 public final class TcpServer implements AutoCloseable {
@@ -29,6 +30,8 @@ public final class TcpServer implements AutoCloseable {
     private final FrameHandler frameHandler;
     private final TcpServerProperties properties;
     private final TcpServerMetrics metrics;
+    private final Semaphore connectionPermits;
+
     public TcpServer(FrameHandler frameHandler, TcpServerProperties properties, FrameDecoder frameDecoder, MeterRegistry meterRegistry) {
         this(frameHandler, properties, frameDecoder, Executors.newVirtualThreadPerTaskExecutor(), meterRegistry);
     }
@@ -39,6 +42,7 @@ public final class TcpServer implements AutoCloseable {
         this.properties = Objects.requireNonNull(properties, "properties must not be null");
         this.executor = Objects.requireNonNull(executor, "executor must not be null");
         this.metrics = new TcpServerMetrics(Objects.requireNonNull(meterRegistry, "meterRegistry must not be null"), clients);
+        this.connectionPermits = new Semaphore(properties.maxConnections());
     }
 
     public void start(CompletableFuture<Integer> bindResult) throws IOException {
@@ -70,6 +74,13 @@ public final class TcpServer implements AutoCloseable {
     }
 
     void dispatchClient(Socket client) {
+        Objects.requireNonNull(client, "client must not be null");
+        if (!connectionPermits.tryAcquire()) {
+            metrics.connectionCapacityRejected();
+            closeRejectedClient(client);
+            log.warn("TCP connection rejected because capacity is exhausted: remote={}, activeClients={}, maxConnections={}, capacityRejectedConnections={}", client.getRemoteSocketAddress(), clients.size(), properties.maxConnections(), metrics.capacityRejectedConnections());
+            return;
+        }
         clients.add(client);
         try {
             executor.submit(() -> handleClient(client));
@@ -79,6 +90,7 @@ public final class TcpServer implements AutoCloseable {
         } catch (RejectedExecutionException exception) {
             clients.remove(client);
             metrics.connectionRejected();
+            connectionPermits.release();
             closeRejectedClient(client);
             log.debug(
                     "TCP client rejected during shutdown: remote={}, activeClients={}, "
@@ -133,6 +145,7 @@ public final class TcpServer implements AutoCloseable {
             }
         } finally {
             clients.remove(client);
+            connectionPermits.release();
             log.debug(
                     "TCP client disconnected: remote={}, activeClients={}, acceptedConnections={}, "
                             + "rejectedConnections={}, receivedFrames={}, connectionFailures={}",

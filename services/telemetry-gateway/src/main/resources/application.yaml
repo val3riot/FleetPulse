@@ -11,7 +11,7 @@ gateway:
   tcp:
     enabled: ${GATEWAY_TCP_ENABLED:false}
     port: ${GATEWAY_TCP_PORT:7000}
-
+    max-connections: ${GATEWAY_TCP_MAX_CONNECTIONS:100}
 management:
   endpoints:
     web:

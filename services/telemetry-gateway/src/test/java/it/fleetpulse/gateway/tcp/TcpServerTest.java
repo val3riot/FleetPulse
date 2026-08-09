@@ -31,7 +31,7 @@ class TcpServerTest {
         TestSocket client = new TestSocket();
         TcpServer server = new TcpServer(
                 message -> { },
-                new TcpServerProperties(true, 0),
+                new TcpServerProperties(true, 0, 1),
                 new FrameDecoder(new ObjectMapper()),
                 executor,
                 registry
@@ -42,7 +42,15 @@ class TcpServerTest {
         assertTrue(client.isClosed());
         assertEquals(0, server.activeClients());
         assertEquals(1, registry.counter("fleetpulse.gateway.connections.rejected").count());
+        assertEquals(0, registry.counter("fleetpulse.gateway.tcp.connections.capacity.rejected").count());
         assertEquals(0, registry.get("fleetpulse.gateway.connections.active").gauge().value());
+
+        TestSocket nextClient = new TestSocket();
+        server.dispatchClient(nextClient);
+
+        assertTrue(nextClient.isClosed());
+        assertEquals(2, registry.counter("fleetpulse.gateway.connections.rejected").count());
+        assertEquals(0, registry.counter("fleetpulse.gateway.tcp.connections.capacity.rejected").count());
     }
 
     @Test
@@ -53,7 +61,7 @@ class TcpServerTest {
         TestSocket client = new TestSocket(frame(objectMapper, validMessage()));
         TcpServer server = new TcpServer(
                 message -> { throw new IllegalStateException("unexpected handler failure"); },
-                new TcpServerProperties(true, 0),
+                new TcpServerProperties(true, 0, 1),
                 new FrameDecoder(objectMapper),
                 executor,
                 registry

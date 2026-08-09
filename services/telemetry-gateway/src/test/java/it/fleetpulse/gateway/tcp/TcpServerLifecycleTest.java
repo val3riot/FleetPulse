@@ -46,7 +46,7 @@ class TcpServerLifecycleTest {
     private static TcpServer server(int port) {
         return new TcpServer(
                 message -> { },
-                new TcpServerProperties(true, port),
+                new TcpServerProperties(true, port, 100),
                 new FrameDecoder(new ObjectMapper()),
                 new SimpleMeterRegistry()
         );

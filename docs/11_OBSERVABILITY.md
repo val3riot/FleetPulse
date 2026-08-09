@@ -43,11 +43,18 @@ Il payload completo non deve essere loggato di default.
 fleetpulse_gateway_connections_active
 fleetpulse_gateway_connections_accepted_total
 fleetpulse_gateway_connections_rejected_total
+fleetpulse_gateway_tcp_connections_capacity_rejected_total
 fleetpulse_gateway_frames_received_total
 fleetpulse_gateway_frames_rejected_total
 fleetpulse_gateway_publish_failures_total
 fleetpulse_gateway_ack_latency
 ```
+
+`fleetpulse_gateway_connections_rejected_total` conta le connessioni rifiutate
+durante il dispatch, mentre
+`fleetpulse_gateway_tcp_connections_capacity_rejected_total` conta le
+connessioni rifiutate perché è stato raggiunto il limite configurato dal
+gateway.
 
 ### Processor
 

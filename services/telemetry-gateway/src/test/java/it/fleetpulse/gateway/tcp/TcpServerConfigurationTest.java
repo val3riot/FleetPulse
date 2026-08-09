@@ -29,6 +29,7 @@ class TcpServerConfigurationTest {
             TcpServerProperties properties = context.getBean(TcpServerProperties.class);
             assertFalse(properties.enabled());
             assertEquals(7000, properties.port());
+            assertEquals(100, properties.maxConnections());
         });
     }
 

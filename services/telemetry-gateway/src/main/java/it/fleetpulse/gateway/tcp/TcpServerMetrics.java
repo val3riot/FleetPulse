@@ -12,6 +12,7 @@ final class TcpServerMetrics {
 
     private final Counter acceptedConnections;
     private final Counter rejectedConnections;
+    private final Counter capacityRejectedConnections;
     private final Counter receivedFrames;
     private final Counter connectionFailures;
 
@@ -24,6 +25,9 @@ final class TcpServerMetrics {
                 .register(registry);
         rejectedConnections = Counter.builder("fleetpulse.gateway.connections.rejected")
                 .description("Total TCP connections rejected during dispatch")
+                .register(registry);
+        capacityRejectedConnections = Counter.builder("fleetpulse.gateway.tcp.connections.capacity.rejected")
+                .description("Total TCP connections rejected because maxConnections was reached")
                 .register(registry);
         receivedFrames = Counter.builder("fleetpulse.gateway.frames.received")
                 .description("Total telemetry frames received by the gateway")
@@ -44,6 +48,10 @@ final class TcpServerMetrics {
         rejectedConnections.increment();
     }
 
+    void connectionCapacityRejected() {
+        capacityRejectedConnections.increment();
+    }
+
     void frameReceived() {
         receivedFrames.increment();
     }
@@ -58,6 +66,10 @@ final class TcpServerMetrics {
 
     long rejectedConnections() {
         return (long) rejectedConnections.count();
+    }
+
+    long capacityRejectedConnections() {
+        return (long) capacityRejectedConnections.count();
     }
 
     long receivedFrames() { return (long) receivedFrames.count(); }
