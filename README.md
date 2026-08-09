@@ -43,16 +43,17 @@ flowchart LR
 | `telemetry-processor` | Consuma gli eventi, persiste i sample, aggiorna Redis e valuta gli alert |
 | `fleet-api` | Espone veicoli, stato corrente, storico e alert tramite API REST |
 | `telemetry-contracts` | Definisce i contratti dei messaggi scambiati tramite Kafka |
-| `tcp-protocol` | Definisce costanti e modelli ACK/NACK del protocollo TCP |
+| `tcp-protocol` | Definisce framing, costanti e modelli ACK/NACK del protocollo TCP |
 | `fleet-dashboard` | Client web funzionale per gli operatori; utilizza esclusivamente Fleet API |
 | PostgreSQL | Source of truth persistente |
 | Redis | Proiezione ricostruibile dello stato più recente |
 | Apache Kafka | Trasporto asincrono degli eventi e buffering |
 | Prometheus e Grafana | Observability tecnica, separata dal Fleet Dashboard |
 
-Encoder e decoder TCP non sono condivisi: simulator e gateway implementano
-indipendentemente il framing per evitare che lo stesso errore sui due lati renda
-un test apparentemente corretto.
+La lettura e la scrittura del framing length-prefixed sono condivise in
+`tcp-protocol`. Serializzazione JSON e validazione dei messaggi restano nei
+rispettivi componenti; i test di gateway e simulator verificano comunque il
+protocollo dai due lati.
 
 ## Struttura del repository
 

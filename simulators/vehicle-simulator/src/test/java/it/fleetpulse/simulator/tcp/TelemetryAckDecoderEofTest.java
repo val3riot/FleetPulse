@@ -1,8 +1,8 @@
 package it.fleetpulse.simulator.tcp;
 
-import it.fleetpulse.simulator.tcp.exception.AcknowledgementStreamClosedException;
-import it.fleetpulse.simulator.tcp.exception.TruncatedAcknowledgementHeaderException;
-import it.fleetpulse.simulator.tcp.exception.TruncatedAcknowledgementPayloadException;
+import it.fleetpulse.protocol.frame.FrameStreamClosedException;
+import it.fleetpulse.protocol.frame.TruncatedFrameHeaderException;
+import it.fleetpulse.protocol.frame.TruncatedFramePayloadException;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 
@@ -19,15 +19,15 @@ class TelemetryAckDecoderEofTest {
     @Test
     void reportsStreamClosedBeforeHeader() {
         assertThrows(
-                AcknowledgementStreamClosedException.class,
+                FrameStreamClosedException.class,
                 () -> decoder.read(new ByteArrayInputStream(new byte[0]))
         );
     }
 
     @Test
     void reportsTruncatedHeader() {
-        TruncatedAcknowledgementHeaderException exception = assertThrows(
-                TruncatedAcknowledgementHeaderException.class,
+        TruncatedFrameHeaderException exception = assertThrows(
+                TruncatedFrameHeaderException.class,
                 () -> decoder.read(new ByteArrayInputStream(new byte[]{0, 0, 1}))
         );
 
@@ -41,8 +41,8 @@ class TelemetryAckDecoderEofTest {
                 .put(new byte[]{'{', '}'})
                 .array();
 
-        TruncatedAcknowledgementPayloadException exception = assertThrows(
-                TruncatedAcknowledgementPayloadException.class,
+        TruncatedFramePayloadException exception = assertThrows(
+                TruncatedFramePayloadException.class,
                 () -> decoder.read(new ByteArrayInputStream(frame))
         );
 

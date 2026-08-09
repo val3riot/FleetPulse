@@ -1,14 +1,14 @@
-package it.fleetpulse.simulator.tcp.exception;
+package it.fleetpulse.protocol.frame;
 
 import java.io.EOFException;
 
-public final class TruncatedAcknowledgementPayloadException extends EOFException {
+public final class TruncatedFramePayloadException extends EOFException {
 
     private final int expectedBytes;
     private final int bytesRead;
 
-    public TruncatedAcknowledgementPayloadException(int expectedBytes, int bytesRead) {
-        super("Truncated acknowledgement payload: " + bytesRead + "/" + expectedBytes + " bytes");
+    public TruncatedFramePayloadException(int expectedBytes, int bytesRead) {
+        super("Truncated frame payload: " + bytesRead + "/" + expectedBytes + " bytes");
         this.expectedBytes = expectedBytes;
         this.bytesRead = bytesRead;
     }

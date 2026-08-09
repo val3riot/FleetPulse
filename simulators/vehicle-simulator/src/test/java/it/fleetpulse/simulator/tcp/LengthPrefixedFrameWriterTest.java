@@ -1,7 +1,7 @@
 package it.fleetpulse.simulator.tcp;
 
 import it.fleetpulse.protocol.ProtocolConstants;
-import it.fleetpulse.simulator.tcp.exception.InvalidFrameLengthException;
+import it.fleetpulse.protocol.frame.InvalidFrameLengthException;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;

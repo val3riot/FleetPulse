@@ -4,7 +4,7 @@ import it.fleetpulse.protocol.AckStatus;
 import it.fleetpulse.protocol.ProtocolConstants;
 import it.fleetpulse.protocol.ProtocolErrorCode;
 import it.fleetpulse.protocol.TelemetryAck;
-import it.fleetpulse.simulator.tcp.exception.InvalidFrameLengthException;
+import it.fleetpulse.protocol.frame.InvalidFrameLengthException;
 import it.fleetpulse.simulator.tcp.exception.UnsupportedProtocolVersionException;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
