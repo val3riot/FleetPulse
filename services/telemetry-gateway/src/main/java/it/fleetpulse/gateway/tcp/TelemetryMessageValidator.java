@@ -39,8 +39,7 @@ final class TelemetryMessageValidator {
         }
     }
 
-    static void validate(TelemetryMessage message) throws InvalidTelemetryException,
-            MalformedTelemetryException, UnsupportedProtocolVersionException {
+    static void validate(TelemetryMessage message) throws InvalidTelemetryException, MalformedTelemetryException, UnsupportedProtocolVersionException {
         if (message == null) {
             throw new MalformedTelemetryException("Telemetry message must not be null");
         }
