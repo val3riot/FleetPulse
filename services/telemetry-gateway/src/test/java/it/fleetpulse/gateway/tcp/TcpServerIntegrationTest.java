@@ -6,8 +6,8 @@ import it.fleetpulse.protocol.TelemetryMessage;
 import it.fleetpulse.protocol.frame.LengthPrefixedFrameCodec;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
-import java.util.concurrent.TimeoutException;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.InetAddress;
@@ -22,11 +22,13 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TcpServerIntegrationTest {
@@ -49,6 +51,71 @@ class TcpServerIntegrationTest {
             await(() -> metric(running.registry(), "fleetpulse.gateway.frames.received") == 2);
             assertEquals(1, metric(running.registry(), "fleetpulse.gateway.connections.accepted"));
             assertEquals(0, metric(running.registry(), "fleetpulse.gateway.connections.failures"));
+        }
+    }
+
+    @Test
+    void reconstructsFrameWhenHeaderAndPayloadArriveOneByteAtATime() throws Exception {
+        BlockingQueue<TelemetryMessage> received = new LinkedBlockingQueue<>();
+        TelemetryMessage expected = message(44);
+        byte[] frame = frame(expected);
+
+        try (RunningServer running = RunningServer.start(received::add); Socket client = connect(running.port())) {
+            await(() -> metric(running.registry(), "fleetpulse.gateway.connections.active") == 1);
+
+            for (byte value : frame) {
+                client.getOutputStream().write(value);
+                client.getOutputStream().flush();
+            }
+
+            assertEquals(expected, received.poll(2, TimeUnit.SECONDS));
+            await(() -> metric(running.registry(), "fleetpulse.gateway.frames.received") == 1);
+            assertEquals(0, metric(running.registry(), "fleetpulse.gateway.connections.failures"));
+            assertEquals(1, metric(running.registry(), "fleetpulse.gateway.connections.active"));
+        }
+    }
+
+    @Test
+    void decodesConcatenatedFramesFromSingleSocketWriteInOrder() throws Exception {
+        BlockingQueue<TelemetryMessage> received = new LinkedBlockingQueue<>();
+        TelemetryMessage first = message(45);
+        TelemetryMessage second = message(46);
+
+        try (RunningServer running = RunningServer.start(received::add); Socket client = connect(running.port())) {
+            await(() -> metric(running.registry(), "fleetpulse.gateway.connections.active") == 1);
+
+            ByteArrayOutputStream frames = new ByteArrayOutputStream();
+            frames.write(frame(first));
+            frames.write(frame(second));
+            client.getOutputStream().write(frames.toByteArray());
+            client.getOutputStream().flush();
+
+            assertEquals(first, received.poll(2, TimeUnit.SECONDS));
+            assertEquals(second, received.poll(2, TimeUnit.SECONDS));
+            await(() -> metric(running.registry(), "fleetpulse.gateway.frames.received") == 2);
+            assertEquals(0, metric(running.registry(), "fleetpulse.gateway.connections.failures"));
+        }
+    }
+
+    @Test
+    void handlesCompleteFrameBeforeReportingDisconnectOnFollowingPartialFrame() throws Exception {
+        BlockingQueue<TelemetryMessage> received = new LinkedBlockingQueue<>();
+        TelemetryMessage complete = message(47);
+
+        try (RunningServer running = RunningServer.start(received::add); Socket client = connect(running.port())) {
+            ByteArrayOutputStream frames = new ByteArrayOutputStream();
+            frames.write(frame(complete));
+            new DataOutputStream(frames).writeInt(32);
+            frames.write(new byte[]{'{', '"', 'p'});
+
+            client.getOutputStream().write(frames.toByteArray());
+            client.getOutputStream().flush();
+            client.shutdownOutput();
+
+            assertEquals(complete, received.poll(2, TimeUnit.SECONDS));
+            await(() -> metric(running.registry(), "fleetpulse.gateway.frames.received") == 1);
+            await(() -> metric(running.registry(), "fleetpulse.gateway.connections.failures") == 1);
+            await(() -> metric(running.registry(), "fleetpulse.gateway.connections.active") == 0);
         }
     }
 
@@ -599,6 +666,12 @@ class TcpServerIntegrationTest {
 
     private static void write(Socket client, TelemetryMessage message) throws IOException {
         LengthPrefixedFrameCodec.write(OBJECT_MAPPER.writeValueAsBytes(message), client.getOutputStream());
+    }
+
+    private static byte[] frame(TelemetryMessage message) throws IOException {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        LengthPrefixedFrameCodec.write(OBJECT_MAPPER.writeValueAsBytes(message), output);
+        return output.toByteArray();
     }
 
     private static TelemetryMessage message(long sequenceNumber) {

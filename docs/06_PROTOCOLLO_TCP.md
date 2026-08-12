@@ -148,3 +148,16 @@ eventi.
 Il client può ritentare quando non riceve un ACK positivo.
 
 Il retry deve riutilizzare lo stesso `messageId`.
+
+## 11. Confine dei test di integrazione
+
+La ricostruzione dei frame, le connessioni persistenti, i timeout, i disconnect,
+la capacità e il lifecycle vengono verificati con socket loopback reali. Il
+contratto JSON e la lettura incrementale di ACK/NACK sono verificati nei moduli
+condiviso e simulator.
+
+Un test end-to-end di `ACCEPTED` deve invece includere la pubblicazione Kafka:
+un handler fittizio che rispondesse positivamente senza attendere il broker
+violerebbe la semantica definita nella sezione 7. Fino all'introduzione del
+`FrameHandler` di produzione previsto da FP-021, il listener resta disabilitato
+nell'avvio Compose e l'emissione ACK/NACK non è considerata coperta end-to-end.

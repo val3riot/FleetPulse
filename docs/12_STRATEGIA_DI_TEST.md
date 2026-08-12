@@ -101,6 +101,27 @@ Testcontainers fornisce istanze reali di:
 - disconnect a metà frame;
 - ACK.
 
+#### Matrice FP-017
+
+| Requisito | Livello | Evidenza |
+|---|---|---|
+| Socket reali e connessione persistente | Integration | `TcpServerIntegrationTest` |
+| Header e payload frammentati | Integration | invio byte-per-byte su socket loopback |
+| Frame concatenati | Integration | più frame in una singola socket write, verificati in ordine |
+| Frame completo seguito da frame parziale | Integration | consegna del primo frame e cleanup sul secondo incompleto |
+| Client lento e read timeout | Integration | scadenza su client idle e frame parziale |
+| Disconnect a metà frame | Integration | EOF durante payload e rilascio delle risorse |
+| Limite connessioni | Integration | saturazione concorrente, rifiuto e riuso del permit |
+| Graceful shutdown | Integration | completamento in-flight e chiusura forzata dopo il grace period |
+| Simulator su TCP reale | Smoke integration | provisioning Spring e frame compatibile inviato su loopback |
+| ACK/NACK applicativo | Contract/Integration | contratto JSON e decoder coperti; emissione gateway rinviata al `FrameHandler` Kafka |
+
+I test TCP usano porte effimere, risorse racchiuse in `try-with-resources` e
+attese con deadline. Non richiedono Docker né porte locali prestabilite. L'ACK
+end-to-end non può essere simulato come accettazione definitiva: per contratto
+`ACCEPTED` richiede la conferma di pubblicazione Kafka, responsabilità del
+`FrameHandler` di produzione non ancora implementato da FP-021.
+
 ### Vehicle Simulator
 
 - binding e validazione di tutte le proprietà;
