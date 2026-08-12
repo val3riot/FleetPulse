@@ -5,6 +5,27 @@ spring:
     web-application-type: none
     keep-alive: true
 
-gateway:
-  host: ${GATEWAY_HOST:localhost}
-  port: ${GATEWAY_PORT:7000}
+simulator:
+  enabled: ${SIMULATOR_ENABLED:false}
+  vehicle-count: ${SIMULATOR_VEHICLE_COUNT:5}
+
+  fleet-api:
+    base-url: ${SIMULATOR_FLEET_API_BASE_URL:http://localhost:8080}
+
+  gateway:
+    host: ${SIMULATOR_GATEWAY_HOST:localhost}
+    port: ${SIMULATOR_GATEWAY_PORT:7000}
+    connect-timeout: ${SIMULATOR_GATEWAY_CONNECT_TIMEOUT:3s}
+
+  send-interval: ${SIMULATOR_SEND_INTERVAL:1s}
+  shutdown-grace-period: ${SIMULATOR_SHUTDOWN_GRACE_PERIOD:5s}
+
+  reconnect:
+    initial-backoff: ${SIMULATOR_RECONNECT_INITIAL_BACKOFF:250ms}
+    max-backoff: ${SIMULATOR_RECONNECT_MAX_BACKOFF:5s}
+    max-attempts: ${SIMULATOR_RECONNECT_MAX_ATTEMPTS:10}
+    jitter-ratio: ${SIMULATOR_RECONNECT_JITTER_RATIO:0.2}
+
+  vehicle:
+    service-interval-km: ${SIMULATOR_VEHICLE_SERVICE_INTERVAL_KM:15000}
+    initial-odometer-km: ${SIMULATOR_VEHICLE_INITIAL_ODOMETER_KM:10000}

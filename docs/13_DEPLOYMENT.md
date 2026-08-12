@@ -34,6 +34,7 @@ sarà implementato. Non fa ancora parte dell'orchestrazione eseguibile.
 | Telemetry Gateway | Kafka | Nessuna |
 | Telemetry Processor | Kafka, PostgreSQL | Redis |
 | Fleet API | PostgreSQL | Redis |
+| Vehicle Simulator | Fleet API in fase di provisioning, Telemetry Gateway durante l'invio | Nessuna |
 | Fleet Dashboard | Fleet API | Nessuna |
 | Prometheus | Metrics endpoint | Nessuna |
 | Grafana | Prometheus | Nessuna |
@@ -72,6 +73,16 @@ FLEET_API_PORT=8080
 GATEWAY_TCP_PORT=7000
 GATEWAY_HTTP_PORT=8081
 PROCESSOR_HTTP_PORT=8082
+
+SIMULATOR_ENABLED=false
+SIMULATOR_VEHICLE_COUNT=5
+SIMULATOR_GATEWAY_CONNECT_TIMEOUT=3s
+SIMULATOR_SEND_INTERVAL=1s
+SIMULATOR_SHUTDOWN_GRACE_PERIOD=5s
+SIMULATOR_RECONNECT_INITIAL_BACKOFF=250ms
+SIMULATOR_RECONNECT_MAX_BACKOFF=5s
+SIMULATOR_RECONNECT_MAX_ATTEMPTS=10
+SIMULATOR_RECONNECT_JITTER_RATIO=0.2
 ```
 
 All'interno della rete Compose Kafka pubblicizza `kafka:19092`; il listener
@@ -113,6 +124,21 @@ Gli URL locali predefiniti sono:
 Il frontend non ha ancora un container. Flyway applica le migration versionate
 prima dell'avvio dei servizi che usano PostgreSQL; Hibernate è configurato per
 non generare o aggiornare automaticamente lo schema.
+
+Il Vehicle Simulator è disabilitato per default. Quando abilitato, Compose ne
+ritarda l'avvio fino alla readiness di Fleet API e all'avvio del gateway. Il
+simulator applica comunque timeout e reconnect propri: l'ordine Compose non è
+considerato una garanzia di disponibilità continua.
+
+Nel gateway non è ancora disponibile un `FrameHandler` di produzione, quindi
+il listener TCP resta intenzionalmente disabilitato nello stack corrente.
+Abilitare il simulator consente di verificare provisioning e reconnect, ma il
+flusso telemetrico end-to-end verso Kafka richiede prima tale integrazione del
+gateway. Forzare il listener senza un handler impedisce l'avvio del gateway.
+
+All'arresto, `SIGTERM` chiude le socket dei veicoli, interrompe i virtual thread
+e attende fino a `SIMULATOR_SHUTDOWN_GRACE_PERIOD` prima di completare il
+lifecycle Spring.
 
 ## 6. Volume
 

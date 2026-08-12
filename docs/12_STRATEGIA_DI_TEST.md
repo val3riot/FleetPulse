@@ -101,6 +101,17 @@ Testcontainers fornisce istanze reali di:
 - disconnect a metà frame;
 - ACK.
 
+### Vehicle Simulator
+
+- binding e validazione di tutte le proprietà;
+- provisioning idempotente e recovery dal conflitto `409`;
+- stato e sequence number isolati per veicolo;
+- framing compatibile con il codec condiviso;
+- connessione persistente e chiusura concorrente durante una write;
+- progressione, cap, jitter disabilitabile e limite dei reconnect;
+- workload su virtual thread e arresto tramite lifecycle Spring;
+- smoke test con contesto Spring, Fleet API simulata e socket TCP reale.
+
 ## 4. End-to-end
 
 ### E2E-001 — Flusso nominale

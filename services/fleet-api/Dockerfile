@@ -25,7 +25,8 @@ RUN --mount=type=cache,target=/root/.m2 \
 
 FROM ${JAVA_RUNTIME_IMAGE} AS runtime
 
-RUN addgroup -S -g 10001 fleetpulse \
+RUN apk add --no-cache wget \
+    && addgroup -S -g 10001 fleetpulse \
     && adduser -S -D -H -u 10001 -G fleetpulse fleetpulse
 
 WORKDIR /app

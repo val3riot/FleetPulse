@@ -130,6 +130,11 @@ Per eliminare anche i volumi locali:
 docker compose down --volumes
 ```
 
+Il simulator è disabilitato per default. Per abilitarlo, impostare
+`SIMULATOR_ENABLED=true` in `.env`; configurazione, retry, failure semantics e
+comandi operativi sono descritti nel
+[README del Vehicle Simulator](simulators/vehicle-simulator/README.md).
+
 ## Documentazione
 
 | Documento | Contenuto |

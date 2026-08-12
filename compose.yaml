@@ -123,6 +123,12 @@ services:
         condition: service_completed_successfully
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --spider http://localhost:8080/actuator/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 20s
     restart: unless-stopped
 
   telemetry-gateway:
@@ -183,9 +189,23 @@ services:
         MAVEN_IMAGE: ${MAVEN_IMAGE:?MAVEN_IMAGE must be set}
         JAVA_RUNTIME_IMAGE: ${JAVA_RUNTIME_IMAGE:?JAVA_RUNTIME_IMAGE must be set}
     environment:
-      GATEWAY_HOST: telemetry-gateway
-      GATEWAY_PORT: "7000"
+      SIMULATOR_ENABLED: ${SIMULATOR_ENABLED:-false}
+      SIMULATOR_VEHICLE_COUNT: ${SIMULATOR_VEHICLE_COUNT:-5}
+      SIMULATOR_FLEET_API_BASE_URL: http://fleet-api:8080
+      SIMULATOR_GATEWAY_HOST: telemetry-gateway
+      SIMULATOR_GATEWAY_PORT: "7000"
+      SIMULATOR_GATEWAY_CONNECT_TIMEOUT: ${SIMULATOR_GATEWAY_CONNECT_TIMEOUT:-3s}
+      SIMULATOR_SEND_INTERVAL: ${SIMULATOR_SEND_INTERVAL:-1s}
+      SIMULATOR_SHUTDOWN_GRACE_PERIOD: ${SIMULATOR_SHUTDOWN_GRACE_PERIOD:-5s}
+      SIMULATOR_RECONNECT_INITIAL_BACKOFF: ${SIMULATOR_RECONNECT_INITIAL_BACKOFF:-250ms}
+      SIMULATOR_RECONNECT_MAX_BACKOFF: ${SIMULATOR_RECONNECT_MAX_BACKOFF:-5s}
+      SIMULATOR_RECONNECT_MAX_ATTEMPTS: ${SIMULATOR_RECONNECT_MAX_ATTEMPTS:-10}
+      SIMULATOR_RECONNECT_JITTER_RATIO: ${SIMULATOR_RECONNECT_JITTER_RATIO:-0.2}
+      SIMULATOR_VEHICLE_SERVICE_INTERVAL_KM: ${SIMULATOR_VEHICLE_SERVICE_INTERVAL_KM:-15000}
+      SIMULATOR_VEHICLE_INITIAL_ODOMETER_KM: ${SIMULATOR_VEHICLE_INITIAL_ODOMETER_KM:-10000}
     depends_on:
+      fleet-api:
+        condition: service_healthy
       telemetry-gateway:
         condition: service_started
     restart: unless-stopped

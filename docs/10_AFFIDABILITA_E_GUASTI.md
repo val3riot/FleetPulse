@@ -70,6 +70,23 @@ Ogni retry policy deve definire:
 
 Nessun retry infinito.
 
+### Reconnect del Vehicle Simulator
+
+Ogni workload usa una connessione TCP persistente. Un errore di connessione
+attiva una policy con:
+
+- massimo `SIMULATOR_RECONNECT_MAX_ATTEMPTS` tentativi per ciclo;
+- backoff esponenziale da `SIMULATOR_RECONNECT_INITIAL_BACKOFF` fino a
+  `SIMULATOR_RECONNECT_MAX_BACKOFF`;
+- jitter configurabile tramite `SIMULATOR_RECONNECT_JITTER_RATIO`;
+- timeout del singolo connect tramite `SIMULATOR_GATEWAY_CONNECT_TIMEOUT`;
+- reset della progressione dopo una connessione riuscita;
+- terminazione osservabile del workload dopo l'esaurimento dei tentativi.
+
+Un errore di scrittura chiude la socket. Il frame ambiguo non viene reinviato
+automaticamente: il retry dello stesso `messageId` richiede la gestione completa
+dell'ACK applicativo e non appartiene a FP-016.
+
 ## 5. Cache failure
 
 Un errore Redis non annulla la transaction PostgreSQL.
