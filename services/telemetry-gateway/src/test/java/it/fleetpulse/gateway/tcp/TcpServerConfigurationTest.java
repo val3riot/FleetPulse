@@ -56,7 +56,7 @@ class TcpServerConfigurationTest {
                     context.getBean(TcpServerProperties.class);
 
             assertEquals(
-                    Duration.ofSeconds(10),
+                    Duration.ofSeconds(30),
                     properties.readTimeout()
             );
 
@@ -65,6 +65,21 @@ class TcpServerConfigurationTest {
                     properties.shutdownGracePeriod()
             );
         });
+    }
+
+    @Test
+    void bindsConfiguredTcpTimeoutProperties() {
+        contextRunner
+                .withPropertyValues(
+                        "gateway.tcp.read-timeout=750ms",
+                        "gateway.tcp.shutdown-grace-period=2s"
+                )
+                .run(context -> {
+                    assertNull(context.getStartupFailure());
+                    TcpServerProperties properties = context.getBean(TcpServerProperties.class);
+                    assertEquals(Duration.ofMillis(750), properties.readTimeout());
+                    assertEquals(Duration.ofSeconds(2), properties.shutdownGracePeriod());
+                });
     }
 
     @Configuration(proxyBeanMethods = false)

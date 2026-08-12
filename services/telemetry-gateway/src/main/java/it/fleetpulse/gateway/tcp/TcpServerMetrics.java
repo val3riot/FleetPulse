@@ -15,7 +15,8 @@ final class TcpServerMetrics {
     private final Counter capacityRejectedConnections;
     private final Counter receivedFrames;
     private final Counter connectionFailures;
-    private final Counter connectionTimeout;
+    private final Counter connectionTimeouts;
+
     TcpServerMetrics(MeterRegistry registry, Set<Socket> clients) {
         Objects.requireNonNull(registry, "registry must not be null");
         Objects.requireNonNull(clients, "clients must not be null");
@@ -35,7 +36,7 @@ final class TcpServerMetrics {
         connectionFailures = Counter.builder("fleetpulse.gateway.connections.failures")
                 .description("Total TCP connection failures")
                 .register(registry);
-        connectionTimeout = Counter.builder("fleetpulse.gateway.connections.timeouts")
+        connectionTimeouts = Counter.builder("fleetpulse.gateway.connections.timeouts")
                 .description("TCP connections closed because of read timeout")
                 .register(registry);
         Gauge.builder("fleetpulse.gateway.connections.active", clients, Set::size)
@@ -63,8 +64,8 @@ final class TcpServerMetrics {
         connectionFailures.increment();
     }
 
-    void connectionTimedOut(){
-        connectionTimeout.increment();
+    void connectionTimedOut() {
+        connectionTimeouts.increment();
     }
 
     long acceptedConnections() {
@@ -79,11 +80,15 @@ final class TcpServerMetrics {
         return (long) capacityRejectedConnections.count();
     }
 
-    long receivedFrames() { return (long) receivedFrames.count(); }
+    long receivedFrames() {
+        return (long) receivedFrames.count();
+    }
 
     long connectionFailures() {
         return (long) connectionFailures.count();
     }
 
-    long connectionTimeouts(){ return (long) connectionTimeout.count(); }
+    long connectionTimeouts() {
+        return (long) connectionTimeouts.count();
+    }
 }

@@ -9,7 +9,7 @@ import java.time.Duration;
 public record TcpServerProperties(@DefaultValue("false") boolean enabled,
                                   @DefaultValue("7000") int port,
                                   @DefaultValue("100") int maxConnections,
-                                  @DefaultValue("10s") Duration readTimeout,
+                                  @DefaultValue("30s") Duration readTimeout,
                                   @DefaultValue("5s") Duration shutdownGracePeriod) {
 
     public TcpServerProperties {
@@ -19,7 +19,7 @@ public record TcpServerProperties(@DefaultValue("false") boolean enabled,
         if (maxConnections <= 0) {
             throw new IllegalArgumentException("maxConnections must be greater than zero");
         }
-        if (readTimeout.isNegative() || readTimeout.isZero()){
+        if (readTimeout.isNegative() || readTimeout.isZero()) {
             throw new IllegalArgumentException("readTimeout must be greater than zero");
         }
         if (readTimeout.toMillis() > Integer.MAX_VALUE) {

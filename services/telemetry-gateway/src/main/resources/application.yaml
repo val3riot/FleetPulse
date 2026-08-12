@@ -13,7 +13,7 @@ gateway:
     port: ${GATEWAY_TCP_PORT:7000}
     max-connections: ${GATEWAY_TCP_MAX_CONNECTIONS:100}
     read-timeout: ${GATEWAY_TCP_READ_TIMEOUT:30s}
-    shutdownGracePeriod: ${GATEWAY_TCP_GRACE_PERIOD:5s}
+    shutdown-grace-period: ${GATEWAY_TCP_GRACE_PERIOD:5s}
 management:
   endpoints:
     web:

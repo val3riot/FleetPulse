@@ -89,6 +89,7 @@ class TcpServerIntegrationTest {
             client.close();
 
             await(() -> metric(running.registry(), "fleetpulse.gateway.connections.failures") == 1);
+            await(() -> metric(running.registry(), "fleetpulse.gateway.connections.active") == 0);
             assertEquals(0, metric(running.registry(), "fleetpulse.gateway.frames.received"));
             assertEquals(0, metric(running.registry(), "fleetpulse.gateway.connections.active"));
         }

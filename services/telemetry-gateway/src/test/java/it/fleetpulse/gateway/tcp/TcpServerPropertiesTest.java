@@ -28,7 +28,7 @@ class TcpServerPropertiesTest {
     }
 
     @Test
-    void rejectsNonPositiveRedTimeOut() {
+    void rejectsNonPositiveReadTimeout() {
         assertThrows(IllegalArgumentException.class, () -> new TcpServerProperties(true, 7000, 100, Duration.ofSeconds(0), Duration.ofSeconds(5)));
         assertThrows(IllegalArgumentException.class, () -> new TcpServerProperties(true, 7000, 100, Duration.ofSeconds(-1), Duration.ofSeconds(5)));
     }

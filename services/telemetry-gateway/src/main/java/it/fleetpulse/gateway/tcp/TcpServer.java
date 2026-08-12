@@ -88,10 +88,12 @@ public final class TcpServer implements AutoCloseable {
             client.setSoTimeout(Math.toIntExact(properties.readTimeout().toMillis()));
         } catch (SocketException exception) {
             connectionPermits.release();
+            metrics.connectionFailed();
             closeRejectedClient(client);
-            log.warn("Unable to configure TCP client read timeout: remote={}, readTimeout={}",
+            log.warn("Unable to configure TCP client read timeout: remote={}, readTimeout={}, connectionFailures={}",
                     client.getRemoteSocketAddress(),
                     properties.readTimeout(),
+                    metrics.connectionFailures(),
                     exception);
             return;
         }
