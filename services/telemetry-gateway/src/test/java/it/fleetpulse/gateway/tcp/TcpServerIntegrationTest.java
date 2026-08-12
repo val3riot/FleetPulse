@@ -6,11 +6,13 @@ import it.fleetpulse.protocol.TelemetryMessage;
 import it.fleetpulse.protocol.frame.LengthPrefixedFrameCodec;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
-
+import java.util.concurrent.TimeoutException;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -78,7 +80,8 @@ class TcpServerIntegrationTest {
 
     @Test
     void recordsFailureAndCleansUpWhenClientDisconnectsMidFrame() throws Exception {
-        try (RunningServer running = RunningServer.start(message -> { }); Socket client = connect(running.port())) {
+        try (RunningServer running = RunningServer.start(message -> {
+        }); Socket client = connect(running.port())) {
             DataOutputStream output = new DataOutputStream(client.getOutputStream());
             output.writeInt(10);
             output.write(new byte[]{'{', '}'});
@@ -93,7 +96,12 @@ class TcpServerIntegrationTest {
 
     @Test
     void shutdownClosesAnActiveRealClientAndResetsGauge() throws Exception {
-        RunningServer running = RunningServer.start(message -> { });
+        RunningServer running = RunningServer.start(
+                message -> { },
+                100,
+                Duration.ofSeconds(5),
+                Duration.ofMillis(200)
+        );
         try (Socket client = connect(running.port())) {
             client.setSoTimeout(2_000);
             await(() -> metric(running.registry(), "fleetpulse.gateway.connections.active") == 1);
@@ -110,7 +118,8 @@ class TcpServerIntegrationTest {
 
     @Test
     void rejectsConnectionsBeyondCapacityAndReusesPermitAfterDisconnect() throws Exception {
-        try (RunningServer running = RunningServer.start(message -> { }, 1); Socket first = connect(running.port())) {
+        try (RunningServer running = RunningServer.start(message -> {
+        }, 1); Socket first = connect(running.port())) {
             await(() -> metric(running.registry(), "fleetpulse.gateway.connections.active") == 1);
             try (Socket rejected = connect(running.port())) {
                 rejected.setSoTimeout(2_000);
@@ -134,7 +143,8 @@ class TcpServerIntegrationTest {
 
     @Test
     void returnsPermitAfterDecoderFailure() throws Exception {
-        try (RunningServer running = RunningServer.start(message -> { }, 1)) {
+        try (RunningServer running = RunningServer.start(message -> {
+        }, 1)) {
             try (Socket invalid = connect(running.port())) {
                 DataOutputStream output = new DataOutputStream(invalid.getOutputStream());
                 output.writeInt(10);
@@ -154,7 +164,9 @@ class TcpServerIntegrationTest {
 
     @Test
     void returnsPermitAfterFrameHandlerFailure() throws Exception {
-        try (RunningServer running = RunningServer.start(message -> { throw new IllegalStateException("handler failure"); }, 1)) {
+        try (RunningServer running = RunningServer.start(message -> {
+            throw new IllegalStateException("handler failure");
+        }, 1)) {
             try (Socket failing = connect(running.port())) {
                 write(failing, message(1));
                 await(() -> metric(running.registry(), "fleetpulse.gateway.connections.failures") == 1);
@@ -173,7 +185,8 @@ class TcpServerIntegrationTest {
     void neverExceedsMaximumConnectionsUnderConcurrentLoad() throws Exception {
         int maxConnections = 3;
         int clientCount = 10;
-        try (RunningServer running = RunningServer.start(message -> { }, maxConnections)) {
+        try (RunningServer running = RunningServer.start(message -> {
+        }, maxConnections)) {
             CountDownLatch start = new CountDownLatch(1);
             List<CompletableFuture<Socket>> attempts = new ArrayList<>();
             for (int index = 0; index < clientCount; index++) {
@@ -209,6 +222,373 @@ class TcpServerIntegrationTest {
                     client.close();
                 }
             }
+        }
+    }
+
+    @Test
+    void closesIdleClientWhenReadTimeoutExpires() throws Exception {
+        try (
+                RunningServer running = RunningServer.start(
+                        message -> {
+                        },
+                        1,
+                        Duration.ofMillis(200),
+                        Duration.ofSeconds(1)
+                );
+                Socket client = connect(running.port())
+        ) {
+
+            await(() ->
+                    metric(
+                            running.registry(),
+                            "fleetpulse.gateway.connections.active"
+                    ) == 1
+            );
+            // ASPETTA TIMEOUT
+            await(() ->
+                    metric(
+                            running.registry(),
+                            "fleetpulse.gateway.connections.active"
+                    ) == 0
+            );
+
+            client.setSoTimeout(1_000);
+
+            assertEquals(
+                    -1,
+                    client.getInputStream().read()
+            );
+            assertEquals(
+                    0,
+                    metric(
+                            running.registry(),
+                            "fleetpulse.gateway.connections.active"
+                    )
+            );
+            assertEquals(
+                    1,
+                    metric(
+                            running.registry(),
+                            "fleetpulse.gateway.connections.timeouts"
+                    )
+            );
+            assertEquals(
+                    0,
+                    metric(
+                            running.registry(),
+                            "fleetpulse.gateway.connections.failures"
+                    )
+            );
+        }
+    }
+    @Test
+    void reusesPermitAfterReadTimeout() throws Exception {
+        try (
+                RunningServer running = RunningServer.start(
+                        message -> { },
+                        1,
+                        Duration.ofMillis(200),
+                        Duration.ofSeconds(1)
+                )
+        ) {
+            try (Socket first = connect(running.port())) {
+                await(() ->
+                        metric(
+                                running.registry(),
+                                "fleetpulse.gateway.connections.active"
+                        ) == 1
+                );
+
+                await(() ->
+                        metric(
+                                running.registry(),
+                                "fleetpulse.gateway.connections.timeouts"
+                        ) == 1
+                );
+
+                await(() ->
+                        metric(
+                                running.registry(),
+                                "fleetpulse.gateway.connections.active"
+                        ) == 0
+                );
+
+                assertEquals(
+                        0,
+                        metric(
+                                running.registry(),
+                                "fleetpulse.gateway.tcp.connections.capacity.rejected"
+                        )
+                );
+            }
+
+            try (Socket replacement = connect(running.port())) {
+                await(() ->
+                        metric(
+                                running.registry(),
+                                "fleetpulse.gateway.connections.accepted"
+                        ) == 2
+                );
+
+                assertEquals(
+                        0,
+                        metric(
+                                running.registry(),
+                                "fleetpulse.gateway.tcp.connections.capacity.rejected"
+                        )
+                );
+            }
+        }
+    }
+
+    @Test
+    void closesClientWhenReadTimeoutExpiresDuringPartialFrame() throws Exception {
+        try (
+                RunningServer running = RunningServer.start(
+                        message -> { },
+                        1,
+                        Duration.ofMillis(200),
+                        Duration.ofSeconds(1)
+                );
+                Socket client = connect(running.port())
+        ) {
+            await(() ->
+                    metric(
+                            running.registry(),
+                            "fleetpulse.gateway.connections.active"
+                    ) == 1
+            );
+
+            DataOutputStream output =
+                    new DataOutputStream(client.getOutputStream());
+
+            output.writeInt(10);
+            output.write(new byte[]{'{', '}'});
+            output.flush();
+
+            await(() ->
+                    metric(
+                            running.registry(),
+                            "fleetpulse.gateway.connections.timeouts"
+                    ) == 1
+            );
+
+            await(() ->
+                    metric(
+                            running.registry(),
+                            "fleetpulse.gateway.connections.active"
+                    ) == 0
+            );
+
+            assertEquals(
+                    0,
+                    metric(
+                            running.registry(),
+                            "fleetpulse.gateway.connections.failures"
+                    )
+            );
+        }
+    }
+
+    @Test
+    void keepsConnectionAliveWhileFramesArriveBeforeReadTimeout() throws Exception {
+        int frameCount = 6;
+        CountDownLatch handled = new CountDownLatch(frameCount);
+
+        try (
+                RunningServer running = RunningServer.start(
+                        message -> handled.countDown(),
+                        1,
+                        Duration.ofSeconds(1),
+                        Duration.ofSeconds(1)
+                );
+                Socket client = connect(running.port())
+        ) {
+            await(() ->
+                    metric(
+                            running.registry(),
+                            "fleetpulse.gateway.connections.active"
+                    ) == 1
+            );
+
+            for (int index = 0; index < frameCount; index++) {
+                write(client, message(index));
+
+                if (index < frameCount - 1) {
+                    Thread.sleep(250);
+                }
+            }
+
+            assertTrue(handled.await(1, TimeUnit.SECONDS));
+
+            await(() ->
+                    metric(
+                            running.registry(),
+                            "fleetpulse.gateway.frames.received"
+                    ) == frameCount
+            );
+
+            assertEquals(
+                    0,
+                    metric(
+                            running.registry(),
+                            "fleetpulse.gateway.connections.timeouts"
+                    )
+            );
+
+            assertEquals(
+                    0,
+                    metric(
+                            running.registry(),
+                            "fleetpulse.gateway.connections.failures"
+                    )
+            );
+
+            assertEquals(
+                    1,
+                    metric(
+                            running.registry(),
+                            "fleetpulse.gateway.connections.active"
+                    )
+            );
+        }
+    }
+
+    @Test
+    void allowsInFlightHandlerToFinishWithinGracePeriod() throws Exception {
+        CountDownLatch handlerStarted = new CountDownLatch(1);
+        CountDownLatch releaseHandler = new CountDownLatch(1);
+
+        RunningServer running = RunningServer.start(
+                message -> {
+                    handlerStarted.countDown();
+
+                    try {
+                        releaseHandler.await();
+                    } catch (InterruptedException exception) {
+                        Thread.currentThread().interrupt();
+                    }
+                },
+                1,
+                Duration.ofSeconds(5),
+                Duration.ofSeconds(1)
+        );
+
+        try (Socket client = connect(running.port())) {
+            write(client, message(1));
+
+            /*
+             * Dopo il frame segnaliamo EOF lato client.
+             * Quando il handler verrà rilasciato, il loop TCP potrà
+             * leggere l'EOF e terminare naturalmente.
+             */
+            client.shutdownOutput();
+
+            assertTrue(
+                    handlerStarted.await(1, TimeUnit.SECONDS),
+                    "handler did not start"
+            );
+
+            CompletableFuture<Void> closing =
+                    CompletableFuture.runAsync(running.server::close);
+
+            /*
+             * Il close NON deve terminare immediatamente:
+             * il handler è ancora in-flight e siamo dentro la grace window.
+             */
+            assertThrows(
+                    TimeoutException.class,
+                    () -> closing.get(150, TimeUnit.MILLISECONDS)
+            );
+
+            releaseHandler.countDown();
+
+            closing.get(2, TimeUnit.SECONDS);
+
+            await(() ->
+                    metric(
+                            running.registry(),
+                            "fleetpulse.gateway.connections.active"
+                    ) == 0
+            );
+
+            assertEquals(
+                    0,
+                    metric(
+                            running.registry(),
+                            "fleetpulse.gateway.connections.failures"
+                    )
+            );
+        } finally {
+            /*
+             * Evita di lasciare il handler bloccato anche in caso
+             * di assertion failure.
+             */
+            releaseHandler.countDown();
+            running.close();
+        }
+    }
+
+    @Test
+    void forceClosesClientWhenGracePeriodExpires() throws Exception {
+        RunningServer running = RunningServer.start(
+                message -> { },
+                1,
+                Duration.ofSeconds(5),
+                Duration.ofMillis(200)
+        );
+
+        try (Socket client = connect(running.port())) {
+            client.setSoTimeout(2_000);
+
+            await(() ->
+                    metric(
+                            running.registry(),
+                            "fleetpulse.gateway.connections.active"
+                    ) == 1
+            );
+
+            CompletableFuture<Void> closing =
+                    CompletableFuture.runAsync(running.server::close);
+
+            /*
+             * readTimeout server = 5s
+             * gracePeriod = 200ms
+             *
+             * Se il graceful shutdown funziona, la socket deve essere
+             * force-closed molto prima dei 5 secondi.
+             */
+            assertEquals(
+                    -1,
+                    client.getInputStream().read()
+            );
+
+            closing.get(2, TimeUnit.SECONDS);
+
+            await(() ->
+                    metric(
+                            running.registry(),
+                            "fleetpulse.gateway.connections.active"
+                    ) == 0
+            );
+
+            assertEquals(
+                    0,
+                    metric(
+                            running.registry(),
+                            "fleetpulse.gateway.connections.timeouts"
+                    )
+            );
+
+            assertEquals(
+                    0,
+                    metric(
+                            running.registry(),
+                            "fleetpulse.gateway.connections.failures"
+                    )
+            );
+        } finally {
+            running.close();
         }
     }
 
@@ -254,12 +634,39 @@ class TcpServerIntegrationTest {
         }
 
         static RunningServer start(FrameHandler handler) throws Exception {
-            return start(handler, 100);
+            return start(
+                    handler,
+                    100,
+                    Duration.ofSeconds(10),
+                    Duration.ofSeconds(5)
+            );
         }
 
-        static RunningServer start(FrameHandler handler, int maxConnections) throws Exception {
+        static RunningServer start(
+                FrameHandler handler,
+                int maxConnections
+        ) throws Exception {
+            return start(
+                    handler,
+                    maxConnections,
+                    Duration.ofSeconds(10),
+                    Duration.ofSeconds(5)
+            );
+        }
+
+        static RunningServer start(
+                FrameHandler handler,
+                int maxConnections,
+                Duration readTimeout,
+                Duration shutdownGracePeriod
+        ) throws Exception {
             SimpleMeterRegistry registry = new SimpleMeterRegistry();
-            TcpServer server = new TcpServer(handler, new TcpServerProperties(true, 0, maxConnections), new FrameDecoder(OBJECT_MAPPER), registry);
+
+            TcpServer server = new TcpServer(
+                    handler,
+                    new TcpServerProperties(true, 0, maxConnections, readTimeout, shutdownGracePeriod),
+                    new FrameDecoder(OBJECT_MAPPER),
+                    registry);
             CompletableFuture<Integer> bindResult = new CompletableFuture<>();
             AtomicReference<Throwable> listenerFailure = new AtomicReference<>();
             Thread listener = Thread.ofPlatform().name("tcp-integration-test-listener").start(() -> {

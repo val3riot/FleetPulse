@@ -8,6 +8,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.time.Duration;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -43,6 +45,26 @@ class TcpServerConfigurationTest {
                     assertNotNull(context.getBean(TcpServer.class));
                     assertTrue(context.getBean(TcpServerLifecycle.class).isRunning());
                 });
+    }
+
+    @Test
+    void bindsDefaultTcpTimeoutProperties() {
+        contextRunner.run(context -> {
+            assertNull(context.getStartupFailure());
+
+            TcpServerProperties properties =
+                    context.getBean(TcpServerProperties.class);
+
+            assertEquals(
+                    Duration.ofSeconds(10),
+                    properties.readTimeout()
+            );
+
+            assertEquals(
+                    Duration.ofSeconds(5),
+                    properties.shutdownGracePeriod()
+            );
+        });
     }
 
     @Configuration(proxyBeanMethods = false)

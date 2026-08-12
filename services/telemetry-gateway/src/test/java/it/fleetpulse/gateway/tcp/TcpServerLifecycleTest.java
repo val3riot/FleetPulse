@@ -7,6 +7,7 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.net.BindException;
 import java.net.ServerSocket;
+import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -46,7 +47,7 @@ class TcpServerLifecycleTest {
     private static TcpServer server(int port) {
         return new TcpServer(
                 message -> { },
-                new TcpServerProperties(true, port, 100),
+                new TcpServerProperties(true, port, 100, Duration.ofSeconds(10), Duration.ofSeconds(5)),
                 new FrameDecoder(new ObjectMapper()),
                 new SimpleMeterRegistry()
         );

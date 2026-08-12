@@ -5,11 +5,13 @@ import it.fleetpulse.protocol.TelemetryMessage;
 import it.fleetpulse.protocol.frame.FrameStreamClosedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -19,9 +21,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class TcpServer implements AutoCloseable {
-    private static final int SHUTDOWN_TIMEOUT_SECONDS = 5;
     private static final Logger log = LoggerFactory.getLogger(TcpServer.class);
     private volatile ServerSocket serverSocket;
     private final ExecutorService executor;
@@ -31,7 +33,8 @@ public final class TcpServer implements AutoCloseable {
     private final TcpServerProperties properties;
     private final TcpServerMetrics metrics;
     private final Semaphore connectionPermits;
-
+    private final AtomicBoolean stopping = new AtomicBoolean();
+    private static final int FORCE_SHUTDOWN_TIMEOUT_SECONDS = 1;
     public TcpServer(FrameHandler frameHandler, TcpServerProperties properties, FrameDecoder frameDecoder, MeterRegistry meterRegistry) {
         this(frameHandler, properties, frameDecoder, Executors.newVirtualThreadPerTaskExecutor(), meterRegistry);
     }
@@ -81,6 +84,17 @@ public final class TcpServer implements AutoCloseable {
             log.warn("TCP connection rejected because capacity is exhausted: remote={}, activeClients={}, maxConnections={}, capacityRejectedConnections={}", client.getRemoteSocketAddress(), clients.size(), properties.maxConnections(), metrics.capacityRejectedConnections());
             return;
         }
+        try {
+            client.setSoTimeout(Math.toIntExact(properties.readTimeout().toMillis()));
+        } catch (SocketException exception) {
+            connectionPermits.release();
+            closeRejectedClient(client);
+            log.warn("Unable to configure TCP client read timeout: remote={}, readTimeout={}",
+                    client.getRemoteSocketAddress(),
+                    properties.readTimeout(),
+                    exception);
+            return;
+        }
         clients.add(client);
         try {
             executor.submit(() -> handleClient(client));
@@ -89,8 +103,8 @@ public final class TcpServer implements AutoCloseable {
                     client.getRemoteSocketAddress(), clients.size());
         } catch (RejectedExecutionException exception) {
             clients.remove(client);
-            metrics.connectionRejected();
             connectionPermits.release();
+            metrics.connectionRejected();
             closeRejectedClient(client);
             log.debug(
                     "TCP client rejected during shutdown: remote={}, activeClients={}, "
@@ -130,17 +144,39 @@ public final class TcpServer implements AutoCloseable {
                 }
             }
         } catch (FrameStreamClosedException exception) {
-            log.debug("TCP client closed the connection: remote={}, activeClients={}, receivedFrames={}",
-                    client.getRemoteSocketAddress(), clients.size(), metrics.receivedFrames());
+            log.debug(
+                    "TCP client closed the connection: remote={}, activeClients={}, receivedFrames={}",
+                    client.getRemoteSocketAddress(),
+                    clients.size(),
+                    metrics.receivedFrames()
+            );
+
+        } catch (SocketTimeoutException exception) {
+            metrics.connectionTimedOut();
+            log.debug(
+                    "TCP client read timed out: remote={}, readTimeout={}, activeClients={}, connectionTimeouts={}",
+                    client.getRemoteSocketAddress(),
+                    properties.readTimeout(),
+                    clients.size(),
+                    metrics.connectionTimeouts()
+            );
+
         } catch (IOException exception) {
-            if (executor.isShutdown()) {
-                log.debug("TCP client closed during server shutdown: remote={}, activeClients={}",
-                        client.getRemoteSocketAddress(), clients.size());
+            if (stopping.get()) {
+                log.debug(
+                        "TCP client closed during server shutdown: remote={}, activeClients={}",
+                        client.getRemoteSocketAddress(),
+                        clients.size()
+                );
             } else {
                 metrics.connectionFailed();
+
                 log.warn(
                         "TCP client connection failed: remote={}, activeClients={}, connectionFailures={}",
-                        client.getRemoteSocketAddress(), clients.size(), metrics.connectionFailures(), exception
+                        client.getRemoteSocketAddress(),
+                        clients.size(),
+                        metrics.connectionFailures(),
+                        exception
                 );
             }
         } finally {
@@ -149,14 +185,21 @@ public final class TcpServer implements AutoCloseable {
             log.debug(
                     "TCP client disconnected: remote={}, activeClients={}, acceptedConnections={}, "
                             + "rejectedConnections={}, receivedFrames={}, connectionFailures={}",
-                    client.getRemoteSocketAddress(), clients.size(), metrics.acceptedConnections(),
-                    metrics.rejectedConnections(), metrics.receivedFrames(), metrics.connectionFailures()
+                    client.getRemoteSocketAddress(),
+                    clients.size(),
+                    metrics.acceptedConnections(),
+                    metrics.rejectedConnections(),
+                    metrics.receivedFrames(),
+                    metrics.connectionFailures()
             );
         }
     }
 
     @Override
     public void close() {
+        if (!stopping.compareAndSet(false, true)) {
+            return;
+        }
         log.info(
                 "Stopping TCP server: activeClients={}, acceptedConnections={}, "
                         + "rejectedConnections={}, receivedFrames={}, connectionFailures={}",
@@ -165,8 +208,15 @@ public final class TcpServer implements AutoCloseable {
         );
         closeServerSocket();
         executor.shutdown();
-        closeClients();
-        awaitExecutorTermination();
+        if (!awaitGracefulTermination()) {
+            log.warn(
+                    "TCP graceful shutdown timed out; "
+                            + "closing {} active client(s)",
+                    clients.size()
+            );
+            closeClients();
+            awaitForcedTermination();
+        }
         log.info(
                 "TCP server stopped: activeClients={}, acceptedConnections={}, "
                         + "rejectedConnections={}, receivedFrames={}, connectionFailures={}",
@@ -205,16 +255,39 @@ public final class TcpServer implements AutoCloseable {
         }
     }
 
-    private void awaitExecutorTermination() {
+    private void awaitForcedTermination() {
         try {
-            if (!executor.awaitTermination(SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
-                log.warn("TCP executor shutdown timed out: activeClients={}", clients.size());
+            if (!executor.awaitTermination(
+                    FORCE_SHUTDOWN_TIMEOUT_SECONDS,
+                    TimeUnit.SECONDS
+            )) {
+                log.warn(
+                        "TCP executor did not terminate after "
+                                + "closing client sockets"
+                );
+
                 executor.shutdownNow();
             }
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
-            log.warn("TCP executor shutdown interrupted: activeClients={}", clients.size());
             executor.shutdownNow();
+        }
+    }
+
+    private boolean awaitGracefulTermination() {
+        try {
+            return executor.awaitTermination(
+                    properties.shutdownGracePeriod().toMillis(),
+                    TimeUnit.MILLISECONDS
+            );
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+
+            log.warn(
+                    "Interrupted while waiting for TCP graceful shutdown"
+            );
+
+            return false;
         }
     }
 }
