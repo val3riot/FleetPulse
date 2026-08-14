@@ -46,9 +46,10 @@ class TcpServerLifecycleTest {
 
     private static TcpServer server(int port) {
         return new TcpServer(
-                message -> { },
+                TestAcknowledgements::accepted,
                 new TcpServerProperties(true, port, 100, Duration.ofSeconds(10), Duration.ofSeconds(5)),
                 new FrameDecoder(new ObjectMapper()),
+                new TelemetryAckEncoder(new ObjectMapper()),
                 new SimpleMeterRegistry()
         );
     }

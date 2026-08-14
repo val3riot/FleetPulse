@@ -1,6 +1,7 @@
 package it.fleetpulse.gateway.tcp;
 
 import io.micrometer.core.instrument.MeterRegistry;
+import it.fleetpulse.protocol.TelemetryAck;
 import it.fleetpulse.protocol.TelemetryMessage;
 import it.fleetpulse.protocol.frame.FrameStreamClosedException;
 import org.slf4j.Logger;
@@ -8,6 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
@@ -33,15 +35,17 @@ public final class TcpServer implements AutoCloseable {
     private final TcpServerProperties properties;
     private final TcpServerMetrics metrics;
     private final Semaphore connectionPermits;
+    private final TelemetryAckEncoder acknowledgementEncoder;
     private final AtomicBoolean stopping = new AtomicBoolean();
     private static final int FORCE_SHUTDOWN_TIMEOUT_SECONDS = 1;
-    public TcpServer(FrameHandler frameHandler, TcpServerProperties properties, FrameDecoder frameDecoder, MeterRegistry meterRegistry) {
-        this(frameHandler, properties, frameDecoder, Executors.newVirtualThreadPerTaskExecutor(), meterRegistry);
+    public TcpServer(FrameHandler frameHandler, TcpServerProperties properties, FrameDecoder frameDecoder, TelemetryAckEncoder acknowledgementEncoder, MeterRegistry meterRegistry) {
+        this(frameHandler, properties, frameDecoder, acknowledgementEncoder, Executors.newVirtualThreadPerTaskExecutor(), meterRegistry);
     }
 
-    TcpServer(FrameHandler frameHandler, TcpServerProperties properties, FrameDecoder frameDecoder, ExecutorService executor, MeterRegistry meterRegistry) {
+    TcpServer(FrameHandler frameHandler, TcpServerProperties properties, FrameDecoder frameDecoder, TelemetryAckEncoder acknowledgementEncoder, ExecutorService executor, MeterRegistry meterRegistry) {
         this.frameHandler = Objects.requireNonNull(frameHandler, "frameHandler must not be null");
         this.frameDecoder = Objects.requireNonNull(frameDecoder, "frameDecoder must not be null");
+        this.acknowledgementEncoder = Objects.requireNonNull(acknowledgementEncoder, "acknowledgementEncoder must not be null");
         this.properties = Objects.requireNonNull(properties, "properties must not be null");
         this.executor = Objects.requireNonNull(executor, "executor must not be null");
         this.metrics = new TcpServerMetrics(Objects.requireNonNull(meterRegistry, "meterRegistry must not be null"), clients);
@@ -123,6 +127,7 @@ public final class TcpServer implements AutoCloseable {
     private void handleClient(Socket client) {
         try (client) {
             InputStream inputStream = client.getInputStream();
+            OutputStream outputStream = client.getOutputStream();
             while (!Thread.currentThread().isInterrupted()) {
                 TelemetryMessage message = frameDecoder.read(inputStream);
                 metrics.frameReceived();
@@ -133,7 +138,8 @@ public final class TcpServer implements AutoCloseable {
                         clients.size(), metrics.receivedFrames()
                 );
                 try {
-                    frameHandler.handle(message);
+                    TelemetryAck ack = frameHandler.handle(message);
+                    acknowledgementEncoder.write(ack, outputStream);
                 } catch (RuntimeException exception) {
                     metrics.connectionFailed();
                     log.error(

@@ -2,6 +2,7 @@ package it.fleetpulse.gateway.tcp;
 
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import it.fleetpulse.protocol.ProtocolConstants;
+import it.fleetpulse.protocol.TelemetryAck;
 import it.fleetpulse.protocol.TelemetryMessage;
 import it.fleetpulse.protocol.frame.LengthPrefixedFrameCodec;
 import org.junit.jupiter.api.Test;
@@ -38,7 +39,10 @@ class TcpServerIntegrationTest {
     @Test
     void receivesConsecutiveSimulatorCompatibleFramesOnPersistentConnection() throws Exception {
         BlockingQueue<TelemetryMessage> received = new LinkedBlockingQueue<>();
-        try (RunningServer running = RunningServer.start(received::add); Socket client = connect(running.port())) {
+        try (RunningServer running = RunningServer.start(message -> {
+            received.add(message);
+            return TestAcknowledgements.accepted(message);
+        }); Socket client = connect(running.port())) {
             await(() -> metric(running.registry(), "fleetpulse.gateway.connections.active") == 1);
             TelemetryMessage first = message(42);
             TelemetryMessage second = message(43);
@@ -60,7 +64,10 @@ class TcpServerIntegrationTest {
         TelemetryMessage expected = message(44);
         byte[] frame = frame(expected);
 
-        try (RunningServer running = RunningServer.start(received::add); Socket client = connect(running.port())) {
+        try (RunningServer running = RunningServer.start(message -> {
+            received.add(message);
+            return TestAcknowledgements.accepted(message);
+        }); Socket client = connect(running.port())) {
             await(() -> metric(running.registry(), "fleetpulse.gateway.connections.active") == 1);
 
             for (byte value : frame) {
@@ -81,7 +88,10 @@ class TcpServerIntegrationTest {
         TelemetryMessage first = message(45);
         TelemetryMessage second = message(46);
 
-        try (RunningServer running = RunningServer.start(received::add); Socket client = connect(running.port())) {
+        try (RunningServer running = RunningServer.start(message -> {
+            received.add(message);
+            return TestAcknowledgements.accepted(message);
+        }); Socket client = connect(running.port())) {
             await(() -> metric(running.registry(), "fleetpulse.gateway.connections.active") == 1);
 
             ByteArrayOutputStream frames = new ByteArrayOutputStream();
@@ -102,7 +112,10 @@ class TcpServerIntegrationTest {
         BlockingQueue<TelemetryMessage> received = new LinkedBlockingQueue<>();
         TelemetryMessage complete = message(47);
 
-        try (RunningServer running = RunningServer.start(received::add); Socket client = connect(running.port())) {
+        try (RunningServer running = RunningServer.start(message -> {
+            received.add(message);
+            return TestAcknowledgements.accepted(message);
+        }); Socket client = connect(running.port())) {
             ByteArrayOutputStream frames = new ByteArrayOutputStream();
             frames.write(frame(complete));
             new DataOutputStream(frames).writeInt(32);
@@ -123,7 +136,10 @@ class TcpServerIntegrationTest {
     void handlesConcurrentRealClientsAndUpdatesMetrics() throws Exception {
         int clientCount = 4;
         CountDownLatch handled = new CountDownLatch(clientCount);
-        try (RunningServer running = RunningServer.start(message -> handled.countDown())) {
+        try (RunningServer running = RunningServer.start(message -> {
+            handled.countDown();
+            return TestAcknowledgements.accepted(message);
+        })) {
             List<Socket> clients = new ArrayList<>();
             try {
                 for (int index = 0; index < clientCount; index++) {
@@ -147,8 +163,9 @@ class TcpServerIntegrationTest {
 
     @Test
     void recordsFailureAndCleansUpWhenClientDisconnectsMidFrame() throws Exception {
-        try (RunningServer running = RunningServer.start(message -> {
-        }); Socket client = connect(running.port())) {
+        try (RunningServer running = RunningServer.start(TestAcknowledgements::accepted);
+             Socket client = connect(running.port())
+        ) {
             DataOutputStream output = new DataOutputStream(client.getOutputStream());
             output.writeInt(10);
             output.write(new byte[]{'{', '}'});
@@ -165,7 +182,7 @@ class TcpServerIntegrationTest {
     @Test
     void shutdownClosesAnActiveRealClientAndResetsGauge() throws Exception {
         RunningServer running = RunningServer.start(
-                message -> { },
+                TestAcknowledgements::accepted,
                 100,
                 Duration.ofSeconds(5),
                 Duration.ofMillis(200)
@@ -186,8 +203,7 @@ class TcpServerIntegrationTest {
 
     @Test
     void rejectsConnectionsBeyondCapacityAndReusesPermitAfterDisconnect() throws Exception {
-        try (RunningServer running = RunningServer.start(message -> {
-        }, 1); Socket first = connect(running.port())) {
+        try (RunningServer running = RunningServer.start(TestAcknowledgements::accepted, 1); Socket first = connect(running.port())) {
             await(() -> metric(running.registry(), "fleetpulse.gateway.connections.active") == 1);
             try (Socket rejected = connect(running.port())) {
                 rejected.setSoTimeout(2_000);
@@ -211,8 +227,7 @@ class TcpServerIntegrationTest {
 
     @Test
     void returnsPermitAfterDecoderFailure() throws Exception {
-        try (RunningServer running = RunningServer.start(message -> {
-        }, 1)) {
+        try (RunningServer running = RunningServer.start(TestAcknowledgements::accepted, 1)) {
             try (Socket invalid = connect(running.port())) {
                 DataOutputStream output = new DataOutputStream(invalid.getOutputStream());
                 output.writeInt(10);
@@ -253,8 +268,7 @@ class TcpServerIntegrationTest {
     void neverExceedsMaximumConnectionsUnderConcurrentLoad() throws Exception {
         int maxConnections = 3;
         int clientCount = 10;
-        try (RunningServer running = RunningServer.start(message -> {
-        }, maxConnections)) {
+        try (RunningServer running = RunningServer.start(TestAcknowledgements::accepted, maxConnections)) {
             CountDownLatch start = new CountDownLatch(1);
             List<CompletableFuture<Socket>> attempts = new ArrayList<>();
             for (int index = 0; index < clientCount; index++) {
@@ -297,8 +311,7 @@ class TcpServerIntegrationTest {
     void closesIdleClientWhenReadTimeoutExpires() throws Exception {
         try (
                 RunningServer running = RunningServer.start(
-                        message -> {
-                        },
+                        TestAcknowledgements::accepted,
                         1,
                         Duration.ofMillis(200),
                         Duration.ofSeconds(1)
@@ -349,11 +362,12 @@ class TcpServerIntegrationTest {
             );
         }
     }
+
     @Test
     void reusesPermitAfterReadTimeout() throws Exception {
         try (
                 RunningServer running = RunningServer.start(
-                        message -> { },
+                        TestAcknowledgements::accepted,
                         1,
                         Duration.ofMillis(200),
                         Duration.ofSeconds(1)
@@ -413,7 +427,7 @@ class TcpServerIntegrationTest {
     void closesClientWhenReadTimeoutExpiresDuringPartialFrame() throws Exception {
         try (
                 RunningServer running = RunningServer.start(
-                        message -> { },
+                        TestAcknowledgements::accepted,
                         1,
                         Duration.ofMillis(200),
                         Duration.ofSeconds(1)
@@ -465,7 +479,10 @@ class TcpServerIntegrationTest {
 
         try (
                 RunningServer running = RunningServer.start(
-                        message -> handled.countDown(),
+                        message -> {
+                            handled.countDown();
+                            return TestAcknowledgements.accepted(message);
+                        },
                         1,
                         Duration.ofSeconds(1),
                         Duration.ofSeconds(1)
@@ -536,6 +553,8 @@ class TcpServerIntegrationTest {
                     } catch (InterruptedException exception) {
                         Thread.currentThread().interrupt();
                     }
+
+                    return TestAcknowledgements.accepted(message);
                 },
                 1,
                 Duration.ofSeconds(5),
@@ -600,7 +619,7 @@ class TcpServerIntegrationTest {
     @Test
     void forceClosesClientWhenGracePeriodExpires() throws Exception {
         RunningServer running = RunningServer.start(
-                message -> { },
+                TestAcknowledgements::accepted,
                 1,
                 Duration.ofSeconds(5),
                 Duration.ofMillis(200)
@@ -657,6 +676,36 @@ class TcpServerIntegrationTest {
             );
         } finally {
             running.close();
+        }
+    }
+
+    @Test
+    void writesAcknowledgementReturnedByFrameHandler() throws Exception {
+        TelemetryMessage message = message(48);
+        TelemetryAck expected =
+                TestAcknowledgements.accepted(message);
+
+        try (
+                RunningServer running = RunningServer.start(
+                        ignored -> expected
+                );
+                Socket client = connect(running.port())
+        ) {
+            client.setSoTimeout(2_000);
+
+            write(client, message);
+
+            byte[] acknowledgementPayload =
+                    LengthPrefixedFrameCodec.read(
+                            client.getInputStream()
+                    );
+
+            TelemetryAck actual = OBJECT_MAPPER.readValue(
+                    acknowledgementPayload,
+                    TelemetryAck.class
+            );
+
+            assertEquals(expected, actual);
         }
     }
 
@@ -740,6 +789,7 @@ class TcpServerIntegrationTest {
                     handler,
                     new TcpServerProperties(true, 0, maxConnections, readTimeout, shutdownGracePeriod),
                     new FrameDecoder(OBJECT_MAPPER),
+                    new TelemetryAckEncoder(OBJECT_MAPPER),
                     registry);
             CompletableFuture<Integer> bindResult = new CompletableFuture<>();
             AtomicReference<Throwable> listenerFailure = new AtomicReference<>();

@@ -3,6 +3,14 @@ spring:
     name: telemetry-gateway
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      acks: all
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
+      properties:
+        enable.idempotence: true
+        spring.json.add.type.headers: false
+
 
 server:
   port: 8080
@@ -23,3 +31,5 @@ fleetpulse:
   kafka:
     topics:
       raw: ${KAFKA_TOPIC_RAW:telemetry.raw.v1}
+    publisher:
+      confirmation-timeout: ${KAFKA_CONFIRMATION_TIMEOUT:5s}

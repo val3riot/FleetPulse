@@ -6,7 +6,7 @@ import it.fleetpulse.protocol.TelemetryMessage;
 import it.fleetpulse.protocol.frame.LengthPrefixedFrameCodec;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -20,8 +20,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 class TcpServerTest {
 
@@ -32,9 +31,10 @@ class TcpServerTest {
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         TestSocket client = new TestSocket();
         TcpServer server = new TcpServer(
-                message -> { },
+                TestAcknowledgements::accepted,
                 new TcpServerProperties(true, 0, 1, Duration.ofSeconds(10), Duration.ofSeconds(5)),
                 new FrameDecoder(new ObjectMapper()),
+                new TelemetryAckEncoder(new ObjectMapper()),
                 executor,
                 registry
         );
@@ -65,6 +65,7 @@ class TcpServerTest {
                 message -> { throw new IllegalStateException("unexpected handler failure"); },
                 new TcpServerProperties(true, 0, 1, Duration.ofSeconds(10), Duration.ofSeconds(5)),
                 new FrameDecoder(objectMapper),
+                new TelemetryAckEncoder(objectMapper),
                 executor,
                 registry
         );
@@ -85,9 +86,10 @@ class TcpServerTest {
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         ObjectMapper objectMapper = new ObjectMapper();
         TcpServer server = new TcpServer(
-                message -> { },
+                TestAcknowledgements::accepted,
                 new TcpServerProperties(true, 0, 1, Duration.ofSeconds(10), Duration.ofSeconds(5)),
                 new FrameDecoder(objectMapper),
+                new TelemetryAckEncoder(objectMapper),
                 executor,
                 registry
         );
@@ -114,7 +116,7 @@ class TcpServerTest {
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
 
         TcpServer server = new TcpServer(
-                message -> { },
+                TestAcknowledgements::accepted,
                 new TcpServerProperties(
                         true,
                         0,
@@ -123,6 +125,7 @@ class TcpServerTest {
                         Duration.ofSeconds(1)
                 ),
                 new FrameDecoder(new ObjectMapper()),
+                new TelemetryAckEncoder(new ObjectMapper()),
                 executor,
                 registry
         );
@@ -163,6 +166,7 @@ class TcpServerTest {
     private static final class TestSocket extends Socket {
 
         private final InputStream input;
+        private final ByteArrayOutputStream output = new ByteArrayOutputStream();
         private volatile boolean closed;
         private final boolean failOnSetSoTimeout;
         private TestSocket() {
@@ -185,6 +189,11 @@ class TcpServerTest {
         @Override
         public InputStream getInputStream() {
             return input;
+        }
+
+        @Override
+        public ByteArrayOutputStream getOutputStream() {
+            return output;
         }
 
         @Override

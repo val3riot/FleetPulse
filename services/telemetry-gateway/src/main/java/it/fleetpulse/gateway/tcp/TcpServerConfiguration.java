@@ -13,8 +13,8 @@ public final class TcpServerConfiguration {
 
     @Bean(destroyMethod = "")
     @ConditionalOnProperty(prefix = "gateway.tcp", name = "enabled", havingValue = "true")
-    TcpServer tcpServer(FrameHandler frameHandler, TcpServerProperties properties, FrameDecoder frameDecoder, MeterRegistry meterRegistry) {
-        return new TcpServer(frameHandler, properties, frameDecoder, meterRegistry);
+    TcpServer tcpServer(FrameHandler frameHandler, TcpServerProperties properties, FrameDecoder frameDecoder, TelemetryAckEncoder acknowledgementEncoder, MeterRegistry meterRegistry) {
+        return new TcpServer(frameHandler, properties, frameDecoder, acknowledgementEncoder, meterRegistry);
     }
 
     @Bean
@@ -26,5 +26,10 @@ public final class TcpServerConfiguration {
     @Bean
     FrameDecoder frameDecoder(JsonMapper jsonMapper) {
         return new FrameDecoder(jsonMapper);
+    }
+
+    @Bean
+    TelemetryAckEncoder telemetryAckEncoder(JsonMapper jsonMapper) {
+        return new TelemetryAckEncoder(jsonMapper);
     }
 }

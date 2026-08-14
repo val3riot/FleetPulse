@@ -101,7 +101,7 @@ class TcpServerConfigurationTest {
 
         @Bean
         FrameHandler frameHandler() {
-            return message -> { };
+            return TestAcknowledgements::accepted;
         }
     }
 }
