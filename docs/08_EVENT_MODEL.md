@@ -8,9 +8,9 @@
 | `telemetry.rejected.v1` | `vehicleId` | Telemetry Processor | Operations tooling | Telemetria elaborata ma rifiutata dal dominio |
 | `telemetry.dead-letter.v1` | `vehicleId` | Telemetry Processor | Operations tooling | Messaggi non elaborabili o errori tecnici con retry esauriti |
 
-La presenza di `telemetry.rejected.v1` in questo modello definisce il contratto
-architetturale. Creazione e configurazione effettiva del topic appartengono alle
-ticket Kafka dedicate.
+I tre topic sono creati idempotentemente dal servizio `kafka-init` di Docker
+Compose. I nomi sono configurabili tramite `KAFKA_TOPIC_RAW`,
+`KAFKA_TOPIC_REJECTED` e `KAFKA_TOPIC_DEAD_LETTER`.
 
 ## 2. Event schema
 

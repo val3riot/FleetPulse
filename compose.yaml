@@ -95,8 +95,9 @@ services:
     entrypoint: ["/bin/sh", "-ec"]
     command:
       - |
-        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:19092 --create --if-not-exists --topic telemetry.raw.v1 --partitions 3 --replication-factor 1
-        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:19092 --create --if-not-exists --topic telemetry.raw.v1.dlt --partitions 3 --replication-factor 1
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:19092 --create --if-not-exists --topic ${KAFKA_TOPIC_RAW:?KAFKA_TOPIC_RAW must be set} --partitions 3 --replication-factor 1
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:19092 --create --if-not-exists --topic ${KAFKA_TOPIC_REJECTED:?KAFKA_TOPIC_REJECTED must be set} --partitions 3 --replication-factor 1
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:19092 --create --if-not-exists --topic ${KAFKA_TOPIC_DEAD_LETTER:?KAFKA_TOPIC_DEAD_LETTER must be set} --partitions 3 --replication-factor 1
         /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:19092 --list
     restart: "no"
 
@@ -141,6 +142,7 @@ services:
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka:19092
       GATEWAY_TCP_PORT: "7000"
+      KAFKA_TOPIC_RAW: ${KAFKA_TOPIC_RAW}
     ports:
       - "127.0.0.1:${GATEWAY_TCP_PORT:?GATEWAY_TCP_PORT must be set}:7000"
       - "127.0.0.1:${GATEWAY_HTTP_PORT:?GATEWAY_HTTP_PORT must be set}:8080"
@@ -166,6 +168,9 @@ services:
       SPRING_DATA_REDIS_PORT: "6379"
       SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
       KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+      KAFKA_TOPIC_RAW: ${KAFKA_TOPIC_RAW}
+      KAFKA_TOPIC_REJECTED: ${KAFKA_TOPIC_REJECTED}
+      KAFKA_TOPIC_DEAD_LETTER: ${KAFKA_TOPIC_DEAD_LETTER}
     ports:
       - "127.0.0.1:${PROCESSOR_HTTP_PORT:?PROCESSOR_HTTP_PORT must be set}:8080"
     depends_on:

@@ -20,6 +20,12 @@ spring:
     init:
       mode: never
 
+fleetpulse:
+  kafka:
+    topics:
+      raw: ${KAFKA_TOPIC_RAW:telemetry.raw.v1}
+      rejected: ${KAFKA_TOPIC_REJECTED:telemetry.rejected.v1}
+      dead-letter: ${KAFKA_TOPIC_DEAD_LETTER:telemetry.dead-letter.v1}
 server:
   port: 8080
 

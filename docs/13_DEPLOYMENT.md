@@ -90,6 +90,17 @@ All'interno della rete Compose Kafka pubblicizza `kafka:19092`; il listener
 PostgreSQL e Redis sono analogamente pubblicati soltanto sull'interfaccia di
 loopback per supportare il workflow dall'IDE.
 
+Il job one-shot `kafka-init` crea idempotentemente i topic applicativi con tre
+partizioni e replication factor `1`:
+
+- `telemetry.raw.v1`;
+- `telemetry.rejected.v1`;
+- `telemetry.dead-letter.v1`.
+
+I nomi sono centralizzati nelle variabili `KAFKA_TOPIC_RAW`,
+`KAFKA_TOPIC_REJECTED` e `KAFKA_TOPIC_DEAD_LETTER`. Il replication factor `1`
+è adatto esclusivamente alla configurazione locale con un solo broker.
+
 ## 4. Container design
 
 Le application image dovrebbero:
