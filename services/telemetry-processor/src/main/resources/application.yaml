@@ -12,6 +12,19 @@ spring:
       password: ${SPRING_DATA_REDIS_PASSWORD}
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: ${fleetpulse.kafka.consumer.group-id}
+      enable-auto-commit: false
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+      properties:
+        spring.json.use.type.headers: false
+        spring.json.value.default.type: it.fleetpulse.contracts.telemetry.TelemetryEvent
+        spring.json.trusted.packages: it.fleetpulse.contracts.telemetry
+    listener:
+      type: single
+      ack-mode: record
   jpa:
     open-in-view: false
     hibernate:
@@ -22,6 +35,8 @@ spring:
 
 fleetpulse:
   kafka:
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP_ID:fleetpulse-telemetry-processor-v1}
     topics:
       raw: ${KAFKA_TOPIC_RAW:telemetry.raw.v1}
       rejected: ${KAFKA_TOPIC_REJECTED:telemetry.rejected.v1}
