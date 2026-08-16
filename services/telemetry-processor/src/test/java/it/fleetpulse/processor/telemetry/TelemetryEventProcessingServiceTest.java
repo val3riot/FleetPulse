@@ -3,39 +3,51 @@ package it.fleetpulse.processor.telemetry;
 import it.fleetpulse.contracts.telemetry.TelemetryData;
 import it.fleetpulse.contracts.telemetry.TelemetryEvent;
 import it.fleetpulse.contracts.telemetry.TelemetryEventVersions;
+import it.fleetpulse.processor.telemetry.persistence.TelemetryPersistenceFailureClassifier;
 import it.fleetpulse.processor.telemetry.persistence.TelemetrySampleEntity;
 import it.fleetpulse.processor.telemetry.persistence.TelemetrySampleMapper;
-import it.fleetpulse.processor.telemetry.persistence.TelemetrySampleRepository;
+import it.fleetpulse.processor.telemetry.persistence.TelemetrySampleWriter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 class TelemetryEventProcessingServiceTest {
     private static final Instant PROCESSED_AT =
             Instant.parse("2026-08-01T10:15:30.150Z");
 
-    private final TelemetrySampleRepository repository =
-            mock(TelemetrySampleRepository.class);
+    private final TelemetrySampleWriter writer =
+            mock(TelemetrySampleWriter.class);
+
+    private final TelemetryPersistenceFailureClassifier failureClassifier =
+            mock(TelemetryPersistenceFailureClassifier.class);
 
     private final TelemetryEventProcessingService service =
             new TelemetryEventProcessingService(
-                    repository,
+                    writer,
                     new TelemetrySampleMapper(),
-                    Clock.fixed(PROCESSED_AT, ZoneOffset.UTC)
+                    Clock.fixed(PROCESSED_AT, ZoneOffset.UTC),
+                    failureClassifier
             );
 
     @BeforeEach
     void returnEntityBeingSaved() {
-        when(repository.saveAndFlush(any(TelemetrySampleEntity.class)))
+        when(writer.insert(any(TelemetrySampleEntity.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
     }
 
@@ -48,7 +60,7 @@ class TelemetryEventProcessingServiceTest {
         ArgumentCaptor<TelemetrySampleEntity> captor =
                 ArgumentCaptor.forClass(TelemetrySampleEntity.class);
 
-        verify(repository).saveAndFlush(captor.capture());
+        verify(writer).insert(captor.capture());
 
         TelemetrySampleEntity saved = captor.getValue();
 
@@ -65,13 +77,46 @@ class TelemetryEventProcessingServiceTest {
         );
 
         assertEquals(99, exception.actualVersion());
-        verifyNoInteractions(repository);
+        verifyNoInteractions(writer);
     }
 
     @Test
     void rejectsNullEvent() {
         assertThrows(NullPointerException.class, () -> service.handle(null));
-        verifyNoInteractions(repository);
+        verifyNoInteractions(writer);
+    }
+
+    @Test
+    void completesNormallyForDuplicateMessageId() {
+        DataIntegrityViolationException failure =
+                new DataIntegrityViolationException("duplicate");
+
+        when(writer.insert(any(TelemetrySampleEntity.class)))
+                .thenThrow(failure);
+        when(failureClassifier.isDuplicateMessageId(failure))
+                .thenReturn(true);
+
+        assertDoesNotThrow(
+                () -> service.handle(event(TelemetryEventVersions.V1))
+        );
+    }
+
+    @Test
+    void propagatesNonDuplicateIntegrityFailure() {
+        DataIntegrityViolationException failure =
+                new DataIntegrityViolationException("foreign key");
+
+        when(writer.insert(any(TelemetrySampleEntity.class)))
+                .thenThrow(failure);
+        when(failureClassifier.isDuplicateMessageId(failure))
+                .thenReturn(false);
+
+        DataIntegrityViolationException thrown = assertThrows(
+                DataIntegrityViolationException.class,
+                () -> service.handle(event(TelemetryEventVersions.V1))
+        );
+
+        assertSame(failure, thrown);
     }
 
     private static TelemetryEvent event(int version) {
