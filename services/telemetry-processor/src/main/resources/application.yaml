@@ -37,6 +37,12 @@ fleetpulse:
   kafka:
     consumer:
       group-id: ${KAFKA_CONSUMER_GROUP_ID:fleetpulse-telemetry-processor-v1}
+      retry-max-attempts: ${KAFKA_CONSUMER_RETRY_MAX_ATTEMPTS:3}
+      retry-initial-backoff: ${KAFKA_CONSUMER_RETRY_INITIAL_BACKOFF:500ms}
+      retry-max-backoff: ${KAFKA_CONSUMER_RETRY_MAX_BACKOFF:5s}
+      retry-multiplier: ${KAFKA_CONSUMER_RETRY_MULTIPLIER:2.0}
+      retry-jitter-ratio: ${KAFKA_CONSUMER_RETRY_JITTER_RATIO:0.2}
+
     topics:
       raw: ${KAFKA_TOPIC_RAW:telemetry.raw.v1}
       rejected: ${KAFKA_TOPIC_REJECTED:telemetry.rejected.v1}

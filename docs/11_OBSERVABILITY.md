@@ -64,6 +64,7 @@ gateway.
 fleetpulse_processor_events_total
 fleetpulse_processor_duplicates_total
 fleetpulse_processor_failures_total
+fleetpulse_processor_failures_terminal_total
 fleetpulse_processor_rejections_total{reason="UNKNOWN_VEHICLE"}
 fleetpulse_processor_rejections_total{reason="VEHICLE_DISABLED"}
 fleetpulse_processor_dead_letter_total

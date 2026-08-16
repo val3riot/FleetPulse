@@ -1,5 +1,7 @@
 package it.fleetpulse.processor.telemetry.kafka;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import it.fleetpulse.contracts.telemetry.TelemetryData;
 import it.fleetpulse.contracts.telemetry.TelemetryEvent;
 import it.fleetpulse.contracts.telemetry.TelemetryEventVersions;
@@ -22,10 +24,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.*;
 import org.springframework.kafka.listener.ContainerProperties;
+import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.kafka.support.serializer.JacksonJsonDeserializer;
 import org.springframework.kafka.support.serializer.JacksonJsonSerializer;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -39,6 +44,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -56,6 +62,8 @@ public class RawTelemetryEventListenerIntegrationTest {
     private BlockingQueue<TelemetryEvent> receivedEvents;
     @Autowired
     private TestTelemetryEventHandler testHandler;
+    @Autowired
+    private MeterRegistry meterRegistry;
 
     @Container
     static final KafkaContainer KAFKA =
@@ -76,7 +84,7 @@ public class RawTelemetryEventListenerIntegrationTest {
 
     @BeforeEach
     void clearReceivedEvents() {
-        receivedEvents.clear();
+        testHandler.reset();
     }
 
     @DynamicPropertySource
@@ -230,6 +238,76 @@ public class RawTelemetryEventListenerIntegrationTest {
         awaitCommittedOffset(partition, recordOffset + 1);
     }
 
+    @Test
+    void retriesTemporaryFailureAndThenProcessesEvent()
+            throws Exception {
+        TelemetryEvent event = event();
+        testHandler.failOnce(event.messageId());
+
+        kafkaTemplate.send(
+                TOPIC,
+                event.vehicleId().toString(),
+                event
+        ).get(10, TimeUnit.SECONDS);
+
+        assertEquals(
+                event,
+                receivedEvents.poll(10, TimeUnit.SECONDS)
+        );
+        assertEquals(
+                2,
+                testHandler.attemptsFor(event.messageId())
+        );
+    }
+
+    @Test
+    void stopsAfterConfiguredRetryAttempts() throws Exception {
+        TelemetryEvent event = event();
+        testHandler.alwaysFail(event.messageId());
+        double terminalFailuresBefore = meterRegistry.get(
+                "fleetpulse.processor.failures.terminal"
+        ).counter().count();
+
+        kafkaTemplate.send(
+                TOPIC,
+                event.vehicleId().toString(),
+                event
+        ).get(10, TimeUnit.SECONDS);
+
+        awaitMetric(
+                "fleetpulse.processor.failures.terminal",
+                terminalFailuresBefore + 1
+        );
+
+        assertEquals(
+                4,
+                testHandler.attemptsFor(event.messageId())
+        );
+        assertNull(receivedEvents.poll(200, TimeUnit.MILLISECONDS));
+    }
+
+    private void awaitMetric(
+            String metricName,
+            double expectedValue
+    ) throws InterruptedException {
+        long deadline = System.nanoTime()
+                + TimeUnit.SECONDS.toNanos(10);
+
+        while (System.nanoTime() < deadline) {
+            double currentValue = meterRegistry.get(
+                    metricName
+            ).counter().count();
+
+            if (currentValue >= expectedValue) {
+                return;
+            }
+
+            Thread.sleep(25);
+        }
+
+        fail("Metric did not reach expected value: " + metricName);
+    }
+
     private static boolean offsetHasAdvancedPast(
             TopicPartition partition,
             long recordOffset
@@ -357,7 +435,25 @@ public class RawTelemetryEventListenerIntegrationTest {
 
     @Configuration
     @EnableKafka
+    @Import(KafkaRetryConfiguration.class)
     static class KafkaTestConfiguration {
+
+        @Bean
+        KafkaConsumerProperties kafkaConsumerProperties() {
+            return new KafkaConsumerProperties(
+                    GROUP_ID,
+                    3,
+                    Duration.ofMillis(10),
+                    Duration.ofMillis(50),
+                    2.0,
+                    0.0
+            );
+        }
+
+        @Bean
+        MeterRegistry meterRegistry() {
+            return new SimpleMeterRegistry();
+        }
 
         @Bean
         TestTelemetryEventHandler telemetryEventHandler() {
@@ -403,12 +499,14 @@ public class RawTelemetryEventListenerIntegrationTest {
         @Bean
         ConcurrentKafkaListenerContainerFactory<String, TelemetryEvent>
         kafkaListenerContainerFactory(
-                ConsumerFactory<String, TelemetryEvent> consumerFactory
+                ConsumerFactory<String, TelemetryEvent> consumerFactory,
+                DefaultErrorHandler errorHandler
         ) {
             ConcurrentKafkaListenerContainerFactory<String, TelemetryEvent> factory =
                     new ConcurrentKafkaListenerContainerFactory<>();
 
             factory.setConsumerFactory(consumerFactory);
+            factory.setCommonErrorHandler(errorHandler);
             factory.getContainerProperties().setAckMode(
                     ContainerProperties.AckMode.RECORD
             );
@@ -444,11 +542,35 @@ public class RawTelemetryEventListenerIntegrationTest {
         private final BlockingQueue<TelemetryEvent> receivedEvents =
                 new LinkedBlockingQueue<>();
         private volatile UUID blockedMessageId;
+        private volatile UUID failOnceMessageId;
+        private volatile UUID alwaysFailMessageId;
+        private final Map<UUID, Integer> attempts =
+                new ConcurrentHashMap<>();
         private volatile CountDownLatch entered = new CountDownLatch(0);
         private volatile CountDownLatch release = new CountDownLatch(0);
 
         @Override
         public void handle(TelemetryEvent event) {
+            int currentAttempt = attempts.merge(
+                    event.messageId(),
+                    1,
+                    Integer::sum
+            );
+
+            if (
+                    event.messageId().equals(failOnceMessageId)
+                            && currentAttempt == 1
+            ) {
+                throw new DataAccessResourceFailureException(
+                        "temporary database failure"
+                );
+            }
+
+            if (event.messageId().equals(alwaysFailMessageId)) {
+                throw new DataAccessResourceFailureException(
+                        "persistent database failure"
+                );
+            }
 
             if (event.messageId().equals(blockedMessageId)) {
                 entered.countDown();
@@ -470,6 +592,28 @@ public class RawTelemetryEventListenerIntegrationTest {
             blockedMessageId = messageId;
             entered = new CountDownLatch(1);
             release = new CountDownLatch(1);
+        }
+
+        void failOnce(UUID messageId) {
+            failOnceMessageId = messageId;
+        }
+
+        void alwaysFail(UUID messageId) {
+            alwaysFailMessageId = messageId;
+        }
+
+        int attemptsFor(UUID messageId) {
+            return attempts.getOrDefault(messageId, 0);
+        }
+
+        void reset() {
+            receivedEvents.clear();
+            attempts.clear();
+            blockedMessageId = null;
+            failOnceMessageId = null;
+            alwaysFailMessageId = null;
+            entered = new CountDownLatch(0);
+            release = new CountDownLatch(0);
         }
 
         boolean awaitBlocked(Duration timeout) throws InterruptedException {
