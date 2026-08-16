@@ -4,7 +4,6 @@ import it.fleetpulse.contracts.telemetry.TelemetryData;
 import it.fleetpulse.contracts.telemetry.TelemetryEvent;
 import it.fleetpulse.contracts.telemetry.TelemetryEventVersions;
 import it.fleetpulse.processor.telemetry.TelemetryEventHandler;
-import it.fleetpulse.processor.telemetry.TelemetryEventProcessingService;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.NewTopic;
@@ -442,8 +441,6 @@ public class RawTelemetryEventListenerIntegrationTest {
 
     static final class TestTelemetryEventHandler
             implements TelemetryEventHandler {
-        private final TelemetryEventProcessingService service =
-                new TelemetryEventProcessingService();
         private final BlockingQueue<TelemetryEvent> receivedEvents =
                 new LinkedBlockingQueue<>();
         private volatile UUID blockedMessageId;
@@ -452,7 +449,6 @@ public class RawTelemetryEventListenerIntegrationTest {
 
         @Override
         public void handle(TelemetryEvent event) {
-            service.handle(event);
 
             if (event.messageId().equals(blockedMessageId)) {
                 entered.countDown();
