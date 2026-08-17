@@ -30,14 +30,13 @@ class VehicleSimulatorLifecycleTest {
     @Test
     void disabledSimulatorDoesNotProvisionOrStartWorkloads() {
         AtomicInteger provisioningCalls = new AtomicInteger();
-        VehicleSimulatorLifecycle lifecycle = new VehicleSimulatorLifecycle(
-                properties(false),
-                () -> {
-                    provisioningCalls.incrementAndGet();
-                    return List.of();
-                },
-                ignored -> task(() -> { }, () -> { })
-        );
+        VehicleSimulatorLifecycle lifecycle =
+            new VehicleSimulatorLifecycle(properties(false), () -> {
+                provisioningCalls.incrementAndGet();
+                return List.of();
+            }, ignored -> task(() -> {
+            }, () -> {
+            }));
 
         lifecycle.start();
 
@@ -53,9 +52,8 @@ class VehicleSimulatorLifecycleTest {
         CountDownLatch release = new CountDownLatch(1);
         AtomicBoolean allVirtual = new AtomicBoolean(true);
         List<ProvisionedVehicle> createdWorkloads = new ArrayList<>();
-        VehicleSimulatorLifecycle lifecycle = new VehicleSimulatorLifecycle(
-                properties(true),
-                () -> List.of(first, second),
+        VehicleSimulatorLifecycle lifecycle =
+            new VehicleSimulatorLifecycle(properties(true), () -> List.of(first, second),
                 vehicle -> {
                     createdWorkloads.add(vehicle);
                     return task(() -> {
@@ -66,9 +64,9 @@ class VehicleSimulatorLifecycleTest {
                         } catch (InterruptedException interrupted) {
                             Thread.currentThread().interrupt();
                         }
-                    }, () -> { });
-                }
-        );
+                    }, () -> {
+                    });
+                });
 
         try {
             lifecycle.start();
@@ -92,9 +90,8 @@ class VehicleSimulatorLifecycleTest {
         CountDownLatch interrupted = new CountDownLatch(1);
         AtomicBoolean closed = new AtomicBoolean();
         ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
-        VehicleSimulatorLifecycle lifecycle = new VehicleSimulatorLifecycle(
-                properties(true),
-                () -> List.of(vehicle),
+        VehicleSimulatorLifecycle lifecycle =
+            new VehicleSimulatorLifecycle(properties(true), () -> List.of(vehicle),
                 ignored -> task(() -> {
                     started.countDown();
                     try {
@@ -103,9 +100,7 @@ class VehicleSimulatorLifecycleTest {
                         interrupted.countDown();
                         Thread.currentThread().interrupt();
                     }
-                }, () -> closed.set(true)),
-                () -> executor
-        );
+                }, () -> closed.set(true)), () -> executor);
 
         lifecycle.start();
         assertTrue(started.await(2, TimeUnit.SECONDS));
@@ -120,22 +115,17 @@ class VehicleSimulatorLifecycleTest {
 
     private static ProvisionedVehicle vehicle(int index) {
         return new ProvisionedVehicle(
-                UUID.nameUUIDFromBytes(("vehicle-" + index).getBytes(StandardCharsets.UTF_8)),
-                "FP-SIM-%03d".formatted(index)
-        );
+            UUID.nameUUIDFromBytes(("vehicle-" + index).getBytes(StandardCharsets.UTF_8)),
+            "FP-SIM-%03d".formatted(index));
     }
 
     private static VehicleSimulatorProperties properties(boolean enabled) {
-        return new VehicleSimulatorProperties(
-                enabled,
-                2,
-                new FleetApiProperties(URI.create("http://fleet-api:8080")),
-                new GatewayProperties("telemetry-gateway", 7000, Duration.ofSeconds(3)),
-                Duration.ofSeconds(1),
-                Duration.ofSeconds(2),
-                new ReconnectProperties(Duration.ofMillis(250), Duration.ofSeconds(5), 10, 0.2),
-                new VehicleProperties(15_000, 10_000)
-        );
+        return new VehicleSimulatorProperties(enabled, 2,
+            new FleetApiProperties(URI.create("http://fleet-api:8080")),
+            new GatewayProperties("telemetry-gateway", 7000, Duration.ofSeconds(3)),
+            Duration.ofSeconds(1), Duration.ofSeconds(2),
+            new ReconnectProperties(Duration.ofMillis(250), Duration.ofSeconds(5), 10, 0.2),
+            new VehicleProperties(15_000, 10_000));
     }
 
     private static VehicleTask task(Runnable run, Runnable close) {

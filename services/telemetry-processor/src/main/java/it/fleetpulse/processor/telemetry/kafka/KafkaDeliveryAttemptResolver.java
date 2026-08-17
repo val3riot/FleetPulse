@@ -12,9 +12,7 @@ public final class KafkaDeliveryAttemptResolver {
     public int resolve(ConsumerRecord<?, ?> record) {
         Objects.requireNonNull(record, "record must not be null");
 
-        Header header = record.headers().lastHeader(
-                KafkaHeaders.DELIVERY_ATTEMPT
-        );
+        Header header = record.headers().lastHeader(KafkaHeaders.DELIVERY_ATTEMPT);
 
         if (header == null || header.value() == null) {
             return 1;

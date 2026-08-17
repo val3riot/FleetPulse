@@ -83,21 +83,20 @@ class NormalTelemetryProfileTest {
     @Test
     void rejectsInvalidDependenciesAndInterval() {
         assertThrows(IllegalArgumentException.class,
-                () -> new NormalTelemetryProfile(Duration.ZERO, clock(), new Random(1), UUID::randomUUID));
+            () -> new NormalTelemetryProfile(Duration.ZERO, clock(), new Random(1),
+                UUID::randomUUID));
         assertThrows(NullPointerException.class,
-                () -> new NormalTelemetryProfile(Duration.ofSeconds(1), null, new Random(1), UUID::randomUUID));
+            () -> new NormalTelemetryProfile(Duration.ofSeconds(1), null, new Random(1),
+                UUID::randomUUID));
         assertThrows(NullPointerException.class,
-                () -> new NormalTelemetryProfile(Duration.ofSeconds(1), clock(), new Random(1), () -> null)
-                        .next(state()));
+            () -> new NormalTelemetryProfile(Duration.ofSeconds(1), clock(), new Random(1),
+                () -> null).next(state()));
     }
 
-    private static NormalTelemetryProfile profile(long seed, MessageIdGenerator messageIdGenerator) {
-        return new NormalTelemetryProfile(
-                Duration.ofSeconds(1),
-                clock(),
-                new Random(seed),
-                messageIdGenerator
-        );
+    private static NormalTelemetryProfile profile(long seed,
+        MessageIdGenerator messageIdGenerator) {
+        return new NormalTelemetryProfile(Duration.ofSeconds(1), clock(), new Random(seed),
+            messageIdGenerator);
     }
 
     private static Clock clock() {
@@ -105,16 +104,7 @@ class NormalTelemetryProfileTest {
     }
 
     private static SimulatedVehicleState state() {
-        return new SimulatedVehicleState(
-                UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0"),
-                "FP-SIM-001",
-                7,
-                72.0,
-                89.0,
-                13.8,
-                10_000.5,
-                41.9028,
-                12.4964
-        );
+        return new SimulatedVehicleState(UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0"),
+            "FP-SIM-001", 7, 72.0, 89.0, 13.8, 10_000.5, 41.9028, 12.4964);
     }
 }

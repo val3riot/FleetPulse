@@ -26,27 +26,20 @@ class ApiErrorResponseJsonTest {
     @Test
     @DisplayName("Serializza ApiErrorResponse mantenendo details vuoto")
     void serializesEmptyDetails() throws Exception {
-        ApiErrorResponse response = new ApiErrorResponse(
-                TIMESTAMP,
-                404,
-                "VEHICLE_NOT_FOUND",
-                "Vehicle not found",
-                "/api/v1/vehicles/97e194a8-64b3-4885-b1e6-25fd482f58c0",
-                List.of()
-        );
+        ApiErrorResponse response =
+            new ApiErrorResponse(TIMESTAMP, 404, "VEHICLE_NOT_FOUND", "Vehicle not found",
+                "/api/v1/vehicles/97e194a8-64b3-4885-b1e6-25fd482f58c0", List.of());
 
         JsonContent<ApiErrorResponse> result = json.write(response);
 
         assertThat(result).extractingJsonPathStringValue("$.timestamp")
-                .isEqualTo(TIMESTAMP.toString());
-        assertThat(result).extractingJsonPathNumberValue("$.status")
-                .isEqualTo(404);
-        assertThat(result).extractingJsonPathStringValue("$.code")
-                .isEqualTo("VEHICLE_NOT_FOUND");
+            .isEqualTo(TIMESTAMP.toString());
+        assertThat(result).extractingJsonPathNumberValue("$.status").isEqualTo(404);
+        assertThat(result).extractingJsonPathStringValue("$.code").isEqualTo("VEHICLE_NOT_FOUND");
         assertThat(result).extractingJsonPathStringValue("$.message")
-                .isEqualTo("Vehicle not found");
+            .isEqualTo("Vehicle not found");
         assertThat(result).extractingJsonPathStringValue("$.path")
-                .isEqualTo("/api/v1/vehicles/97e194a8-64b3-4885-b1e6-25fd482f58c0");
+            .isEqualTo("/api/v1/vehicles/97e194a8-64b3-4885-b1e6-25fd482f58c0");
         assertThat(result).extractingJsonPathArrayValue("$.details").isEmpty();
         assertThat(result).doesNotHaveJsonPath("$.error");
         assertThat(result).doesNotHaveJsonPath("$.trace");
@@ -58,22 +51,17 @@ class ApiErrorResponseJsonTest {
     @Test
     @DisplayName("Serializza i dettagli field-level senza campi aggiuntivi")
     void serializesValidationDetails() throws Exception {
-        ApiErrorResponse response = new ApiErrorResponse(
-                TIMESTAMP,
-                400,
-                "REQUEST_INVALID",
-                "The request is invalid",
+        ApiErrorResponse response =
+            new ApiErrorResponse(TIMESTAMP, 400, "REQUEST_INVALID", "The request is invalid",
                 "/api/v1/vehicles",
-                List.of(new ValidationErrorDetail("plate", "must not be blank"))
-        );
+                List.of(new ValidationErrorDetail("plate", "must not be blank")));
 
         JsonContent<ApiErrorResponse> result = json.write(response);
 
-        assertThat(result).extractingJsonPathStringValue("$.details[0].field")
-                .isEqualTo("plate");
+        assertThat(result).extractingJsonPathStringValue("$.details[0].field").isEqualTo("plate");
         assertThat(result).extractingJsonPathStringValue("$.details[0].message")
-                .isEqualTo("must not be blank");
+            .isEqualTo("must not be blank");
         assertThat(result).extractingJsonPathMapValue("$.details[0]")
-                .containsOnlyKeys("field", "message");
+            .containsOnlyKeys("field", "message");
     }
 }

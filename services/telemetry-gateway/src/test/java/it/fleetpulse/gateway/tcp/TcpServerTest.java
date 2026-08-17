@@ -30,21 +30,18 @@ class TcpServerTest {
         executor.shutdown();
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         TestSocket client = new TestSocket();
-        TcpServer server = new TcpServer(
-                TestAcknowledgements::accepted,
-                new TcpServerProperties(true, 0, 1, Duration.ofSeconds(10), Duration.ofSeconds(5)),
-                new FrameDecoder(new ObjectMapper()),
-                new TelemetryAckEncoder(new ObjectMapper()),
-                executor,
-                registry
-        );
+        TcpServer server = new TcpServer(TestAcknowledgements::accepted,
+            new TcpServerProperties(true, 0, 1, Duration.ofSeconds(10), Duration.ofSeconds(5)),
+            new FrameDecoder(new ObjectMapper()), new TelemetryAckEncoder(new ObjectMapper()),
+            executor, registry);
 
         server.dispatchClient(client);
 
         assertTrue(client.isClosed());
         assertEquals(0, server.activeClients());
         assertEquals(1, registry.counter("fleetpulse.gateway.connections.rejected").count());
-        assertEquals(0, registry.counter("fleetpulse.gateway.tcp.connections.capacity.rejected").count());
+        assertEquals(0,
+            registry.counter("fleetpulse.gateway.tcp.connections.capacity.rejected").count());
         assertEquals(0, registry.get("fleetpulse.gateway.connections.active").gauge().value());
 
         TestSocket nextClient = new TestSocket();
@@ -52,7 +49,8 @@ class TcpServerTest {
 
         assertTrue(nextClient.isClosed());
         assertEquals(2, registry.counter("fleetpulse.gateway.connections.rejected").count());
-        assertEquals(0, registry.counter("fleetpulse.gateway.tcp.connections.capacity.rejected").count());
+        assertEquals(0,
+            registry.counter("fleetpulse.gateway.tcp.connections.capacity.rejected").count());
     }
 
     @Test
@@ -61,14 +59,11 @@ class TcpServerTest {
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         ObjectMapper objectMapper = new ObjectMapper();
         TestSocket client = new TestSocket(frame(objectMapper, validMessage()));
-        TcpServer server = new TcpServer(
-                message -> { throw new IllegalStateException("unexpected handler failure"); },
-                new TcpServerProperties(true, 0, 1, Duration.ofSeconds(10), Duration.ofSeconds(5)),
-                new FrameDecoder(objectMapper),
-                new TelemetryAckEncoder(objectMapper),
-                executor,
-                registry
-        );
+        TcpServer server = new TcpServer(message -> {
+            throw new IllegalStateException("unexpected handler failure");
+        }, new TcpServerProperties(true, 0, 1, Duration.ofSeconds(10), Duration.ofSeconds(5)),
+            new FrameDecoder(objectMapper), new TelemetryAckEncoder(objectMapper), executor,
+            registry);
 
         server.dispatchClient(client);
         executor.shutdown();
@@ -81,25 +76,22 @@ class TcpServerTest {
     }
 
     @Test
-    void closesClientAndReleasesPermitWhenSocketTimeoutConfigurationFails() throws  Exception {
+    void closesClientAndReleasesPermitWhenSocketTimeoutConfigurationFails() throws Exception {
         ExecutorService executor = Executors.newSingleThreadExecutor();
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         ObjectMapper objectMapper = new ObjectMapper();
-        TcpServer server = new TcpServer(
-                TestAcknowledgements::accepted,
-                new TcpServerProperties(true, 0, 1, Duration.ofSeconds(10), Duration.ofSeconds(5)),
-                new FrameDecoder(objectMapper),
-                new TelemetryAckEncoder(objectMapper),
-                executor,
-                registry
-        );
+        TcpServer server = new TcpServer(TestAcknowledgements::accepted,
+            new TcpServerProperties(true, 0, 1, Duration.ofSeconds(10), Duration.ofSeconds(5)),
+            new FrameDecoder(objectMapper), new TelemetryAckEncoder(objectMapper), executor,
+            registry);
 
         TestSocket failingClient = new TestSocket(true);
         server.dispatchClient(failingClient);
         assertEquals(0, server.activeClients());
         assertEquals(1, registry.counter("fleetpulse.gateway.connections.failures").count());
         assertEquals(0, registry.counter("fleetpulse.gateway.connections.accepted").count());
-        assertEquals(0, registry.counter("fleetpulse.gateway.tcp.connections.capacity.rejected").count());
+        assertEquals(0,
+            registry.counter("fleetpulse.gateway.tcp.connections.capacity.rejected").count());
 
         TestSocket nextClient = new TestSocket();
         server.dispatchClient(nextClient);
@@ -107,7 +99,8 @@ class TcpServerTest {
         executor.shutdown();
         assertTrue(executor.awaitTermination(2, TimeUnit.SECONDS));
         assertEquals(1, registry.counter("fleetpulse.gateway.connections.accepted").count());
-        assertEquals(0, registry.counter("fleetpulse.gateway.tcp.connections.capacity.rejected").count());
+        assertEquals(0,
+            registry.counter("fleetpulse.gateway.tcp.connections.capacity.rejected").count());
     }
 
     @Test
@@ -115,20 +108,10 @@ class TcpServerTest {
         ExecutorService executor = Executors.newSingleThreadExecutor();
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
 
-        TcpServer server = new TcpServer(
-                TestAcknowledgements::accepted,
-                new TcpServerProperties(
-                        true,
-                        0,
-                        1,
-                        Duration.ofSeconds(10),
-                        Duration.ofSeconds(1)
-                ),
-                new FrameDecoder(new ObjectMapper()),
-                new TelemetryAckEncoder(new ObjectMapper()),
-                executor,
-                registry
-        );
+        TcpServer server = new TcpServer(TestAcknowledgements::accepted,
+            new TcpServerProperties(true, 0, 1, Duration.ofSeconds(10), Duration.ofSeconds(1)),
+            new FrameDecoder(new ObjectMapper()), new TelemetryAckEncoder(new ObjectMapper()),
+            executor, registry);
 
         assertDoesNotThrow(() -> {
             server.close();
@@ -140,7 +123,8 @@ class TcpServerTest {
     }
 
 
-    private static InputStream frame(ObjectMapper objectMapper, TelemetryMessage message) throws IOException {
+    private static InputStream frame(ObjectMapper objectMapper,
+        TelemetryMessage message) throws IOException {
         byte[] payload = objectMapper.writeValueAsBytes(message);
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         LengthPrefixedFrameCodec.write(payload, output);
@@ -148,19 +132,10 @@ class TcpServerTest {
     }
 
     private static TelemetryMessage validMessage() {
-        return new TelemetryMessage(
-                ProtocolConstants.PROTOCOL_VERSION,
-                UUID.fromString("dc0fc799-0913-4e72-bd2d-8ee8ccf52e22"),
-                UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0"),
-                42,
-                Instant.parse("2026-08-01T10:15:30Z"),
-                72.4,
-                91.8,
-                12.6,
-                85312,
-                41.9028,
-                12.4964
-        );
+        return new TelemetryMessage(ProtocolConstants.PROTOCOL_VERSION,
+            UUID.fromString("dc0fc799-0913-4e72-bd2d-8ee8ccf52e22"),
+            UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0"), 42,
+            Instant.parse("2026-08-01T10:15:30Z"), 72.4, 91.8, 12.6, 85312, 41.9028, 12.4964);
     }
 
     private static final class TestSocket extends Socket {
@@ -169,6 +144,7 @@ class TcpServerTest {
         private final ByteArrayOutputStream output = new ByteArrayOutputStream();
         private volatile boolean closed;
         private final boolean failOnSetSoTimeout;
+
         private TestSocket() {
             this(new ByteArrayInputStream(new byte[0]), false);
         }
@@ -207,8 +183,7 @@ class TcpServerTest {
         }
 
         @Override
-        public synchronized void setSoTimeout(int timeout)
-                throws SocketException {
+        public synchronized void setSoTimeout(int timeout) throws SocketException {
 
             if (failOnSetSoTimeout) {
                 throw new SocketException("test timeout configuration failure");

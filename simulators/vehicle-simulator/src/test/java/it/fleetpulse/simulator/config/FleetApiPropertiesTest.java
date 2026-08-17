@@ -18,8 +18,11 @@ class FleetApiPropertiesTest {
     @Test
     void rejectsMissingRelativeOrUnsupportedUrl() {
         assertThrows(IllegalArgumentException.class, () -> new FleetApiProperties(null));
-        assertThrows(IllegalArgumentException.class, () -> new FleetApiProperties(URI.create("/api/v1")));
-        assertThrows(IllegalArgumentException.class, () -> new FleetApiProperties(URI.create("postgres://localhost/db")));
-        assertThrows(IllegalArgumentException.class, () -> new FleetApiProperties(URI.create("http:missing-host")));
+        assertThrows(IllegalArgumentException.class,
+            () -> new FleetApiProperties(URI.create("/api/v1")));
+        assertThrows(IllegalArgumentException.class,
+            () -> new FleetApiProperties(URI.create("postgres://localhost/db")));
+        assertThrows(IllegalArgumentException.class,
+            () -> new FleetApiProperties(URI.create("http:missing-host")));
     }
 }

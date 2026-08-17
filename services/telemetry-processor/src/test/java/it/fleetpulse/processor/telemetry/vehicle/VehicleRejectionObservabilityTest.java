@@ -14,7 +14,7 @@ class VehicleRejectionObservabilityTest {
 
     private final SimpleMeterRegistry registry = new SimpleMeterRegistry();
     private final VehicleRejectionObservability observability =
-            new VehicleRejectionObservability(registry);
+        new VehicleRejectionObservability(registry);
 
     @Test
     void recordsRejectionsWithBoundedReasonTag() {
@@ -33,21 +33,13 @@ class VehicleRejectionObservabilityTest {
     }
 
     private double rejections(TelemetryRejectionReason reason) {
-        return registry.get("fleetpulse.processor.rejections")
-                .tag("reason", reason.name())
-                .counter()
-                .count();
+        return registry.get("fleetpulse.processor.rejections").tag("reason", reason.name())
+            .counter().count();
     }
 
     private static TelemetryRejectedEvent event(TelemetryRejectionReason reason) {
-        return new TelemetryRejectedEvent(
-                UUID.fromString("dc0fc799-0913-4e72-bd2d-8ee8ccf52e22"),
-                UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0"),
-                reason,
-                Instant.parse("2026-08-17T10:00:00Z"),
-                "telemetry.raw.v1",
-                1,
-                42L
-        );
+        return new TelemetryRejectedEvent(UUID.fromString("dc0fc799-0913-4e72-bd2d-8ee8ccf52e22"),
+            UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0"), reason,
+            Instant.parse("2026-08-17T10:00:00Z"), "telemetry.raw.v1", 1, 42L);
     }
 }

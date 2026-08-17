@@ -31,20 +31,13 @@ public final class VehicleSimulatorLifecycle implements SmartLifecycle {
     private List<VehicleTask> tasks = List.of();
 
     @Autowired
-    public VehicleSimulatorLifecycle(
-            VehicleSimulatorProperties properties,
-            FleetProvisioner provisioner,
-            VehicleWorkloadProvider workloadFactory
-    ) {
+    public VehicleSimulatorLifecycle(VehicleSimulatorProperties properties,
+        FleetProvisioner provisioner, VehicleWorkloadProvider workloadFactory) {
         this(properties, provisioner, workloadFactory, Executors::newVirtualThreadPerTaskExecutor);
     }
 
-    VehicleSimulatorLifecycle(
-            VehicleSimulatorProperties properties,
-            FleetProvisioner provisioner,
-            VehicleWorkloadProvider workloadFactory,
-            Supplier<ExecutorService> executorFactory
-    ) {
+    VehicleSimulatorLifecycle(VehicleSimulatorProperties properties, FleetProvisioner provisioner,
+        VehicleWorkloadProvider workloadFactory, Supplier<ExecutorService> executorFactory) {
         this.properties = Objects.requireNonNull(properties, "properties");
         this.provisioner = Objects.requireNonNull(provisioner, "provisioner");
         this.workloadFactory = Objects.requireNonNull(workloadFactory, "workloadFactory");
@@ -65,9 +58,7 @@ public final class VehicleSimulatorLifecycle implements SmartLifecycle {
         List<ProvisionedVehicle> vehicles = provisioner.provision();
         ExecutorService newExecutor = executorFactory.get();
         try {
-            List<VehicleTask> newTasks = vehicles.stream()
-                    .map(workloadFactory::create)
-                    .toList();
+            List<VehicleTask> newTasks = vehicles.stream().map(workloadFactory::create).toList();
             tasks = newTasks;
             for (VehicleTask task : newTasks) {
                 newExecutor.submit(task);
@@ -114,14 +105,10 @@ public final class VehicleSimulatorLifecycle implements SmartLifecycle {
 
     private void awaitTermination(ExecutorService executorToStop) {
         try {
-            if (!executorToStop.awaitTermination(
-                    properties.shutdownGracePeriod().toMillis(),
-                    TimeUnit.MILLISECONDS
-            )) {
-                log.warn(
-                        "Vehicle workload executor did not terminate within {} ms",
-                        properties.shutdownGracePeriod().toMillis()
-                );
+            if (!executorToStop.awaitTermination(properties.shutdownGracePeriod().toMillis(),
+                TimeUnit.MILLISECONDS)) {
+                log.warn("Vehicle workload executor did not terminate within {} ms",
+                    properties.shutdownGracePeriod().toMillis());
             }
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();

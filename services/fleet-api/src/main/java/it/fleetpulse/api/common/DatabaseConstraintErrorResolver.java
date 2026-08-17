@@ -11,23 +11,16 @@ import java.util.Optional;
 
 @Component
 public class DatabaseConstraintErrorResolver {
-    private static final Map<String, ErrorCode> ERROR_BY_CONSTRAINT = Map.of(
-            "uq_vehicles_external_code",
-            ErrorCode.VEHICLE_EXTERNAL_CODE_CONFLICT,
+    private static final Map<String, ErrorCode> ERROR_BY_CONSTRAINT =
+        Map.of("uq_vehicles_external_code", ErrorCode.VEHICLE_EXTERNAL_CODE_CONFLICT,
 
-            "uq_vehicles_plate",
-            ErrorCode.VEHICLE_PLATE_CONFLICT
-    );
+            "uq_vehicles_plate", ErrorCode.VEHICLE_PLATE_CONFLICT);
 
     /**
      * Converte una violazione di constraint nel codice di errore applicativo.
      */
-    public Optional<ErrorCode> resolve(
-            DataIntegrityViolationException exception
-    ) {
-        return findConstraintName(exception)
-                .map(ERROR_BY_CONSTRAINT::get)
-                .filter(Objects::nonNull);
+    public Optional<ErrorCode> resolve(DataIntegrityViolationException exception) {
+        return findConstraintName(exception).map(ERROR_BY_CONSTRAINT::get).filter(Objects::nonNull);
     }
 
     /**

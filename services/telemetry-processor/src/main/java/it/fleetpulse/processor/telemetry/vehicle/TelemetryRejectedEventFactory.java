@@ -18,23 +18,13 @@ public final class TelemetryRejectedEventFactory {
         this.clock = Objects.requireNonNull(clock, "clock must not be null");
     }
 
-    public TelemetryRejectedEvent create(
-            TelemetryEvent event,
-            TelemetryRejectionReason reason,
-            TelemetrySource source
-    ) {
+    public TelemetryRejectedEvent create(TelemetryEvent event, TelemetryRejectionReason reason,
+        TelemetrySource source) {
         Objects.requireNonNull(event, "event must not be null");
         Objects.requireNonNull(reason, "reason must not be null");
         Objects.requireNonNull(source, "source must not be null");
 
-        return new TelemetryRejectedEvent(
-                event.messageId(),
-                event.vehicleId(),
-                reason,
-                clock.instant(),
-                source.topic(),
-                source.partition(),
-                source.offset()
-        );
+        return new TelemetryRejectedEvent(event.messageId(), event.vehicleId(), reason,
+            clock.instant(), source.topic(), source.partition(), source.offset());
     }
 }

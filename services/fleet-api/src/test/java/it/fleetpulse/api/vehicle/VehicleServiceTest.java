@@ -81,10 +81,9 @@ class VehicleServiceTest {
         CreateVehicleRequest request = request();
         when(repository.existsByExternalCode(request.externalCode())).thenReturn(true);
 
-        assertThatThrownBy(() -> service.create(request))
-                .isInstanceOfSatisfying(ApplicationException.class, exception ->
-                        assertThat(exception.getErrorCode())
-                                .isEqualTo(ErrorCode.VEHICLE_EXTERNAL_CODE_CONFLICT));
+        assertThatThrownBy(() -> service.create(request)).isInstanceOfSatisfying(
+            ApplicationException.class, exception -> assertThat(exception.getErrorCode()).isEqualTo(
+                ErrorCode.VEHICLE_EXTERNAL_CODE_CONFLICT));
 
         verify(repository, never()).existsByPlate(anyString());
         verify(repository, never()).save(any());
@@ -102,10 +101,9 @@ class VehicleServiceTest {
         when(repository.existsByExternalCode(request.externalCode())).thenReturn(false);
         when(repository.existsByPlate(request.plate())).thenReturn(true);
 
-        assertThatThrownBy(() -> service.create(request))
-                .isInstanceOfSatisfying(ApplicationException.class, exception ->
-                        assertThat(exception.getErrorCode())
-                                .isEqualTo(ErrorCode.VEHICLE_PLATE_CONFLICT));
+        assertThatThrownBy(() -> service.create(request)).isInstanceOfSatisfying(
+            ApplicationException.class, exception -> assertThat(exception.getErrorCode()).isEqualTo(
+                ErrorCode.VEHICLE_PLATE_CONFLICT));
 
         verify(repository, never()).save(any());
         verify(repository, never()).saveAndFlush(any());
@@ -136,9 +134,9 @@ class VehicleServiceTest {
         UUID id = UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0");
         when(repository.findById(id)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.findById(id))
-                .isInstanceOfSatisfying(ApplicationException.class, exception ->
-                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.VEHICLE_NOT_FOUND));
+        assertThatThrownBy(() -> service.findById(id)).isInstanceOfSatisfying(
+            ApplicationException.class, exception -> assertThat(exception.getErrorCode()).isEqualTo(
+                ErrorCode.VEHICLE_NOT_FOUND));
 
         verifyNoInteractions(mapper);
     }
@@ -150,15 +148,11 @@ class VehicleServiceTest {
     @DisplayName("Cerca e mappa una pagina di veicoli")
     void searchesVehicles() {
         VehicleSearchCriteria criteria = new VehicleSearchCriteria("van", VehicleStatus.ACTIVE);
-        Pageable pageable = PageRequest.of(
-                1,
-                2,
-                Sort.by(Sort.Direction.ASC, "externalCode")
-        );
+        Pageable pageable = PageRequest.of(1, 2, Sort.by(Sort.Direction.ASC, "externalCode"));
         VehicleEntity entity = entity("VAN-001", "FP001AA");
         VehicleResponse mapped = response();
-        when(repository.findAll(anySpecification(), eq(pageable)))
-                .thenReturn(new PageImpl<>(List.of(entity), pageable, 3));
+        when(repository.findAll(anySpecification(), eq(pageable))).thenReturn(
+            new PageImpl<>(List.of(entity), pageable, 3));
         when(mapper.toResponse(entity)).thenReturn(mapped);
 
         PagedResponse<VehicleResponse> result = service.search(criteria, pageable);
@@ -244,11 +238,10 @@ class VehicleServiceTest {
         UUID id = UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0");
         when(repository.findById(id)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.changeStatus(
-                id,
-                new ChangeVehicleStatusRequest(VehicleStatus.DISABLED)
-        )).isInstanceOfSatisfying(ApplicationException.class, exception ->
-                assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.VEHICLE_NOT_FOUND));
+        assertThatThrownBy(() -> service.changeStatus(id,
+            new ChangeVehicleStatusRequest(VehicleStatus.DISABLED))).isInstanceOfSatisfying(
+            ApplicationException.class, exception -> assertThat(exception.getErrorCode()).isEqualTo(
+                ErrorCode.VEHICLE_NOT_FOUND));
 
         verify(repository, never()).save(any());
         verifyNoInteractions(mapper);
@@ -286,15 +279,8 @@ class VehicleServiceTest {
      * Costruisce la response deterministica con lo stato richiesto.
      */
     private VehicleResponse response(VehicleStatus status) {
-        return new VehicleResponse(
-                UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0"),
-                "VAN-001",
-                "FP001AA",
-                status,
-                15_000,
-                90_000L,
-                NOW
-        );
+        return new VehicleResponse(UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0"),
+            "VAN-001", "FP001AA", status, 15_000, 90_000L, NOW);
     }
 
     /**

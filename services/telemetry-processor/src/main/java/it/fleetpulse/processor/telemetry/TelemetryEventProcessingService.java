@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+
 import java.time.Clock;
 import java.util.Objects;
 
@@ -18,9 +19,7 @@ import java.util.Objects;
 public final class TelemetryEventProcessingService implements TelemetryEventHandler {
 
     private static final Logger log =
-            LoggerFactory.getLogger(
-                    TelemetryEventProcessingService.class
-            );
+        LoggerFactory.getLogger(TelemetryEventProcessingService.class);
 
     private final TelemetrySampleWriter writer;
     private final TelemetryPersistenceFailureClassifier failureClassifier;
@@ -28,21 +27,16 @@ public final class TelemetryEventProcessingService implements TelemetryEventHand
     private final Clock clock;
     private final VehicleEligibilityGuard eligibilityGuard;
 
-    public TelemetryEventProcessingService(
-            TelemetrySampleWriter writer,
-            TelemetrySampleMapper mapper,
-            Clock clock,
-            TelemetryPersistenceFailureClassifier failureClassifier,
-            VehicleEligibilityGuard eligibilityGuard
-    ) {
+    public TelemetryEventProcessingService(TelemetrySampleWriter writer,
+        TelemetrySampleMapper mapper, Clock clock,
+        TelemetryPersistenceFailureClassifier failureClassifier,
+        VehicleEligibilityGuard eligibilityGuard) {
         this.writer = Objects.requireNonNull(writer);
         this.mapper = Objects.requireNonNull(mapper);
         this.clock = Objects.requireNonNull(clock);
         this.failureClassifier = Objects.requireNonNull(failureClassifier);
-        this.eligibilityGuard = Objects.requireNonNull(
-                eligibilityGuard,
-                "eligibilityGuard must not be null"
-        );
+        this.eligibilityGuard =
+            Objects.requireNonNull(eligibilityGuard, "eligibilityGuard must not be null");
     }
 
     @Override
@@ -50,18 +44,13 @@ public final class TelemetryEventProcessingService implements TelemetryEventHand
         Objects.requireNonNull(event, "event must not be null");
         Objects.requireNonNull(source, "source must not be null");
         if (event.eventVersion() != TelemetryEventVersions.V1) {
-            throw new UnsupportedTelemetryEventVersionException(
-                    event.eventVersion()
-            );
+            throw new UnsupportedTelemetryEventVersionException(event.eventVersion());
         }
 
         if (eligibilityGuard.rejectIfIneligible(event, source)) {
             return;
         }
-        TelemetrySampleEntity entity = mapper.toEntity(
-                event,
-                clock.instant()
-        );
+        TelemetrySampleEntity entity = mapper.toEntity(event, clock.instant());
 
         TelemetrySampleEntity saved;
         try {
@@ -72,22 +61,15 @@ public final class TelemetryEventProcessingService implements TelemetryEventHand
             }
 
             log.info(
-                    "Duplicate telemetry event ignored: messageId={}, vehicleId={}, sequenceNumber={}",
-                    event.messageId(),
-                    event.vehicleId(),
-                    event.sequenceNumber()
-            );
+                "Duplicate telemetry event ignored: messageId={}, vehicleId={}, sequenceNumber={}",
+                event.messageId(), event.vehicleId(), event.sequenceNumber());
 
             return;
         }
 
         log.info(
-                "Telemetry event persisted: sampleId={}, messageId={}, vehicleId={}, sequenceNumber={}",
-                saved.getId(),
-                saved.getMessageId(),
-                saved.getVehicleId(),
-                saved.getSequenceNumber()
-        );
+            "Telemetry event persisted: sampleId={}, messageId={}, vehicleId={}, sequenceNumber={}",
+            saved.getId(), saved.getMessageId(), saved.getVehicleId(), saved.getSequenceNumber());
     }
 
 }

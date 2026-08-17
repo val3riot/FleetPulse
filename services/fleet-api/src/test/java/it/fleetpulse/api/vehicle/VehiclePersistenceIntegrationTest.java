@@ -46,9 +46,7 @@ class VehiclePersistenceIntegrationTest extends PostgreSqlIntegrationSupport {
     @DisplayName("Flyway applica la migration V1 su un database vuoto")
     void appliesFlywayMigration() {
         Boolean success = jdbcTemplate.queryForObject(
-                "select success from flyway_schema_history where version = '1'",
-                Boolean.class
-        );
+            "select success from flyway_schema_history where version = '1'", Boolean.class);
 
         assertThat(success).isTrue();
     }
@@ -62,19 +60,15 @@ class VehiclePersistenceIntegrationTest extends PostgreSqlIntegrationSupport {
         VehicleEntity saved = repository.saveAndFlush(entity("VAN-PERSIST", "FP100AA"));
 
         assertThat(saved.getId()).isNotNull();
-        assertThat(repository.findById(saved.getId()))
-                .get()
-                .satisfies(vehicle -> {
-                    assertThat(vehicle.getExternalCode()).isEqualTo("VAN-PERSIST");
-                    assertThat(vehicle.getPlate()).isEqualTo("FP100AA");
-                    assertThat(vehicle.getStatus()).isEqualTo(VehicleStatus.ACTIVE);
-                    assertThat(vehicle.getCreatedAt()).isEqualTo(CREATED_AT);
-                });
-        assertThat(jdbcTemplate.queryForObject(
-                "select status from vehicles where id = ?",
-                String.class,
-                saved.getId()
-        )).isEqualTo("ACTIVE");
+        assertThat(repository.findById(saved.getId())).get().satisfies(vehicle -> {
+            assertThat(vehicle.getExternalCode()).isEqualTo("VAN-PERSIST");
+            assertThat(vehicle.getPlate()).isEqualTo("FP100AA");
+            assertThat(vehicle.getStatus()).isEqualTo(VehicleStatus.ACTIVE);
+            assertThat(vehicle.getCreatedAt()).isEqualTo(CREATED_AT);
+        });
+        assertThat(
+            jdbcTemplate.queryForObject("select status from vehicles where id = ?", String.class,
+                saved.getId())).isEqualTo("ACTIVE");
     }
 
     /**
@@ -85,10 +79,11 @@ class VehiclePersistenceIntegrationTest extends PostgreSqlIntegrationSupport {
     void enforcesExternalCodeConstraint() {
         repository.saveAndFlush(entity("VAN-DUP", "FP101AA"));
 
-        assertThatThrownBy(() -> repository.saveAndFlush(entity("VAN-DUP", "FP102AA")))
-                .isInstanceOfSatisfying(DataIntegrityViolationException.class, exception ->
-                        assertThat(resolver.resolve(exception))
-                                .contains(ErrorCode.VEHICLE_EXTERNAL_CODE_CONFLICT));
+        assertThatThrownBy(
+            () -> repository.saveAndFlush(entity("VAN-DUP", "FP102AA"))).isInstanceOfSatisfying(
+            DataIntegrityViolationException.class,
+            exception -> assertThat(resolver.resolve(exception)).contains(
+                ErrorCode.VEHICLE_EXTERNAL_CODE_CONFLICT));
     }
 
     /**
@@ -99,16 +94,18 @@ class VehiclePersistenceIntegrationTest extends PostgreSqlIntegrationSupport {
     void enforcesPlateConstraint() {
         repository.saveAndFlush(entity("VAN-PLATE-1", "FP103AA"));
 
-        assertThatThrownBy(() -> repository.saveAndFlush(entity("VAN-PLATE-2", "FP103AA")))
-                .isInstanceOfSatisfying(DataIntegrityViolationException.class, exception ->
-                        assertThat(resolver.resolve(exception))
-                                .contains(ErrorCode.VEHICLE_PLATE_CONFLICT));
+        assertThatThrownBy(
+            () -> repository.saveAndFlush(entity("VAN-PLATE-2", "FP103AA"))).isInstanceOfSatisfying(
+            DataIntegrityViolationException.class,
+            exception -> assertThat(resolver.resolve(exception)).contains(
+                ErrorCode.VEHICLE_PLATE_CONFLICT));
     }
 
     /**
      * Costruisce un veicolo valido con dati univoci per il test di persistenza.
      */
     private VehicleEntity entity(String externalCode, String plate) {
-        return new VehicleEntity(externalCode, plate, VehicleStatus.ACTIVE, 15_000, 90_000L, CREATED_AT);
+        return new VehicleEntity(externalCode, plate, VehicleStatus.ACTIVE, 15_000, 90_000L,
+            CREATED_AT);
     }
 }

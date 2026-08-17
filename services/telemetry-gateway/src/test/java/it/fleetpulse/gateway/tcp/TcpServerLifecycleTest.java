@@ -30,14 +30,11 @@ class TcpServerLifecycleTest {
     @Test
     void bindFailureFailsLifecycleStartup() throws Exception {
         try (ServerSocket occupiedPort = new ServerSocket(0)) {
-            TcpServerLifecycle lifecycle = new TcpServerLifecycle(
-                    server(occupiedPort.getLocalPort())
-            );
+            TcpServerLifecycle lifecycle =
+                new TcpServerLifecycle(server(occupiedPort.getLocalPort()));
 
-            ApplicationContextException exception = assertThrows(
-                    ApplicationContextException.class,
-                    lifecycle::start
-            );
+            ApplicationContextException exception =
+                assertThrows(ApplicationContextException.class, lifecycle::start);
 
             assertInstanceOf(BindException.class, exception.getCause());
             assertFalse(lifecycle.isRunning());
@@ -45,12 +42,9 @@ class TcpServerLifecycleTest {
     }
 
     private static TcpServer server(int port) {
-        return new TcpServer(
-                TestAcknowledgements::accepted,
-                new TcpServerProperties(true, port, 100, Duration.ofSeconds(10), Duration.ofSeconds(5)),
-                new FrameDecoder(new ObjectMapper()),
-                new TelemetryAckEncoder(new ObjectMapper()),
-                new SimpleMeterRegistry()
-        );
+        return new TcpServer(TestAcknowledgements::accepted,
+            new TcpServerProperties(true, port, 100, Duration.ofSeconds(10), Duration.ofSeconds(5)),
+            new FrameDecoder(new ObjectMapper()), new TelemetryAckEncoder(new ObjectMapper()),
+            new SimpleMeterRegistry());
     }
 }

@@ -19,24 +19,14 @@ public record PagedResponse<T>(
      * Converte una pagina Spring Data nella risposta paginata dell'API.
      */
     public static <T> PagedResponse<T> from(Page<T> page) {
-        return new PagedResponse<>(
-                page.getContent(),
-                page.getNumber(),
-                page.getSize(),
-                page.getTotalElements(),
-                page.getTotalPages(),
-                page.isFirst(),
-                page.isLast()
-        );
+        return new PagedResponse<>(page.getContent(), page.getNumber(), page.getSize(),
+            page.getTotalElements(), page.getTotalPages(), page.isFirst(), page.isLast());
     }
 
     /**
      * Converte e mappa gli elementi di una pagina nella risposta dell'API.
      */
-    public static <S, T> PagedResponse<T> from(
-            Page<S> page,
-            Function<S, T> mapper
-    ) {
+    public static <S, T> PagedResponse<T> from(Page<S> page, Function<S, T> mapper) {
         return from(page.map(mapper));
     }
 }

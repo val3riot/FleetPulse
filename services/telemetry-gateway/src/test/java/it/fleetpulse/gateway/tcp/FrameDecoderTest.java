@@ -26,12 +26,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class FrameDecoderTest {
 
-    private static final String VALID_MESSAGE = "{\"protocolVersion\":1,"
-            + "\"messageId\":\"dc0fc799-0913-4e72-bd2d-8ee8ccf52e22\","
-            + "\"vehicleId\":\"97e194a8-64b3-4885-b1e6-25fd482f58c0\","
-            + "\"sequenceNumber\":42,\"observedAt\":\"2026-08-01T10:15:30Z\","
-            + "\"speedKmh\":72.4,\"engineTemperatureC\":91.8,\"batteryVoltage\":12.6,"
-            + "\"odometerKm\":85312,\"latitude\":41.9028,\"longitude\":12.4964}";
+    private static final String VALID_MESSAGE =
+        "{\"protocolVersion\":1,\"messageId\":\"dc0fc799-0913-4e72-bd2d-8ee8ccf52e22\"," +
+            "\"vehicleId\":\"97e194a8-64b3-4885-b1e6-25fd482f58c0\",\"sequenceNumber\":42," +
+            "\"observedAt\":\"2026-08-01T10:15:30Z\",\"speedKmh\":72.4,\"engineTemperatureC\":91" +
+            ".8,\"batteryVoltage\":12.6,\"odometerKm\":85312,\"latitude\":41.9028," +
+            "\"longitude\":12.4964}";
 
     private final FrameDecoder decoder = new FrameDecoder(new ObjectMapper());
 
@@ -45,10 +45,10 @@ class FrameDecoderTest {
     @Test
     void decodesConsecutiveFramesFromPersistentStream() throws Exception {
         byte[] first = frameBytes(VALID_MESSAGE);
-        byte[] second = frameBytes(VALID_MESSAGE.replace("\"sequenceNumber\":42", "\"sequenceNumber\":43"));
+        byte[] second =
+            frameBytes(VALID_MESSAGE.replace("\"sequenceNumber\":42", "\"sequenceNumber\":43"));
         ByteArrayInputStream input = new ByteArrayInputStream(
-                ByteBuffer.allocate(first.length + second.length).put(first).put(second).array()
-        );
+            ByteBuffer.allocate(first.length + second.length).put(first).put(second).array());
 
         assertEquals(42, decoder.read(input).sequenceNumber());
         assertEquals(43, decoder.read(input).sequenceNumber());
@@ -58,26 +58,25 @@ class FrameDecoderTest {
     void rejectsInvalidUnsignedLengthsBeforeAllocatingPayload() {
         assertThrows(InvalidFrameLengthException.class, () -> decoder.read(header(0)));
         assertThrows(FrameTooLargeException.class,
-                () -> decoder.read(header(ProtocolConstants.MAX_PAYLOAD_SIZE_BYTES + 1)));
+            () -> decoder.read(header(ProtocolConstants.MAX_PAYLOAD_SIZE_BYTES + 1)));
         assertThrows(FrameTooLargeException.class, () -> decoder.read(header(0x8000_0000)));
     }
 
     @Test
     void distinguishesClosedStreamAndTruncatedFrameParts() {
         assertThrows(FrameStreamClosedException.class,
-                () -> decoder.read(new ByteArrayInputStream(new byte[0])));
+            () -> decoder.read(new ByteArrayInputStream(new byte[0])));
 
-        TruncatedFrameHeaderException headerException = assertThrows(
-                TruncatedFrameHeaderException.class,
-                () -> decoder.read(new ByteArrayInputStream(new byte[]{0, 0, 1}))
-        );
+        TruncatedFrameHeaderException headerException =
+            assertThrows(TruncatedFrameHeaderException.class,
+                () -> decoder.read(new ByteArrayInputStream(new byte[]{0, 0, 1})));
         assertEquals(3, headerException.bytesRead());
 
-        byte[] truncatedPayload = ByteBuffer.allocate(6).putInt(3).put(new byte[]{'{', '}'}).array();
-        TruncatedFramePayloadException payloadException = assertThrows(
-                TruncatedFramePayloadException.class,
-                () -> decoder.read(new ByteArrayInputStream(truncatedPayload))
-        );
+        byte[] truncatedPayload =
+            ByteBuffer.allocate(6).putInt(3).put(new byte[]{'{', '}'}).array();
+        TruncatedFramePayloadException payloadException =
+            assertThrows(TruncatedFramePayloadException.class,
+                () -> decoder.read(new ByteArrayInputStream(truncatedPayload)));
         assertEquals(3, payloadException.expectedBytes());
         assertEquals(2, payloadException.bytesRead());
     }
@@ -87,7 +86,7 @@ class FrameDecoderTest {
         assertThrows(MalformedTelemetryException.class, () -> decoder.read(frame("{")));
         assertThrows(MalformedTelemetryException.class, () -> decoder.read(frame("null")));
         assertThrows(MalformedTelemetryException.class,
-                () -> decoder.read(frame("{\"protocolVersion\":1}")));
+            () -> decoder.read(frame("{\"protocolVersion\":1}")));
     }
 
     @Test
@@ -106,22 +105,28 @@ class FrameDecoderTest {
 
     @Test
     void rejectsEachMissingRequiredNumericField() throws Exception {
-        for (String field : new String[]{"protocolVersion", "sequenceNumber", "speedKmh",
-                "engineTemperatureC", "batteryVoltage", "odometerKm", "latitude", "longitude"}) {
+        for (String field : new String[]{"protocolVersion",
+            "sequenceNumber",
+            "speedKmh",
+            "engineTemperatureC",
+            "batteryVoltage",
+            "odometerKm",
+            "latitude",
+            "longitude"}) {
             ObjectNode payload = (ObjectNode) new ObjectMapper().readTree(VALID_MESSAGE);
             payload.remove(field);
 
             assertThrows(MalformedTelemetryException.class,
-                    () -> decoder.read(frame(payload.toString())), field);
+                () -> decoder.read(frame(payload.toString())), field);
         }
     }
 
     @Test
     void rejectsNullDependenciesAndInput() {
-        assertEquals("objectMapper", assertThrows(NullPointerException.class,
-                () -> new FrameDecoder(null)).getMessage());
-        assertEquals("input", assertThrows(NullPointerException.class,
-                () -> decoder.read(null)).getMessage());
+        assertEquals("objectMapper",
+            assertThrows(NullPointerException.class, () -> new FrameDecoder(null)).getMessage());
+        assertEquals("input",
+            assertThrows(NullPointerException.class, () -> decoder.read(null)).getMessage());
     }
 
     private ByteArrayInputStream frame(String json) {
@@ -130,10 +135,8 @@ class FrameDecoderTest {
 
     private byte[] frameBytes(String json) {
         byte[] payload = json.getBytes(StandardCharsets.UTF_8);
-        return ByteBuffer.allocate(Integer.BYTES + payload.length)
-                .putInt(payload.length)
-                .put(payload)
-                .array();
+        return ByteBuffer.allocate(Integer.BYTES + payload.length).putInt(payload.length)
+            .put(payload).array();
     }
 
     private ByteArrayInputStream header(int length) {

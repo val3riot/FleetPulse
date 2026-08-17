@@ -10,19 +10,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class KafkaDeliveryAttemptResolverTest {
 
-    private final KafkaDeliveryAttemptResolver resolver =
-            new KafkaDeliveryAttemptResolver();
+    private final KafkaDeliveryAttemptResolver resolver = new KafkaDeliveryAttemptResolver();
 
     @Test
     void readsDeliveryAttemptFromKafkaHeader() {
         ConsumerRecord<String, String> record = record();
 
-        record.headers().add(
-                KafkaHeaders.DELIVERY_ATTEMPT,
-                ByteBuffer.allocate(Integer.BYTES)
-                        .putInt(4)
-                        .array()
-        );
+        record.headers().add(KafkaHeaders.DELIVERY_ATTEMPT,
+            ByteBuffer.allocate(Integer.BYTES).putInt(4).array());
 
         assertThat(resolver.resolve(record)).isEqualTo(4);
     }
@@ -36,10 +31,7 @@ class KafkaDeliveryAttemptResolverTest {
     void defaultsToOneWhenHeaderIsMalformed() {
         ConsumerRecord<String, String> record = record();
 
-        record.headers().add(
-                KafkaHeaders.DELIVERY_ATTEMPT,
-                new byte[]{1, 2}
-        );
+        record.headers().add(KafkaHeaders.DELIVERY_ATTEMPT, new byte[]{1, 2});
 
         assertThat(resolver.resolve(record)).isEqualTo(1);
     }
@@ -48,23 +40,13 @@ class KafkaDeliveryAttemptResolverTest {
     void defaultsToOneWhenAttemptIsNotPositive() {
         ConsumerRecord<String, String> record = record();
 
-        record.headers().add(
-                KafkaHeaders.DELIVERY_ATTEMPT,
-                ByteBuffer.allocate(Integer.BYTES)
-                        .putInt(0)
-                        .array()
-        );
+        record.headers().add(KafkaHeaders.DELIVERY_ATTEMPT,
+            ByteBuffer.allocate(Integer.BYTES).putInt(0).array());
 
         assertThat(resolver.resolve(record)).isEqualTo(1);
     }
 
     private static ConsumerRecord<String, String> record() {
-        return new ConsumerRecord<>(
-                "telemetry.raw.v1",
-                1,
-                42L,
-                "vehicle-id",
-                "payload"
-        );
+        return new ConsumerRecord<>("telemetry.raw.v1", 1, 42L, "vehicle-id", "payload");
     }
 }

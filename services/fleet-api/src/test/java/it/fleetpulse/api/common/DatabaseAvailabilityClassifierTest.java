@@ -18,7 +18,8 @@ class DatabaseAvailabilityClassifierTest {
     @Test
     @DisplayName("Riconosce gli SQLState della classe 08")
     void recognizesConnectionSqlState() {
-        assertThat(classifier.isConnectionFailure(new SQLException("connection", "08006"))).isTrue();
+        assertThat(
+            classifier.isConnectionFailure(new SQLException("connection", "08006"))).isTrue();
     }
 
     /**
@@ -27,7 +28,8 @@ class DatabaseAvailabilityClassifierTest {
     @Test
     @DisplayName("Ignora gli SQLState non di connessione")
     void ignoresDifferentSqlState() {
-        assertThat(classifier.isConnectionFailure(new SQLException("constraint", "23505"))).isFalse();
+        assertThat(
+            classifier.isConnectionFailure(new SQLException("constraint", "23505"))).isFalse();
     }
 
     /**
@@ -36,7 +38,8 @@ class DatabaseAvailabilityClassifierTest {
     @Test
     @DisplayName("Ignora uno SQLState nullo")
     void ignoresNullSqlState() {
-        assertThat(classifier.isConnectionFailure(new SQLException("unknown", (String) null))).isFalse();
+        assertThat(
+            classifier.isConnectionFailure(new SQLException("unknown", (String) null))).isFalse();
     }
 
     /**
@@ -46,8 +49,7 @@ class DatabaseAvailabilityClassifierTest {
     @DisplayName("Attraversa più livelli della catena delle cause")
     void traversesCauseChain() {
         RuntimeException exception = new RuntimeException(
-                new IllegalStateException(new SQLException("connection", "08001"))
-        );
+            new IllegalStateException(new SQLException("connection", "08001")));
 
         assertThat(classifier.isConnectionFailure(exception)).isTrue();
     }
@@ -82,10 +84,8 @@ class DatabaseAvailabilityClassifierTest {
     @Test
     @DisplayName("Riconosce il fallimento Hibernate con connessione JDBC chiusa")
     void recognizesHibernateRollbackConnectionFailure() {
-        TransactionException exception = new TransactionException(
-                "rollback failure",
-                new SQLException("connection closed", (String) null)
-        );
+        TransactionException exception = new TransactionException("rollback failure",
+            new SQLException("connection closed", (String) null));
 
         assertThat(classifier.isConnectionFailure(exception)).isTrue();
     }
@@ -96,10 +96,8 @@ class DatabaseAvailabilityClassifierTest {
     @Test
     @DisplayName("Non confonde una transazione Hibernate con un errore di connessione")
     void ignoresHibernateFailureWithNonConnectionSqlState() {
-        TransactionException exception = new TransactionException(
-                "transaction failure",
-                new SQLException("constraint", "23505")
-        );
+        TransactionException exception = new TransactionException("transaction failure",
+            new SQLException("constraint", "23505"));
 
         assertThat(classifier.isConnectionFailure(exception)).isFalse();
     }
@@ -110,7 +108,7 @@ class DatabaseAvailabilityClassifierTest {
     @Test
     @DisplayName("Ignora catene prive di SQLException")
     void ignoresChainWithoutSqlException() {
-        assertThat(classifier.isConnectionFailure(new RuntimeException(new IllegalStateException())))
-                .isFalse();
+        assertThat(classifier.isConnectionFailure(
+            new RuntimeException(new IllegalStateException()))).isFalse();
     }
 }

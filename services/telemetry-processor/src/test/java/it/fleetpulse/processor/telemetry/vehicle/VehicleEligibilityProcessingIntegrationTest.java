@@ -46,8 +46,7 @@ import static org.assertj.core.api.Assertions.fail;
 @SpringBootTest
 @ActiveProfiles("test")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
-class VehicleEligibilityProcessingIntegrationTest
-        extends PostgreSqlIntegrationSupport {
+class VehicleEligibilityProcessingIntegrationTest extends PostgreSqlIntegrationSupport {
 
     private static final String RAW_TOPIC = "eligibility.raw.v1";
     private static final String REJECTED_TOPIC = "eligibility.rejected.v1";
@@ -71,11 +70,9 @@ class VehicleEligibilityProcessingIntegrationTest
     @BeforeAll
     static void createTopics() throws Exception {
         try (AdminClient admin = adminClient()) {
-            admin.createTopics(List.of(
-                    new NewTopic(RAW_TOPIC, 1, (short) 1),
-                    new NewTopic(REJECTED_TOPIC, 1, (short) 1),
-                    new NewTopic(DEAD_LETTER_TOPIC, 1, (short) 1)
-            )).all().get(10, TimeUnit.SECONDS);
+            admin.createTopics(List.of(new NewTopic(RAW_TOPIC, 1, (short) 1),
+                new NewTopic(REJECTED_TOPIC, 1, (short) 1),
+                new NewTopic(DEAD_LETTER_TOPIC, 1, (short) 1))).all().get(10, TimeUnit.SECONDS);
         }
     }
 
@@ -103,8 +100,7 @@ class VehicleEligibilityProcessingIntegrationTest
         TelemetryEvent event = event(vehicleId);
         insertVehicle(vehicleId, "ACTIVE");
 
-        kafkaTemplate.send(RAW_TOPIC, vehicleId.toString(), event)
-                .get(10, TimeUnit.SECONDS);
+        kafkaTemplate.send(RAW_TOPIC, vehicleId.toString(), event).get(10, TimeUnit.SECONDS);
 
         awaitSample(event.messageId());
 
@@ -127,26 +123,20 @@ class VehicleEligibilityProcessingIntegrationTest
 
         assertRejected(event, TelemetryRejectionReason.UNKNOWN_VEHICLE);
 
-        assertThat(rejectionCount(TelemetryRejectionReason.UNKNOWN_VEHICLE))
-                .isEqualTo(before + 1);
+        assertThat(rejectionCount(TelemetryRejectionReason.UNKNOWN_VEHICLE)).isEqualTo(before + 1);
     }
 
-    private void assertRejected(TelemetryEvent event, TelemetryRejectionReason reason)
-            throws Exception {
+    private void assertRejected(TelemetryEvent event,
+        TelemetryRejectionReason reason) throws Exception {
         try (KafkaConsumer<String, String> consumer = rejectedConsumer()) {
             TopicPartition rejectedPartition = new TopicPartition(REJECTED_TOPIC, 0);
             consumer.assign(List.of(rejectedPartition));
             consumer.seekToBeginning(List.of(rejectedPartition));
 
-            var sendResult = kafkaTemplate.send(
-                    RAW_TOPIC,
-                    event.vehicleId().toString(),
-                    event
-            ).get(10, TimeUnit.SECONDS);
-            TopicPartition sourcePartition = new TopicPartition(
-                    RAW_TOPIC,
-                    sendResult.getRecordMetadata().partition()
-            );
+            var sendResult = kafkaTemplate.send(RAW_TOPIC, event.vehicleId().toString(), event)
+                .get(10, TimeUnit.SECONDS);
+            TopicPartition sourcePartition =
+                new TopicPartition(RAW_TOPIC, sendResult.getRecordMetadata().partition());
 
             ConsumerRecord<String, String> rejected = awaitRejected(consumer, event.messageId());
             JsonNode json = objectMapper.readTree(rejected.value());
@@ -155,18 +145,16 @@ class VehicleEligibilityProcessingIntegrationTest
             assertThat(json.get("reason").stringValue()).isEqualTo(reason.name());
             assertThat(json.get("sourceTopic").stringValue()).isEqualTo(RAW_TOPIC);
             assertThat(json.get("sourcePartition").asInt()).isEqualTo(sourcePartition.partition());
-            assertThat(json.get("sourceOffset").asLong())
-                    .isEqualTo(sendResult.getRecordMetadata().offset());
+            assertThat(json.get("sourceOffset").asLong()).isEqualTo(
+                sendResult.getRecordMetadata().offset());
             assertThat(sampleCount(event.messageId())).isZero();
 
             awaitCommittedOffset(sourcePartition, sendResult.getRecordMetadata().offset() + 1);
         }
     }
 
-    private ConsumerRecord<String, String> awaitRejected(
-            KafkaConsumer<String, String> consumer,
-            UUID messageId
-    ) {
+    private ConsumerRecord<String, String> awaitRejected(KafkaConsumer<String, String> consumer,
+        UUID messageId) {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
 
         while (System.nanoTime() < deadline) {
@@ -194,16 +182,15 @@ class VehicleEligibilityProcessingIntegrationTest
         fail("Telemetry sample not persisted: " + messageId);
     }
 
-    private static void awaitCommittedOffset(TopicPartition partition, long expectedOffset)
-            throws Exception {
+    private static void awaitCommittedOffset(TopicPartition partition,
+        long expectedOffset) throws Exception {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
 
         while (System.nanoTime() < deadline) {
             try (AdminClient admin = adminClient()) {
-                var committed = admin.listConsumerGroupOffsets(GROUP_ID)
-                        .partitionsToOffsetAndMetadata()
-                        .get(10, TimeUnit.SECONDS)
-                        .get(partition);
+                var committed =
+                    admin.listConsumerGroupOffsets(GROUP_ID).partitionsToOffsetAndMetadata()
+                        .get(10, TimeUnit.SECONDS).get(partition);
                 if (committed != null && committed.offset() >= expectedOffset) {
                     return;
                 }
@@ -215,49 +202,32 @@ class VehicleEligibilityProcessingIntegrationTest
     }
 
     private void insertVehicle(UUID vehicleId, String status) {
-        jdbcTemplate.update(
-                """
+        jdbcTemplate.update("""
                 INSERT INTO vehicles (
                     id, external_code, plate, status, service_interval_km,
                     next_service_at_km, created_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?)
-                """,
-                vehicleId,
-                "VEHICLE-" + vehicleId,
-                vehicleId.toString().substring(0, 8),
-                status,
-                15_000,
-                90_000L,
-                OffsetDateTime.now(ZoneOffset.UTC)
-        );
+                """, vehicleId, "VEHICLE-" + vehicleId, vehicleId.toString().substring(0, 8),
+            status,
+            15_000, 90_000L, OffsetDateTime.now(ZoneOffset.UTC));
     }
 
     private int sampleCount(UUID messageId) {
         return jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM telemetry_samples WHERE message_id = ?",
-                Integer.class,
-                messageId
-        );
+            "SELECT COUNT(*) FROM telemetry_samples WHERE message_id = ?", Integer.class,
+            messageId);
     }
 
     private double rejectionCount(TelemetryRejectionReason reason) {
-        return meterRegistry.get("fleetpulse.processor.rejections")
-                .tag("reason", reason.name())
-                .counter()
-                .count();
+        return meterRegistry.get("fleetpulse.processor.rejections").tag("reason", reason.name())
+            .counter().count();
     }
 
     private static TelemetryEvent event(UUID vehicleId) {
         Instant now = Instant.parse("2026-08-17T12:00:00Z");
-        return new TelemetryEvent(
-                TelemetryEventVersions.V1,
-                UUID.randomUUID(),
-                vehicleId,
-                42,
-                now.minusSeconds(1),
-                now,
-                new TelemetryData(72.4, 91.8, 12.6, 85_312, 41.9028, 12.4964)
-        );
+        return new TelemetryEvent(TelemetryEventVersions.V1, UUID.randomUUID(), vehicleId, 42,
+            now.minusSeconds(1), now,
+            new TelemetryData(72.4, 91.8, 12.6, 85_312, 41.9028, 12.4964));
     }
 
     private static KafkaConsumer<String, String> rejectedConsumer() {
@@ -269,9 +239,7 @@ class VehicleEligibilityProcessingIntegrationTest
     }
 
     private static AdminClient adminClient() {
-        return AdminClient.create(Map.of(
-                AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG,
-                KAFKA.getBootstrapServers()
-        ));
+        return AdminClient.create(
+            Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers()));
     }
 }

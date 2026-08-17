@@ -12,5 +12,6 @@ public record VehicleResponse(
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) VehicleStatus status,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) int serviceIntervalKm,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) long nextServiceAtKm,
-        @Schema(requiredMode = Schema.RequiredMode.REQUIRED) Instant createdAt) {
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED) Instant createdAt
+) {
 }

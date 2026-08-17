@@ -21,8 +21,9 @@ class VehiclePropertiesTest {
     @Test
     void rejectsInvalidInitialOdometer() {
         assertThrows(IllegalArgumentException.class, () -> new VehicleProperties(15_000, -1));
-        assertThrows(IllegalArgumentException.class, () -> new VehicleProperties(15_000, Double.NaN));
         assertThrows(IllegalArgumentException.class,
-                () -> new VehicleProperties(15_000, Double.POSITIVE_INFINITY));
+            () -> new VehicleProperties(15_000, Double.NaN));
+        assertThrows(IllegalArgumentException.class,
+            () -> new VehicleProperties(15_000, Double.POSITIVE_INFINITY));
     }
 }

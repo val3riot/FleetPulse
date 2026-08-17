@@ -18,8 +18,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TcpServerConfigurationTest {
 
-    private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-            .withUserConfiguration(TcpServerConfiguration.class, JsonConfiguration.class);
+    private final ApplicationContextRunner contextRunner =
+        new ApplicationContextRunner().withUserConfiguration(TcpServerConfiguration.class,
+            JsonConfiguration.class);
 
     @Test
     void keepsTcpListenerDisabledWithoutProductionFrameHandler() {
@@ -37,14 +38,12 @@ class TcpServerConfigurationTest {
 
     @Test
     void startsTcpListenerWhenExplicitlyEnabledWithTestOnlyHandler() {
-        contextRunner
-                .withUserConfiguration(TestHandlerConfiguration.class)
-                .withPropertyValues("gateway.tcp.enabled=true", "gateway.tcp.port=0")
-                .run(context -> {
-                    assertNull(context.getStartupFailure());
-                    assertNotNull(context.getBean(TcpServer.class));
-                    assertTrue(context.getBean(TcpServerLifecycle.class).isRunning());
-                });
+        contextRunner.withUserConfiguration(TestHandlerConfiguration.class)
+            .withPropertyValues("gateway.tcp.enabled=true", "gateway.tcp.port=0").run(context -> {
+                assertNull(context.getStartupFailure());
+                assertNotNull(context.getBean(TcpServer.class));
+                assertTrue(context.getBean(TcpServerLifecycle.class).isRunning());
+            });
     }
 
     @Test
@@ -52,34 +51,23 @@ class TcpServerConfigurationTest {
         contextRunner.run(context -> {
             assertNull(context.getStartupFailure());
 
-            TcpServerProperties properties =
-                    context.getBean(TcpServerProperties.class);
+            TcpServerProperties properties = context.getBean(TcpServerProperties.class);
 
-            assertEquals(
-                    Duration.ofSeconds(30),
-                    properties.readTimeout()
-            );
+            assertEquals(Duration.ofSeconds(30), properties.readTimeout());
 
-            assertEquals(
-                    Duration.ofSeconds(5),
-                    properties.shutdownGracePeriod()
-            );
+            assertEquals(Duration.ofSeconds(5), properties.shutdownGracePeriod());
         });
     }
 
     @Test
     void bindsConfiguredTcpTimeoutProperties() {
-        contextRunner
-                .withPropertyValues(
-                        "gateway.tcp.read-timeout=750ms",
-                        "gateway.tcp.shutdown-grace-period=2s"
-                )
-                .run(context -> {
-                    assertNull(context.getStartupFailure());
-                    TcpServerProperties properties = context.getBean(TcpServerProperties.class);
-                    assertEquals(Duration.ofMillis(750), properties.readTimeout());
-                    assertEquals(Duration.ofSeconds(2), properties.shutdownGracePeriod());
-                });
+        contextRunner.withPropertyValues("gateway.tcp.read-timeout=750ms",
+            "gateway.tcp.shutdown-grace-period=2s").run(context -> {
+            assertNull(context.getStartupFailure());
+            TcpServerProperties properties = context.getBean(TcpServerProperties.class);
+            assertEquals(Duration.ofMillis(750), properties.readTimeout());
+            assertEquals(Duration.ofSeconds(2), properties.shutdownGracePeriod());
+        });
     }
 
     @Configuration(proxyBeanMethods = false)

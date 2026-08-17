@@ -10,8 +10,6 @@ class FleetApiClientConfiguration {
 
     @Bean
     RestClient fleetApiRestClient(VehicleSimulatorProperties properties) {
-        return RestClient.builder()
-                .baseUrl(properties.fleetApi().baseUrl().toString())
-                .build();
+        return RestClient.builder().baseUrl(properties.fleetApi().baseUrl().toString()).build();
     }
 }

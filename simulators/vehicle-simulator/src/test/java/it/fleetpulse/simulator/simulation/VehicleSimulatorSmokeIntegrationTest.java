@@ -33,7 +33,8 @@ class VehicleSimulatorSmokeIntegrationTest {
     void provisionsVehicleStartsWorkloadAndSendsARealTcpFrame() throws Exception {
         InetAddress loopback = InetAddress.getByName("127.0.0.1");
         HttpServer fleetApi = HttpServer.create(new InetSocketAddress(loopback, 0), 0);
-        fleetApi.createContext("/api/v1/vehicles", VehicleSimulatorSmokeIntegrationTest::handleFleetApi);
+        fleetApi.createContext("/api/v1/vehicles",
+            VehicleSimulatorSmokeIntegrationTest::handleFleetApi);
         fleetApi.start();
 
         try (ServerSocket gateway = new ServerSocket(0, 1, loopback)) {
@@ -46,26 +47,20 @@ class VehicleSimulatorSmokeIntegrationTest {
                 }
             });
 
-            ConfigurableApplicationContext context = new SpringApplicationBuilder(
-                    VehicleSimulatorApplication.class
-            ).logStartupInfo(false).run(
-                    "--simulator.enabled=true",
-                    "--simulator.vehicle-count=1",
-                    "--simulator.fleet-api.base-url=http://" + loopback.getHostAddress()
-                            + ":" + fleetApi.getAddress().getPort(),
+            ConfigurableApplicationContext context =
+                new SpringApplicationBuilder(VehicleSimulatorApplication.class).logStartupInfo(
+                    false).run("--simulator.enabled=true", "--simulator.vehicle-count=1",
+                    "--simulator.fleet-api.base-url=http://" + loopback.getHostAddress() + ":" +
+                        fleetApi.getAddress().getPort(),
                     "--simulator.gateway.host=" + loopback.getHostAddress(),
                     "--simulator.gateway.port=" + gateway.getLocalPort(),
-                    "--simulator.send-interval=50ms",
-                    "--simulator.shutdown-grace-period=2s",
+                    "--simulator.send-interval=50ms", "--simulator.shutdown-grace-period=2s",
                     "--simulator.reconnect.initial-backoff=10ms",
                     "--simulator.reconnect.max-backoff=50ms",
-                    "--simulator.reconnect.max-attempts=3",
-                    "--simulator.reconnect.jitter-ratio=0",
+                    "--simulator.reconnect.max-attempts=3", "--simulator.reconnect.jitter-ratio=0",
                     "--simulator.vehicle.service-interval-km=15000",
                     "--simulator.vehicle.initial-odometer-km=10000",
-                    "--spring.main.banner-mode=off",
-                    "--logging.level.root=WARN"
-            );
+                    "--spring.main.banner-mode=off", "--logging.level.root=WARN");
 
             VehicleSimulatorLifecycle lifecycle = context.getBean(VehicleSimulatorLifecycle.class);
             try {
@@ -90,17 +85,17 @@ class VehicleSimulatorSmokeIntegrationTest {
         int status;
         if ("GET".equals(exchange.getRequestMethod())) {
             response = """
-                    {"content":[],"page":0,"size":100,"totalElements":0,"totalPages":0,
-                    "first":true,"last":true}
-                    """;
+                {"content":[],"page":0,"size":100,"totalElements":0,"totalPages":0,
+                "first":true,"last":true}
+                """;
             status = 200;
         } else if ("POST".equals(exchange.getRequestMethod())) {
             response = """
-                    {"id":"97e194a8-64b3-4885-b1e6-25fd482f58c0",
-                    "externalCode":"FP-SIM-001","plate":"SIM001","status":"ACTIVE",
-                    "serviceIntervalKm":15000,"nextServiceAtKm":25000,
-                    "createdAt":"2026-08-12T12:00:00Z"}
-                    """;
+                {"id":"97e194a8-64b3-4885-b1e6-25fd482f58c0",
+                "externalCode":"FP-SIM-001","plate":"SIM001","status":"ACTIVE",
+                "serviceIntervalKm":15000,"nextServiceAtKm":25000,
+                "createdAt":"2026-08-12T12:00:00Z"}
+                """;
             status = 201;
         } else {
             response = "";

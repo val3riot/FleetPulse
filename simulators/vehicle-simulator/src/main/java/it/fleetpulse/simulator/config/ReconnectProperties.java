@@ -13,7 +13,8 @@ public record ReconnectProperties(
         requirePositive(initialBackoff, "reconnect.initialBackoff");
         requirePositive(maxBackoff, "reconnect.maxBackoff");
         if (initialBackoff.compareTo(maxBackoff) > 0) {
-            throw new IllegalArgumentException("reconnect.initialBackoff must not exceed maxBackoff");
+            throw new IllegalArgumentException(
+                "reconnect.initialBackoff must not exceed maxBackoff");
         }
         if (maxAttempts <= 0) {
             throw new IllegalArgumentException("reconnect.maxAttempts must be greater than zero");

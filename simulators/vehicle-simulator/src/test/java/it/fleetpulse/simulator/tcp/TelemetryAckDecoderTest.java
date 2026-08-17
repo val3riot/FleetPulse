@@ -22,13 +22,13 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class TelemetryAckDecoderTest {
 
-    private static final String ACCEPTED_ACK = "{\"protocolVersion\":1,"
-            + "\"messageId\":\"dc0fc799-0913-4e72-bd2d-8ee8ccf52e22\","
-            + "\"status\":\"ACCEPTED\",\"receivedAt\":\"2026-08-01T10:15:30.083Z\"}";
-    private static final String REJECTED_ACK = "{\"protocolVersion\":1,"
-            + "\"messageId\":\"dc0fc799-0913-4e72-bd2d-8ee8ccf52e22\","
-            + "\"status\":\"REJECTED\",\"receivedAt\":\"2026-08-01T10:15:30.083Z\","
-            + "\"errorCode\":\"UPSTREAM_UNAVAILABLE\"}";
+    private static final String ACCEPTED_ACK =
+        "{\"protocolVersion\":1,\"messageId\":\"dc0fc799-0913-4e72-bd2d-8ee8ccf52e22\"," +
+            "\"status\":\"ACCEPTED\",\"receivedAt\":\"2026-08-01T10:15:30.083Z\"}";
+    private static final String REJECTED_ACK =
+        "{\"protocolVersion\":1,\"messageId\":\"dc0fc799-0913-4e72-bd2d-8ee8ccf52e22\"," +
+            "\"status\":\"REJECTED\",\"receivedAt\":\"2026-08-01T10:15:30.083Z\"," +
+            "\"errorCode\":\"UPSTREAM_UNAVAILABLE\"}";
 
     private final TelemetryAckDecoder decoder = new TelemetryAckDecoder(new ObjectMapper());
 
@@ -53,8 +53,7 @@ class TelemetryAckDecoderTest {
         byte[] first = frameBytes(ACCEPTED_ACK);
         byte[] second = frameBytes(REJECTED_ACK);
         ByteArrayInputStream input = new ByteArrayInputStream(
-                ByteBuffer.allocate(first.length + second.length).put(first).put(second).array()
-        );
+            ByteBuffer.allocate(first.length + second.length).put(first).put(second).array());
 
         assertEquals(AckStatus.ACCEPTED, decoder.read(input).status());
         assertEquals(AckStatus.REJECTED, decoder.read(input).status());
@@ -63,18 +62,18 @@ class TelemetryAckDecoderTest {
     @Test
     void rejectsInvalidUnsignedLengths() {
         assertThrows(InvalidFrameLengthException.class, () -> decoder.read(header(0)));
-        assertThrows(
-                InvalidFrameLengthException.class,
-                () -> decoder.read(header(ProtocolConstants.MAX_PAYLOAD_SIZE_BYTES + 1))
-        );
+        assertThrows(InvalidFrameLengthException.class,
+            () -> decoder.read(header(ProtocolConstants.MAX_PAYLOAD_SIZE_BYTES + 1)));
         assertThrows(InvalidFrameLengthException.class, () -> decoder.read(header(0x8000_0000)));
     }
 
     @Test
     void rejectsUnsupportedProtocolVersion() {
-        String acknowledgement = ACCEPTED_ACK.replace("\"protocolVersion\":1", "\"protocolVersion\":2");
+        String acknowledgement =
+            ACCEPTED_ACK.replace("\"protocolVersion\":1", "\"protocolVersion\":2");
 
-        assertThrows(UnsupportedProtocolVersionException.class, () -> decoder.read(frame(acknowledgement)));
+        assertThrows(UnsupportedProtocolVersionException.class,
+            () -> decoder.read(frame(acknowledgement)));
     }
 
     private ByteArrayInputStream frame(String json) {
@@ -83,10 +82,8 @@ class TelemetryAckDecoderTest {
 
     private byte[] frameBytes(String json) {
         byte[] payload = json.getBytes(StandardCharsets.UTF_8);
-        return ByteBuffer.allocate(Integer.BYTES + payload.length)
-                .putInt(payload.length)
-                .put(payload)
-                .array();
+        return ByteBuffer.allocate(Integer.BYTES + payload.length).putInt(payload.length)
+            .put(payload).array();
     }
 
     private ByteArrayInputStream header(int length) {

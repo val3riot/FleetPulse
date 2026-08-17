@@ -50,13 +50,8 @@ public class VehicleEntity {
     /**
      * Crea un veicolo con i dati persistibili assegnati dal servizio.
      */
-    public VehicleEntity(
-            String externalCode,
-            String plate,
-            VehicleStatus status,
-            int serviceIntervalKm,
-            long nextServiceAtKm,
-            Instant createdAt) {
+    public VehicleEntity(String externalCode, String plate, VehicleStatus status,
+        int serviceIntervalKm, long nextServiceAtKm, Instant createdAt) {
         this.externalCode = externalCode;
         this.plate = plate;
         this.status = status;
@@ -65,42 +60,58 @@ public class VehicleEntity {
         this.createdAt = createdAt;
     }
 
-    /** Restituisce l'identificativo del veicolo. */
+    /**
+     * Restituisce l'identificativo del veicolo.
+     */
     public UUID getId() {
         return id;
     }
 
-    /** Restituisce il codice esterno del veicolo. */
+    /**
+     * Restituisce il codice esterno del veicolo.
+     */
     public String getExternalCode() {
         return externalCode;
     }
 
-    /** Restituisce la targa del veicolo. */
+    /**
+     * Restituisce la targa del veicolo.
+     */
     public String getPlate() {
         return plate;
     }
 
-    /** Restituisce lo stato corrente del veicolo. */
+    /**
+     * Restituisce lo stato corrente del veicolo.
+     */
     public VehicleStatus getStatus() {
         return status;
     }
 
-    /** Restituisce l'intervallo chilometrico di manutenzione. */
+    /**
+     * Restituisce l'intervallo chilometrico di manutenzione.
+     */
     public int getServiceIntervalKm() {
         return serviceIntervalKm;
     }
 
-    /** Restituisce il chilometraggio previsto per il prossimo tagliando. */
+    /**
+     * Restituisce il chilometraggio previsto per il prossimo tagliando.
+     */
     public long getNextServiceAtKm() {
         return nextServiceAtKm;
     }
 
-    /** Restituisce l'istante di creazione del veicolo. */
+    /**
+     * Restituisce l'istante di creazione del veicolo.
+     */
     public Instant getCreatedAt() {
         return createdAt;
     }
 
-    /** Cambia lo stato del veicolo. */
+    /**
+     * Cambia lo stato del veicolo.
+     */
     public void changeStatus(VehicleStatus status) {
         this.status = Objects.requireNonNull(status);
     }

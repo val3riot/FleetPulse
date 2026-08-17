@@ -13,15 +13,9 @@ public class KafkaTerminalPublishingConfiguration {
 
     @Bean
     TelemetryTerminalEventPublisher terminalEventPublisher(
-            KafkaTemplate<String, Object> kafkaTemplate,
-            KafkaTopicsProperties topics,
-            KafkaTerminalPublishingProperties properties
-    ) {
-        return new KafkaTelemetryTerminalEventPublisher(
-                kafkaTemplate,
-                topics,
-                properties
-        );
+        KafkaTemplate<String, Object> kafkaTemplate, KafkaTopicsProperties topics,
+        KafkaTerminalPublishingProperties properties) {
+        return new KafkaTelemetryTerminalEventPublisher(kafkaTemplate, topics, properties);
     }
 
     @Bean
@@ -30,33 +24,20 @@ public class KafkaTerminalPublishingConfiguration {
     }
 
     @Bean
-    KafkaOriginalPayloadResolver originalPayloadResolver(
-            ObjectMapper objectMapper
-    ) {
+    KafkaOriginalPayloadResolver originalPayloadResolver(ObjectMapper objectMapper) {
         return new KafkaOriginalPayloadResolver(objectMapper);
     }
 
     @Bean
-    TelemetryDeadLetterEventFactory deadLetterEventFactory(
-            Clock clock,
-            KafkaOriginalPayloadResolver payloadResolver,
-            KafkaDeliveryAttemptResolver attemptResolver
-    ) {
-        return new TelemetryDeadLetterEventFactory(
-                clock,
-                payloadResolver,
-                attemptResolver
-        );
+    TelemetryDeadLetterEventFactory deadLetterEventFactory(Clock clock,
+        KafkaOriginalPayloadResolver payloadResolver,
+        KafkaDeliveryAttemptResolver attemptResolver) {
+        return new TelemetryDeadLetterEventFactory(clock, payloadResolver, attemptResolver);
     }
 
     @Bean
-    ConsumerRecordRecoverer deadLetterRecoverer(
-            TelemetryDeadLetterEventFactory eventFactory,
-            TelemetryTerminalEventPublisher publisher
-    ) {
-        return new TelemetryDeadLetterRecoverer(
-                eventFactory,
-                publisher
-        );
+    ConsumerRecordRecoverer deadLetterRecoverer(TelemetryDeadLetterEventFactory eventFactory,
+        TelemetryTerminalEventPublisher publisher) {
+        return new TelemetryDeadLetterRecoverer(eventFactory, publisher);
     }
 }

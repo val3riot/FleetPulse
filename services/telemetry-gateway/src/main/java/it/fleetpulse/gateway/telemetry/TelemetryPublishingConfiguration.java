@@ -14,10 +14,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import java.time.Clock;
 
 @Configuration(proxyBeanMethods = false)
-@EnableConfigurationProperties({
-        KafkaTopicsProperties.class,
-        KafkaPublisherProperties.class
-})
+@EnableConfigurationProperties({KafkaTopicsProperties.class, KafkaPublisherProperties.class})
 public class TelemetryPublishingConfiguration {
     @Bean
     Clock clock() {
@@ -30,14 +27,9 @@ public class TelemetryPublishingConfiguration {
     }
 
     @Bean
-    TelemetryPublisher telemetryPublisher(
-            KafkaTemplate<String, TelemetryEvent> kafkaTemplate,
-            KafkaTopicsProperties topics
-    ) {
-        return new KafkaTelemetryPublisher(
-                kafkaTemplate,
-                topics.raw()
-        );
+    TelemetryPublisher telemetryPublisher(KafkaTemplate<String, TelemetryEvent> kafkaTemplate,
+        KafkaTopicsProperties topics) {
+        return new KafkaTelemetryPublisher(kafkaTemplate, topics.raw());
     }
 
     @Bean
@@ -46,17 +38,8 @@ public class TelemetryPublishingConfiguration {
     }
 
     @Bean
-    FrameHandler frameHandler(
-            TelemetryEventMapper mapper,
-            TelemetryPublisher publisher,
-            KafkaPublisherProperties properties,
-            TelemetryPublishingMetrics metrics
-    ) {
-        return new PublishingFrameHandler(
-                mapper,
-                publisher,
-                properties,
-                metrics
-        );
+    FrameHandler frameHandler(TelemetryEventMapper mapper, TelemetryPublisher publisher,
+        KafkaPublisherProperties properties, TelemetryPublishingMetrics metrics) {
+        return new PublishingFrameHandler(mapper, publisher, properties, metrics);
     }
 }

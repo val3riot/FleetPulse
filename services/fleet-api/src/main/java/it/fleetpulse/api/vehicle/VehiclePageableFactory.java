@@ -17,27 +17,20 @@ public class VehiclePageableFactory {
      * La chiave è il nome esposto dall'API.
      * Il valore è la proprietà dell'entity usata da Spring Data.
      */
-    private static final Map<String, String> ALLOWED_SORT_FIELDS = Map.of(
-            "createdAt", "createdAt",
-            "externalCode", "externalCode",
-            "plate", "plate",
-            "status", "status"
-    );
+    private static final Map<String, String> ALLOWED_SORT_FIELDS =
+        Map.of("createdAt", "createdAt", "externalCode", "externalCode", "plate", "plate", "status",
+            "status");
 
     /**
      * Crea il pageable validando pagina, dimensione e ordinamento richiesti.
      */
-    public Pageable create(
-            int page,
-            int size,
-            String sortExpression
-    ) {
+    public Pageable create(int page, int size, String sortExpression) {
         validatePagination(page, size);
 
         ParsedSort parsedSort = parseSort(sortExpression);
 
         Sort sort = Sort.by(parsedSort.direction(), parsedSort.entityProperty())
-                .and(Sort.by(Sort.Direction.ASC, "id"));
+            .and(Sort.by(Sort.Direction.ASC, "id"));
 
         return PageRequest.of(page, size, sort);
     }
@@ -60,10 +53,7 @@ public class VehiclePageableFactory {
      */
     private ParsedSort parseSort(String sortExpression) {
         if (sortExpression == null || sortExpression.isBlank()) {
-            return new ParsedSort(
-                    "createdAt",
-                    Sort.Direction.DESC
-            );
+            return new ParsedSort("createdAt", Sort.Direction.DESC);
         }
 
         String[] parts = sortExpression.trim().split(",", -1);
@@ -73,9 +63,7 @@ public class VehiclePageableFactory {
         }
 
         String apiField = parts[0].trim();
-        String directionValue = parts[1]
-                .trim()
-                .toLowerCase(Locale.ROOT);
+        String directionValue = parts[1].trim().toLowerCase(Locale.ROOT);
 
         String entityProperty = ALLOWED_SORT_FIELDS.get(apiField);
 
@@ -100,8 +88,8 @@ public class VehiclePageableFactory {
     }
 
     private record ParsedSort(
-            String entityProperty,
-            Sort.Direction direction
+        String entityProperty,
+        Sort.Direction direction
     ) {
     }
 }

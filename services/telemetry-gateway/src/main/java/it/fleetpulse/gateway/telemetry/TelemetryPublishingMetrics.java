@@ -12,18 +12,13 @@ public final class TelemetryPublishingMetrics {
     private final Timer acknowledgementLatency;
 
     public TelemetryPublishingMetrics(MeterRegistry registry) {
-        this.registry = Objects.requireNonNull(
-                registry,
-                "registry must not be null"
-        );
+        this.registry = Objects.requireNonNull(registry, "registry must not be null");
 
         this.publishFailures = Counter.builder("fleetpulse.gateway.publish.failures")
-                .description("Kafka publications not confirmed by the gateway")
-                .register(registry);
+            .description("Kafka publications not confirmed by the gateway").register(registry);
 
         this.acknowledgementLatency = Timer.builder("fleetpulse.gateway.ack.latency")
-                .description("Time required to produce a TCP acknowledgement")
-                .register(registry);
+            .description("Time required to produce a TCP acknowledgement").register(registry);
     }
 
     Timer.Sample startAcknowledgement() {

@@ -149,9 +149,12 @@ class TcpServerIntegrationTest {
                 }
 
                 assertTrue(handled.await(2, TimeUnit.SECONDS));
-                await(() -> metric(running.registry(), "fleetpulse.gateway.connections.accepted") == clientCount);
-                assertEquals(clientCount, metric(running.registry(), "fleetpulse.gateway.frames.received"));
-                assertEquals(clientCount, metric(running.registry(), "fleetpulse.gateway.connections.active"));
+                await(() -> metric(running.registry(), "fleetpulse.gateway.connections.accepted") ==
+                    clientCount);
+                assertEquals(clientCount,
+                    metric(running.registry(), "fleetpulse.gateway.frames.received"));
+                assertEquals(clientCount,
+                    metric(running.registry(), "fleetpulse.gateway.connections.active"));
             } finally {
                 for (Socket client : clients) {
                     client.close();
@@ -163,9 +166,8 @@ class TcpServerIntegrationTest {
 
     @Test
     void recordsFailureAndCleansUpWhenClientDisconnectsMidFrame() throws Exception {
-        try (RunningServer running = RunningServer.start(TestAcknowledgements::accepted);
-             Socket client = connect(running.port())
-        ) {
+        try (RunningServer running = RunningServer.start(
+            TestAcknowledgements::accepted); Socket client = connect(running.port())) {
             DataOutputStream output = new DataOutputStream(client.getOutputStream());
             output.writeInt(10);
             output.write(new byte[]{'{', '}'});
@@ -181,12 +183,9 @@ class TcpServerIntegrationTest {
 
     @Test
     void shutdownClosesAnActiveRealClientAndResetsGauge() throws Exception {
-        RunningServer running = RunningServer.start(
-                TestAcknowledgements::accepted,
-                100,
-                Duration.ofSeconds(5),
-                Duration.ofMillis(200)
-        );
+        RunningServer running =
+            RunningServer.start(TestAcknowledgements::accepted, 100, Duration.ofSeconds(5),
+                Duration.ofMillis(200));
         try (Socket client = connect(running.port())) {
             client.setSoTimeout(2_000);
             await(() -> metric(running.registry(), "fleetpulse.gateway.connections.active") == 1);
@@ -203,13 +202,15 @@ class TcpServerIntegrationTest {
 
     @Test
     void rejectsConnectionsBeyondCapacityAndReusesPermitAfterDisconnect() throws Exception {
-        try (RunningServer running = RunningServer.start(TestAcknowledgements::accepted, 1); Socket first = connect(running.port())) {
+        try (RunningServer running = RunningServer.start(TestAcknowledgements::accepted,
+            1); Socket first = connect(running.port())) {
             await(() -> metric(running.registry(), "fleetpulse.gateway.connections.active") == 1);
             try (Socket rejected = connect(running.port())) {
                 rejected.setSoTimeout(2_000);
                 assertEquals(-1, rejected.getInputStream().read());
             }
-            await(() -> metric(running.registry(), "fleetpulse.gateway.tcp.connections.capacity.rejected") == 1);
+            await(() -> metric(running.registry(),
+                "fleetpulse.gateway.tcp.connections.capacity.rejected") == 1);
             assertEquals(1, metric(running.registry(), "fleetpulse.gateway.connections.accepted"));
             assertEquals(0, metric(running.registry(), "fleetpulse.gateway.connections.rejected"));
             assertEquals(1, metric(running.registry(), "fleetpulse.gateway.connections.active"));
@@ -218,8 +219,10 @@ class TcpServerIntegrationTest {
             await(() -> metric(running.registry(), "fleetpulse.gateway.connections.active") == 0);
 
             try (Socket replacement = connect(running.port())) {
-                await(() -> metric(running.registry(), "fleetpulse.gateway.connections.accepted") == 2);
-                assertEquals(1, metric(running.registry(), "fleetpulse.gateway.connections.active"));
+                await(() -> metric(running.registry(), "fleetpulse.gateway.connections.accepted") ==
+                    2);
+                assertEquals(1,
+                    metric(running.registry(), "fleetpulse.gateway.connections.active"));
             }
             await(() -> metric(running.registry(), "fleetpulse.gateway.connections.active") == 0);
         }
@@ -238,9 +241,12 @@ class TcpServerIntegrationTest {
             await(() -> metric(running.registry(), "fleetpulse.gateway.connections.active") == 0);
 
             try (Socket replacement = connect(running.port())) {
-                await(() -> metric(running.registry(), "fleetpulse.gateway.connections.accepted") == 2);
-                assertEquals(1, metric(running.registry(), "fleetpulse.gateway.connections.active"));
-                assertEquals(0, metric(running.registry(), "fleetpulse.gateway.tcp.connections.capacity.rejected"));
+                await(() -> metric(running.registry(), "fleetpulse.gateway.connections.accepted") ==
+                    2);
+                assertEquals(1,
+                    metric(running.registry(), "fleetpulse.gateway.connections.active"));
+                assertEquals(0, metric(running.registry(),
+                    "fleetpulse.gateway.tcp.connections.capacity.rejected"));
             }
         }
     }
@@ -252,14 +258,18 @@ class TcpServerIntegrationTest {
         }, 1)) {
             try (Socket failing = connect(running.port())) {
                 write(failing, message(1));
-                await(() -> metric(running.registry(), "fleetpulse.gateway.connections.failures") == 1);
+                await(() -> metric(running.registry(), "fleetpulse.gateway.connections.failures") ==
+                    1);
             }
             await(() -> metric(running.registry(), "fleetpulse.gateway.connections.active") == 0);
 
             try (Socket replacement = connect(running.port())) {
-                await(() -> metric(running.registry(), "fleetpulse.gateway.connections.accepted") == 2);
-                assertEquals(1, metric(running.registry(), "fleetpulse.gateway.connections.active"));
-                assertEquals(0, metric(running.registry(), "fleetpulse.gateway.tcp.connections.capacity.rejected"));
+                await(() -> metric(running.registry(), "fleetpulse.gateway.connections.accepted") ==
+                    2);
+                assertEquals(1,
+                    metric(running.registry(), "fleetpulse.gateway.connections.active"));
+                assertEquals(0, metric(running.registry(),
+                    "fleetpulse.gateway.tcp.connections.capacity.rejected"));
             }
         }
     }
@@ -268,7 +278,8 @@ class TcpServerIntegrationTest {
     void neverExceedsMaximumConnectionsUnderConcurrentLoad() throws Exception {
         int maxConnections = 3;
         int clientCount = 10;
-        try (RunningServer running = RunningServer.start(TestAcknowledgements::accepted, maxConnections)) {
+        try (RunningServer running = RunningServer.start(TestAcknowledgements::accepted,
+            maxConnections)) {
             CountDownLatch start = new CountDownLatch(1);
             List<CompletableFuture<Socket>> attempts = new ArrayList<>();
             for (int index = 0; index < clientCount; index++) {
@@ -286,18 +297,26 @@ class TcpServerIntegrationTest {
             }
 
             start.countDown();
-            List<Socket> clients = attempts.stream().map(future -> future.orTimeout(2, TimeUnit.SECONDS).join()).toList();
+            List<Socket> clients =
+                attempts.stream().map(future -> future.orTimeout(2, TimeUnit.SECONDS).join())
+                    .toList();
             AtomicInteger observedMaximum = new AtomicInteger();
             try {
                 await(() -> {
-                    int active = (int) metric(running.registry(), "fleetpulse.gateway.connections.active");
+                    int active =
+                        (int) metric(running.registry(), "fleetpulse.gateway.connections.active");
                     observedMaximum.accumulateAndGet(active, Math::max);
                     assertTrue(active <= maxConnections);
-                    double completed = metric(running.registry(), "fleetpulse.gateway.connections.accepted") + metric(running.registry(), "fleetpulse.gateway.tcp.connections.capacity.rejected");
+                    double completed =
+                        metric(running.registry(), "fleetpulse.gateway.connections.accepted") +
+                            metric(running.registry(),
+                                "fleetpulse.gateway.tcp.connections.capacity.rejected");
                     return completed == clientCount;
                 });
-                assertEquals(maxConnections, metric(running.registry(), "fleetpulse.gateway.connections.accepted"));
-                assertEquals(clientCount - maxConnections, metric(running.registry(), "fleetpulse.gateway.tcp.connections.capacity.rejected"));
+                assertEquals(maxConnections,
+                    metric(running.registry(), "fleetpulse.gateway.connections.accepted"));
+                assertEquals(clientCount - maxConnections, metric(running.registry(),
+                    "fleetpulse.gateway.tcp.connections.capacity.rejected"));
                 assertTrue(observedMaximum.get() <= maxConnections);
             } finally {
                 for (Socket client : clients) {
@@ -309,166 +328,69 @@ class TcpServerIntegrationTest {
 
     @Test
     void closesIdleClientWhenReadTimeoutExpires() throws Exception {
-        try (
-                RunningServer running = RunningServer.start(
-                        TestAcknowledgements::accepted,
-                        1,
-                        Duration.ofMillis(200),
-                        Duration.ofSeconds(1)
-                );
-                Socket client = connect(running.port())
-        ) {
+        try (RunningServer running = RunningServer.start(TestAcknowledgements::accepted, 1,
+            Duration.ofMillis(200), Duration.ofSeconds(1)); Socket client = connect(
+            running.port())) {
 
-            await(() ->
-                    metric(
-                            running.registry(),
-                            "fleetpulse.gateway.connections.active"
-                    ) == 1
-            );
+            await(() -> metric(running.registry(), "fleetpulse.gateway.connections.active") == 1);
             // ASPETTA TIMEOUT
-            await(() ->
-                    metric(
-                            running.registry(),
-                            "fleetpulse.gateway.connections.active"
-                    ) == 0
-            );
+            await(() -> metric(running.registry(), "fleetpulse.gateway.connections.active") == 0);
 
             client.setSoTimeout(1_000);
 
-            assertEquals(
-                    -1,
-                    client.getInputStream().read()
-            );
-            assertEquals(
-                    0,
-                    metric(
-                            running.registry(),
-                            "fleetpulse.gateway.connections.active"
-                    )
-            );
-            assertEquals(
-                    1,
-                    metric(
-                            running.registry(),
-                            "fleetpulse.gateway.connections.timeouts"
-                    )
-            );
-            assertEquals(
-                    0,
-                    metric(
-                            running.registry(),
-                            "fleetpulse.gateway.connections.failures"
-                    )
-            );
+            assertEquals(-1, client.getInputStream().read());
+            assertEquals(0, metric(running.registry(), "fleetpulse.gateway.connections.active"));
+            assertEquals(1, metric(running.registry(), "fleetpulse.gateway.connections.timeouts"));
+            assertEquals(0, metric(running.registry(), "fleetpulse.gateway.connections.failures"));
         }
     }
 
     @Test
     void reusesPermitAfterReadTimeout() throws Exception {
-        try (
-                RunningServer running = RunningServer.start(
-                        TestAcknowledgements::accepted,
-                        1,
-                        Duration.ofMillis(200),
-                        Duration.ofSeconds(1)
-                )
-        ) {
+        try (RunningServer running = RunningServer.start(TestAcknowledgements::accepted, 1,
+            Duration.ofMillis(200), Duration.ofSeconds(1))) {
             try (Socket first = connect(running.port())) {
-                await(() ->
-                        metric(
-                                running.registry(),
-                                "fleetpulse.gateway.connections.active"
-                        ) == 1
-                );
+                await(
+                    () -> metric(running.registry(), "fleetpulse.gateway.connections.active") == 1);
 
-                await(() ->
-                        metric(
-                                running.registry(),
-                                "fleetpulse.gateway.connections.timeouts"
-                        ) == 1
-                );
+                await(() -> metric(running.registry(), "fleetpulse.gateway.connections.timeouts") ==
+                    1);
 
-                await(() ->
-                        metric(
-                                running.registry(),
-                                "fleetpulse.gateway.connections.active"
-                        ) == 0
-                );
+                await(
+                    () -> metric(running.registry(), "fleetpulse.gateway.connections.active") == 0);
 
-                assertEquals(
-                        0,
-                        metric(
-                                running.registry(),
-                                "fleetpulse.gateway.tcp.connections.capacity.rejected"
-                        )
-                );
+                assertEquals(0, metric(running.registry(),
+                    "fleetpulse.gateway.tcp.connections.capacity.rejected"));
             }
 
             try (Socket replacement = connect(running.port())) {
-                await(() ->
-                        metric(
-                                running.registry(),
-                                "fleetpulse.gateway.connections.accepted"
-                        ) == 2
-                );
+                await(() -> metric(running.registry(), "fleetpulse.gateway.connections.accepted") ==
+                    2);
 
-                assertEquals(
-                        0,
-                        metric(
-                                running.registry(),
-                                "fleetpulse.gateway.tcp.connections.capacity.rejected"
-                        )
-                );
+                assertEquals(0, metric(running.registry(),
+                    "fleetpulse.gateway.tcp.connections.capacity.rejected"));
             }
         }
     }
 
     @Test
     void closesClientWhenReadTimeoutExpiresDuringPartialFrame() throws Exception {
-        try (
-                RunningServer running = RunningServer.start(
-                        TestAcknowledgements::accepted,
-                        1,
-                        Duration.ofMillis(200),
-                        Duration.ofSeconds(1)
-                );
-                Socket client = connect(running.port())
-        ) {
-            await(() ->
-                    metric(
-                            running.registry(),
-                            "fleetpulse.gateway.connections.active"
-                    ) == 1
-            );
+        try (RunningServer running = RunningServer.start(TestAcknowledgements::accepted, 1,
+            Duration.ofMillis(200), Duration.ofSeconds(1)); Socket client = connect(
+            running.port())) {
+            await(() -> metric(running.registry(), "fleetpulse.gateway.connections.active") == 1);
 
-            DataOutputStream output =
-                    new DataOutputStream(client.getOutputStream());
+            DataOutputStream output = new DataOutputStream(client.getOutputStream());
 
             output.writeInt(10);
             output.write(new byte[]{'{', '}'});
             output.flush();
 
-            await(() ->
-                    metric(
-                            running.registry(),
-                            "fleetpulse.gateway.connections.timeouts"
-                    ) == 1
-            );
+            await(() -> metric(running.registry(), "fleetpulse.gateway.connections.timeouts") == 1);
 
-            await(() ->
-                    metric(
-                            running.registry(),
-                            "fleetpulse.gateway.connections.active"
-                    ) == 0
-            );
+            await(() -> metric(running.registry(), "fleetpulse.gateway.connections.active") == 0);
 
-            assertEquals(
-                    0,
-                    metric(
-                            running.registry(),
-                            "fleetpulse.gateway.connections.failures"
-                    )
-            );
+            assertEquals(0, metric(running.registry(), "fleetpulse.gateway.connections.failures"));
         }
     }
 
@@ -477,24 +399,12 @@ class TcpServerIntegrationTest {
         int frameCount = 6;
         CountDownLatch handled = new CountDownLatch(frameCount);
 
-        try (
-                RunningServer running = RunningServer.start(
-                        message -> {
-                            handled.countDown();
-                            return TestAcknowledgements.accepted(message);
-                        },
-                        1,
-                        Duration.ofSeconds(1),
-                        Duration.ofSeconds(1)
-                );
-                Socket client = connect(running.port())
-        ) {
-            await(() ->
-                    metric(
-                            running.registry(),
-                            "fleetpulse.gateway.connections.active"
-                    ) == 1
-            );
+        try (RunningServer running = RunningServer.start(message -> {
+            handled.countDown();
+            return TestAcknowledgements.accepted(message);
+        }, 1, Duration.ofSeconds(1), Duration.ofSeconds(1)); Socket client = connect(
+            running.port())) {
+            await(() -> metric(running.registry(), "fleetpulse.gateway.connections.active") == 1);
 
             for (int index = 0; index < frameCount; index++) {
                 write(client, message(index));
@@ -506,36 +416,14 @@ class TcpServerIntegrationTest {
 
             assertTrue(handled.await(1, TimeUnit.SECONDS));
 
-            await(() ->
-                    metric(
-                            running.registry(),
-                            "fleetpulse.gateway.frames.received"
-                    ) == frameCount
-            );
+            await(() -> metric(running.registry(), "fleetpulse.gateway.frames.received") ==
+                frameCount);
 
-            assertEquals(
-                    0,
-                    metric(
-                            running.registry(),
-                            "fleetpulse.gateway.connections.timeouts"
-                    )
-            );
+            assertEquals(0, metric(running.registry(), "fleetpulse.gateway.connections.timeouts"));
 
-            assertEquals(
-                    0,
-                    metric(
-                            running.registry(),
-                            "fleetpulse.gateway.connections.failures"
-                    )
-            );
+            assertEquals(0, metric(running.registry(), "fleetpulse.gateway.connections.failures"));
 
-            assertEquals(
-                    1,
-                    metric(
-                            running.registry(),
-                            "fleetpulse.gateway.connections.active"
-                    )
-            );
+            assertEquals(1, metric(running.registry(), "fleetpulse.gateway.connections.active"));
         }
     }
 
@@ -544,22 +432,17 @@ class TcpServerIntegrationTest {
         CountDownLatch handlerStarted = new CountDownLatch(1);
         CountDownLatch releaseHandler = new CountDownLatch(1);
 
-        RunningServer running = RunningServer.start(
-                message -> {
-                    handlerStarted.countDown();
+        RunningServer running = RunningServer.start(message -> {
+            handlerStarted.countDown();
 
-                    try {
-                        releaseHandler.await();
-                    } catch (InterruptedException exception) {
-                        Thread.currentThread().interrupt();
-                    }
+            try {
+                releaseHandler.await();
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+            }
 
-                    return TestAcknowledgements.accepted(message);
-                },
-                1,
-                Duration.ofSeconds(5),
-                Duration.ofSeconds(1)
-        );
+            return TestAcknowledgements.accepted(message);
+        }, 1, Duration.ofSeconds(5), Duration.ofSeconds(1));
 
         try (Socket client = connect(running.port())) {
             write(client, message(1));
@@ -571,41 +454,23 @@ class TcpServerIntegrationTest {
              */
             client.shutdownOutput();
 
-            assertTrue(
-                    handlerStarted.await(1, TimeUnit.SECONDS),
-                    "handler did not start"
-            );
+            assertTrue(handlerStarted.await(1, TimeUnit.SECONDS), "handler did not start");
 
-            CompletableFuture<Void> closing =
-                    CompletableFuture.runAsync(running.server::close);
+            CompletableFuture<Void> closing = CompletableFuture.runAsync(running.server::close);
 
             /*
              * Il close NON deve terminare immediatamente:
              * il handler è ancora in-flight e siamo dentro la grace window.
              */
-            assertThrows(
-                    TimeoutException.class,
-                    () -> closing.get(150, TimeUnit.MILLISECONDS)
-            );
+            assertThrows(TimeoutException.class, () -> closing.get(150, TimeUnit.MILLISECONDS));
 
             releaseHandler.countDown();
 
             closing.get(2, TimeUnit.SECONDS);
 
-            await(() ->
-                    metric(
-                            running.registry(),
-                            "fleetpulse.gateway.connections.active"
-                    ) == 0
-            );
+            await(() -> metric(running.registry(), "fleetpulse.gateway.connections.active") == 0);
 
-            assertEquals(
-                    0,
-                    metric(
-                            running.registry(),
-                            "fleetpulse.gateway.connections.failures"
-                    )
-            );
+            assertEquals(0, metric(running.registry(), "fleetpulse.gateway.connections.failures"));
         } finally {
             /*
              * Evita di lasciare il handler bloccato anche in caso
@@ -618,25 +483,16 @@ class TcpServerIntegrationTest {
 
     @Test
     void forceClosesClientWhenGracePeriodExpires() throws Exception {
-        RunningServer running = RunningServer.start(
-                TestAcknowledgements::accepted,
-                1,
-                Duration.ofSeconds(5),
-                Duration.ofMillis(200)
-        );
+        RunningServer running =
+            RunningServer.start(TestAcknowledgements::accepted, 1, Duration.ofSeconds(5),
+                Duration.ofMillis(200));
 
         try (Socket client = connect(running.port())) {
             client.setSoTimeout(2_000);
 
-            await(() ->
-                    metric(
-                            running.registry(),
-                            "fleetpulse.gateway.connections.active"
-                    ) == 1
-            );
+            await(() -> metric(running.registry(), "fleetpulse.gateway.connections.active") == 1);
 
-            CompletableFuture<Void> closing =
-                    CompletableFuture.runAsync(running.server::close);
+            CompletableFuture<Void> closing = CompletableFuture.runAsync(running.server::close);
 
             /*
              * readTimeout server = 5s
@@ -645,35 +501,15 @@ class TcpServerIntegrationTest {
              * Se il graceful shutdown funziona, la socket deve essere
              * force-closed molto prima dei 5 secondi.
              */
-            assertEquals(
-                    -1,
-                    client.getInputStream().read()
-            );
+            assertEquals(-1, client.getInputStream().read());
 
             closing.get(2, TimeUnit.SECONDS);
 
-            await(() ->
-                    metric(
-                            running.registry(),
-                            "fleetpulse.gateway.connections.active"
-                    ) == 0
-            );
+            await(() -> metric(running.registry(), "fleetpulse.gateway.connections.active") == 0);
 
-            assertEquals(
-                    0,
-                    metric(
-                            running.registry(),
-                            "fleetpulse.gateway.connections.timeouts"
-                    )
-            );
+            assertEquals(0, metric(running.registry(), "fleetpulse.gateway.connections.timeouts"));
 
-            assertEquals(
-                    0,
-                    metric(
-                            running.registry(),
-                            "fleetpulse.gateway.connections.failures"
-                    )
-            );
+            assertEquals(0, metric(running.registry(), "fleetpulse.gateway.connections.failures"));
         } finally {
             running.close();
         }
@@ -682,28 +518,18 @@ class TcpServerIntegrationTest {
     @Test
     void writesAcknowledgementReturnedByFrameHandler() throws Exception {
         TelemetryMessage message = message(48);
-        TelemetryAck expected =
-                TestAcknowledgements.accepted(message);
+        TelemetryAck expected = TestAcknowledgements.accepted(message);
 
-        try (
-                RunningServer running = RunningServer.start(
-                        ignored -> expected
-                );
-                Socket client = connect(running.port())
-        ) {
+        try (RunningServer running = RunningServer.start(
+            ignored -> expected); Socket client = connect(running.port())) {
             client.setSoTimeout(2_000);
 
             write(client, message);
 
-            byte[] acknowledgementPayload =
-                    LengthPrefixedFrameCodec.read(
-                            client.getInputStream()
-                    );
+            byte[] acknowledgementPayload = LengthPrefixedFrameCodec.read(client.getInputStream());
 
-            TelemetryAck actual = OBJECT_MAPPER.readValue(
-                    acknowledgementPayload,
-                    TelemetryAck.class
-            );
+            TelemetryAck actual =
+                OBJECT_MAPPER.readValue(acknowledgementPayload, TelemetryAck.class);
 
             assertEquals(expected, actual);
         }
@@ -714,7 +540,8 @@ class TcpServerIntegrationTest {
     }
 
     private static void write(Socket client, TelemetryMessage message) throws IOException {
-        LengthPrefixedFrameCodec.write(OBJECT_MAPPER.writeValueAsBytes(message), client.getOutputStream());
+        LengthPrefixedFrameCodec.write(OBJECT_MAPPER.writeValueAsBytes(message),
+            client.getOutputStream());
     }
 
     private static byte[] frame(TelemetryMessage message) throws IOException {
@@ -724,7 +551,9 @@ class TcpServerIntegrationTest {
     }
 
     private static TelemetryMessage message(long sequenceNumber) {
-        return new TelemetryMessage(ProtocolConstants.PROTOCOL_VERSION, UUID.randomUUID(), UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0"), sequenceNumber, Instant.parse("2026-08-01T10:15:30Z"), 72.4, 91.8, 12.6, 85312, 41.9028, 12.4964);
+        return new TelemetryMessage(ProtocolConstants.PROTOCOL_VERSION, UUID.randomUUID(),
+            UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0"), sequenceNumber,
+            Instant.parse("2026-08-01T10:15:30Z"), 72.4, 91.8, 12.6, 85312, 41.9028, 12.4964);
     }
 
     private static double metric(SimpleMeterRegistry registry, String name) {
@@ -748,7 +577,8 @@ class TcpServerIntegrationTest {
         private final int port;
         private boolean closed;
 
-        private RunningServer(TcpServer server, SimpleMeterRegistry registry, Thread listener, AtomicReference<Throwable> listenerFailure, int port) {
+        private RunningServer(TcpServer server, SimpleMeterRegistry registry, Thread listener,
+            AtomicReference<Throwable> listenerFailure, int port) {
             this.server = server;
             this.registry = registry;
             this.listener = listener;
@@ -757,50 +587,31 @@ class TcpServerIntegrationTest {
         }
 
         static RunningServer start(FrameHandler handler) throws Exception {
-            return start(
-                    handler,
-                    100,
-                    Duration.ofSeconds(10),
-                    Duration.ofSeconds(5)
-            );
+            return start(handler, 100, Duration.ofSeconds(10), Duration.ofSeconds(5));
         }
 
-        static RunningServer start(
-                FrameHandler handler,
-                int maxConnections
-        ) throws Exception {
-            return start(
-                    handler,
-                    maxConnections,
-                    Duration.ofSeconds(10),
-                    Duration.ofSeconds(5)
-            );
+        static RunningServer start(FrameHandler handler, int maxConnections) throws Exception {
+            return start(handler, maxConnections, Duration.ofSeconds(10), Duration.ofSeconds(5));
         }
 
-        static RunningServer start(
-                FrameHandler handler,
-                int maxConnections,
-                Duration readTimeout,
-                Duration shutdownGracePeriod
-        ) throws Exception {
+        static RunningServer start(FrameHandler handler, int maxConnections, Duration readTimeout,
+            Duration shutdownGracePeriod) throws Exception {
             SimpleMeterRegistry registry = new SimpleMeterRegistry();
 
-            TcpServer server = new TcpServer(
-                    handler,
-                    new TcpServerProperties(true, 0, maxConnections, readTimeout, shutdownGracePeriod),
-                    new FrameDecoder(OBJECT_MAPPER),
-                    new TelemetryAckEncoder(OBJECT_MAPPER),
-                    registry);
+            TcpServer server = new TcpServer(handler,
+                new TcpServerProperties(true, 0, maxConnections, readTimeout, shutdownGracePeriod),
+                new FrameDecoder(OBJECT_MAPPER), new TelemetryAckEncoder(OBJECT_MAPPER), registry);
             CompletableFuture<Integer> bindResult = new CompletableFuture<>();
             AtomicReference<Throwable> listenerFailure = new AtomicReference<>();
-            Thread listener = Thread.ofPlatform().name("tcp-integration-test-listener").start(() -> {
-                try {
-                    server.start(bindResult);
-                } catch (Throwable exception) {
-                    listenerFailure.set(exception);
-                    bindResult.completeExceptionally(exception);
-                }
-            });
+            Thread listener =
+                Thread.ofPlatform().name("tcp-integration-test-listener").start(() -> {
+                    try {
+                        server.start(bindResult);
+                    } catch (Throwable exception) {
+                        listenerFailure.set(exception);
+                        bindResult.completeExceptionally(exception);
+                    }
+                });
             int port = bindResult.get(2, TimeUnit.SECONDS);
             return new RunningServer(server, registry, listener, listenerFailure, port);
         }

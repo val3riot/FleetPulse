@@ -15,52 +15,25 @@ public final class VehicleSpecifications {
     /**
      * Costruisce i predicati di ricerca dei veicoli in base ai filtri ricevuti.
      */
-    public static Specification<VehicleEntity> from(
-            VehicleSearchCriteria criteria
-    ) {
+    public static Specification<VehicleEntity> from(VehicleSearchCriteria criteria) {
         return (root, query, builder) -> {
-            List<jakarta.persistence.criteria.Predicate> predicates =
-                    new ArrayList<>();
+            List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
 
             if (StringUtils.hasText(criteria.query())) {
-                String normalizedQuery = criteria.query()
-                        .trim()
-                        .toLowerCase(Locale.ROOT);
+                String normalizedQuery = criteria.query().trim().toLowerCase(Locale.ROOT);
 
                 String pattern = "%" + normalizedQuery + "%";
 
                 predicates.add(
-                        builder.or(
-                                builder.like(
-                                        builder.lower(
-                                                root.get("externalCode")
-                                        ),
-                                        pattern
-                                ),
-                                builder.like(
-                                        builder.lower(
-                                                root.get("plate")
-                                        ),
-                                        pattern
-                                )
-                        )
-                );
+                    builder.or(builder.like(builder.lower(root.get("externalCode")), pattern),
+                        builder.like(builder.lower(root.get("plate")), pattern)));
             }
 
             if (criteria.status() != null) {
-                predicates.add(
-                        builder.equal(
-                                root.get("status"),
-                                criteria.status()
-                        )
-                );
+                predicates.add(builder.equal(root.get("status"), criteria.status()));
             }
 
-            return builder.and(
-                    predicates.toArray(
-                            jakarta.persistence.criteria.Predicate[]::new
-                    )
-            );
+            return builder.and(predicates.toArray(jakarta.persistence.criteria.Predicate[]::new));
         };
     }
 }

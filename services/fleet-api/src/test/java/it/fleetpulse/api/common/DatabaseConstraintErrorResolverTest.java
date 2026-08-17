@@ -19,8 +19,8 @@ class DatabaseConstraintErrorResolverTest {
     @Test
     @DisplayName("Converte il constraint del codice esterno")
     void resolvesExternalCodeConstraint() {
-        assertThat(resolver.resolve(exception("uq_vehicles_external_code")))
-                .contains(ErrorCode.VEHICLE_EXTERNAL_CODE_CONFLICT);
+        assertThat(resolver.resolve(exception("uq_vehicles_external_code"))).contains(
+            ErrorCode.VEHICLE_EXTERNAL_CODE_CONFLICT);
     }
 
     /**
@@ -29,8 +29,8 @@ class DatabaseConstraintErrorResolverTest {
     @Test
     @DisplayName("Converte il constraint della targa")
     void resolvesPlateConstraint() {
-        assertThat(resolver.resolve(exception("uq_vehicles_plate")))
-                .contains(ErrorCode.VEHICLE_PLATE_CONFLICT);
+        assertThat(resolver.resolve(exception("uq_vehicles_plate"))).contains(
+            ErrorCode.VEHICLE_PLATE_CONFLICT);
     }
 
     /**
@@ -48,10 +48,8 @@ class DatabaseConstraintErrorResolverTest {
     @Test
     @DisplayName("Attraversa la catena delle cause")
     void traversesCauseChain() {
-        DataIntegrityViolationException exception = new DataIntegrityViolationException(
-                "wrapper",
-                new IllegalStateException(exception("uq_vehicles_plate"))
-        );
+        DataIntegrityViolationException exception = new DataIntegrityViolationException("wrapper",
+            new IllegalStateException(exception("uq_vehicles_plate")));
 
         assertThat(resolver.resolve(exception)).contains(ErrorCode.VEHICLE_PLATE_CONFLICT);
     }
@@ -70,12 +68,9 @@ class DatabaseConstraintErrorResolverTest {
      */
     private DataIntegrityViolationException exception(String constraintName) {
         SQLException sqlException = new SQLException("duplicate", "23505");
-        ConstraintViolationException hibernateException = new ConstraintViolationException(
-                "constraint violation",
-                sqlException,
-                "insert into vehicles ...",
-                constraintName
-        );
+        ConstraintViolationException hibernateException =
+            new ConstraintViolationException("constraint violation", sqlException,
+                "insert into vehicles ...", constraintName);
         return new DataIntegrityViolationException("integrity violation", hibernateException);
     }
 }

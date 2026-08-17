@@ -23,16 +23,15 @@ class ProtocolContractJsonTest {
     private static final Instant OBSERVED_AT = Instant.parse("2026-08-01T10:15:30Z");
     private static final Instant RECEIVED_AT = Instant.parse("2026-08-01T10:15:30.083Z");
 
-    private final ObjectMapper objectMapper = new ObjectMapper()
-            .registerModule(new JavaTimeModule())
+    private final ObjectMapper objectMapper =
+        new ObjectMapper().registerModule(new JavaTimeModule())
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
     @Test
     void telemetryMessageMatchesDocumentedPayload() throws Exception {
-        TelemetryMessage message = new TelemetryMessage(
-                ProtocolConstants.PROTOCOL_VERSION, MESSAGE_ID, VEHICLE_ID, 42, OBSERVED_AT,
-                72.4, 91.8, 12.6, 85312, 41.9028, 12.4964
-        );
+        TelemetryMessage message =
+            new TelemetryMessage(ProtocolConstants.PROTOCOL_VERSION, MESSAGE_ID, VEHICLE_ID, 42,
+                OBSERVED_AT, 72.4, 91.8, 12.6, 85312, 41.9028, 12.4964);
 
         JsonNode expected = objectMapper.readTree(resource("telemetry-message.json"));
 
@@ -42,9 +41,9 @@ class ProtocolContractJsonTest {
 
     @Test
     void acceptedAckMatchesDocumentedPayload() throws Exception {
-        TelemetryAck ack = new TelemetryAck(
-                ProtocolConstants.PROTOCOL_VERSION, MESSAGE_ID, AckStatus.ACCEPTED, RECEIVED_AT, null
-        );
+        TelemetryAck ack =
+            new TelemetryAck(ProtocolConstants.PROTOCOL_VERSION, MESSAGE_ID, AckStatus.ACCEPTED,
+                RECEIVED_AT, null);
 
         JsonNode expected = objectMapper.readTree(resource("telemetry-ack-accepted.json"));
         JsonNode actual = objectMapper.valueToTree(ack);
@@ -56,10 +55,9 @@ class ProtocolContractJsonTest {
 
     @Test
     void rejectedAckMatchesDocumentedPayload() throws Exception {
-        TelemetryAck ack = new TelemetryAck(
-                ProtocolConstants.PROTOCOL_VERSION, MESSAGE_ID, AckStatus.REJECTED, RECEIVED_AT,
-                ProtocolErrorCode.UNSUPPORTED_PROTOCOL_VERSION
-        );
+        TelemetryAck ack =
+            new TelemetryAck(ProtocolConstants.PROTOCOL_VERSION, MESSAGE_ID, AckStatus.REJECTED,
+                RECEIVED_AT, ProtocolErrorCode.UNSUPPORTED_PROTOCOL_VERSION);
 
         JsonNode expected = objectMapper.readTree(resource("telemetry-ack-rejected.json"));
 
@@ -69,19 +67,12 @@ class ProtocolContractJsonTest {
 
     @Test
     void errorCodeCatalogMatchesProtocolDocumentation() {
-        Set<String> actual = Arrays.stream(ProtocolErrorCode.values())
-                .map(Enum::name)
-                .collect(Collectors.toSet());
+        Set<String> actual =
+            Arrays.stream(ProtocolErrorCode.values()).map(Enum::name).collect(Collectors.toSet());
 
-        assertEquals(Set.of(
-                "FRAME_TOO_LARGE",
-                "INVALID_FRAME_LENGTH",
-                "MALFORMED_PAYLOAD",
-                "UNSUPPORTED_PROTOCOL_VERSION",
-                "INVALID_TELEMETRY",
-                "UPSTREAM_UNAVAILABLE",
-                "CAPACITY_LIMIT_REACHED"
-        ), actual);
+        assertEquals(Set.of("FRAME_TOO_LARGE", "INVALID_FRAME_LENGTH", "MALFORMED_PAYLOAD",
+            "UNSUPPORTED_PROTOCOL_VERSION", "INVALID_TELEMETRY", "UPSTREAM_UNAVAILABLE",
+            "CAPACITY_LIMIT_REACHED"), actual);
     }
 
     private String resource(String name) throws Exception {

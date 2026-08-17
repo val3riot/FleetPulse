@@ -25,9 +25,8 @@ public final class VehicleRejectionObservability {
 
         for (TelemetryRejectionReason reason : TelemetryRejectionReason.values()) {
             counters.put(reason, Counter.builder("fleetpulse.processor.rejections")
-                    .description("Telemetry events rejected by vehicle eligibility")
-                    .tag("reason", reason.name())
-                    .register(registry));
+                .description("Telemetry events rejected by vehicle eligibility")
+                .tag("reason", reason.name()).register(registry));
         }
     }
 
@@ -36,13 +35,8 @@ public final class VehicleRejectionObservability {
         counters.get(event.reason()).increment();
 
         log.info(
-                "Telemetry event rejected: messageId={}, vehicleId={}, reason={}, sourceTopic={}, sourcePartition={}, sourceOffset={}",
-                event.messageId(),
-                event.vehicleId(),
-                event.reason(),
-                event.sourceTopic(),
-                event.sourcePartition(),
-                event.sourceOffset()
-        );
+            "Telemetry event rejected: messageId={}, vehicleId={}, reason={}, sourceTopic={}, " +
+                "sourcePartition={}, sourceOffset={}", event.messageId(), event.vehicleId(),
+            event.reason(), event.sourceTopic(), event.sourcePartition(), event.sourceOffset());
     }
 }

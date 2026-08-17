@@ -8,8 +8,8 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 @ConfigurationPropertiesScan
 public class TelemetryGatewayApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(TelemetryGatewayApplication.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(TelemetryGatewayApplication.class, args);
+    }
 
 }

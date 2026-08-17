@@ -15,23 +15,19 @@ import java.time.ZoneOffset;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.boot.jdbc.test.autoconfigure
-        .AutoConfigureTestDatabase.Replace.NONE;
+import static org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase.Replace.NONE;
 
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = NONE)
 @Import(PostgreSqlVehicleRegistry.class)
 @ActiveProfiles("test")
-class PostgreSqlVehicleRegistryIntegrationTest
-        extends PostgreSqlIntegrationSupport {
+class PostgreSqlVehicleRegistryIntegrationTest extends PostgreSqlIntegrationSupport {
 
-    private static final UUID ACTIVE_VEHICLE_ID = UUID.fromString(
-            "97e194a8-64b3-4885-b1e6-25fd482f58c0"
-    );
+    private static final UUID ACTIVE_VEHICLE_ID =
+        UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0");
 
-    private static final UUID DISABLED_VEHICLE_ID = UUID.fromString(
-            "047eaf55-24cd-43b9-98f5-e9516649a9fd"
-    );
+    private static final UUID DISABLED_VEHICLE_ID =
+        UUID.fromString("047eaf55-24cd-43b9-98f5-e9516649a9fd");
 
     @Autowired
     private PostgreSqlVehicleRegistry registry;
@@ -41,46 +37,27 @@ class PostgreSqlVehicleRegistryIntegrationTest
 
     @BeforeEach
     void insertVehicles() {
-        insertVehicle(
-                ACTIVE_VEHICLE_ID,
-                "VAN-ACTIVE",
-                "FP100AA",
-                "ACTIVE"
-        );
-        insertVehicle(
-                DISABLED_VEHICLE_ID,
-                "VAN-DISABLED",
-                "FP200BB",
-                "DISABLED"
-        );
+        insertVehicle(ACTIVE_VEHICLE_ID, "VAN-ACTIVE", "FP100AA", "ACTIVE");
+        insertVehicle(DISABLED_VEHICLE_ID, "VAN-DISABLED", "FP200BB", "DISABLED");
     }
 
     @Test
     void findsActiveVehicleStatus() {
-        assertThat(registry.findStatus(ACTIVE_VEHICLE_ID))
-                .contains(VehicleStatus.ACTIVE);
+        assertThat(registry.findStatus(ACTIVE_VEHICLE_ID)).contains(VehicleStatus.ACTIVE);
     }
 
     @Test
     void findsDisabledVehicleStatus() {
-        assertThat(registry.findStatus(DISABLED_VEHICLE_ID))
-                .contains(VehicleStatus.DISABLED);
+        assertThat(registry.findStatus(DISABLED_VEHICLE_ID)).contains(VehicleStatus.DISABLED);
     }
 
     @Test
     void returnsEmptyForUnknownVehicle() {
-        assertThat(registry.findStatus(UUID.randomUUID()))
-                .isEmpty();
+        assertThat(registry.findStatus(UUID.randomUUID())).isEmpty();
     }
 
-    private void insertVehicle(
-            UUID id,
-            String externalCode,
-            String plate,
-            String status
-    ) {
-        jdbcTemplate.update(
-                """
+    private void insertVehicle(UUID id, String externalCode, String plate, String status) {
+        jdbcTemplate.update("""
                 INSERT INTO vehicles (
                     id,
                     external_code,
@@ -90,14 +67,7 @@ class PostgreSqlVehicleRegistryIntegrationTest
                     next_service_at_km,
                     created_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?)
-                """,
-                id,
-                externalCode,
-                plate,
-                status,
-                15_000,
-                90_000L,
-                OffsetDateTime.now(ZoneOffset.UTC)
-        );
+                """, id, externalCode, plate, status, 15_000, 90_000L,
+            OffsetDateTime.now(ZoneOffset.UTC));
     }
 }

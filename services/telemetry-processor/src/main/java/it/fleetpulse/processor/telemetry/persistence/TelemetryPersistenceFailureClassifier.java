@@ -8,24 +8,16 @@ import java.util.Objects;
 @Component
 public final class TelemetryPersistenceFailureClassifier {
 
-    private static final String MESSAGE_ID_UNIQUE_CONSTRAINT =
-            "uq_telemetry_samples_message_id";
+    private static final String MESSAGE_ID_UNIQUE_CONSTRAINT = "uq_telemetry_samples_message_id";
 
     public boolean isDuplicateMessageId(Throwable failure) {
-        Objects.requireNonNull(
-                failure,
-                "failure must not be null"
-        );
+        Objects.requireNonNull(failure, "failure must not be null");
 
         Throwable current = failure;
 
         while (current != null) {
-            if (
-                    current instanceof ConstraintViolationException violation
-                            && MESSAGE_ID_UNIQUE_CONSTRAINT.equals(
-                            violation.getConstraintName()
-                    )
-            ) {
+            if (current instanceof ConstraintViolationException violation &&
+                MESSAGE_ID_UNIQUE_CONSTRAINT.equals(violation.getConstraintName())) {
                 return true;
             }
 

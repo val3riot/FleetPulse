@@ -18,70 +18,43 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 public class TelemetryAckEncoderTest {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final TelemetryAckEncoder encoder = new TelemetryAckEncoder(objectMapper);
+
     @Test
     void writesLengthPrefixedAcknowledgementJson() throws Exception {
-        TelemetryAck acknowledgement = new TelemetryAck(
-                ProtocolConstants.PROTOCOL_VERSION,
-                UUID.fromString(
-                        "dc0fc799-0913-4e72-bd2d-8ee8ccf52e22"
-                ),
-                AckStatus.ACCEPTED,
-                Instant.parse("2026-08-01T10:15:30.083Z"),
-                null
-        );
+        TelemetryAck acknowledgement = new TelemetryAck(ProtocolConstants.PROTOCOL_VERSION,
+            UUID.fromString("dc0fc799-0913-4e72-bd2d-8ee8ccf52e22"), AckStatus.ACCEPTED,
+            Instant.parse("2026-08-01T10:15:30.083Z"), null);
 
-        ByteArrayOutputStream output =
-                new ByteArrayOutputStream();
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
 
         encoder.write(acknowledgement, output);
 
-        byte[] payload = LengthPrefixedFrameCodec.read(
-                new ByteArrayInputStream(output.toByteArray())
-        );
+        byte[] payload =
+            LengthPrefixedFrameCodec.read(new ByteArrayInputStream(output.toByteArray()));
 
-        TelemetryAck decoded = objectMapper.readValue(
-                payload,
-                TelemetryAck.class
-        );
+        TelemetryAck decoded = objectMapper.readValue(payload, TelemetryAck.class);
 
         assertEquals(acknowledgement, decoded);
     }
 
     @Test
     void rejectsNullAcknowledgement() {
-        NullPointerException exception = assertThrows(
-                NullPointerException.class,
-                () -> encoder.write(
-                        null,
-                        new ByteArrayOutputStream()
-                )
-        );
+        NullPointerException exception = assertThrows(NullPointerException.class,
+            () -> encoder.write(null, new ByteArrayOutputStream()));
 
-        assertEquals(
-                "acknowledgement must not be null",
-                exception.getMessage()
-        );
+        assertEquals("acknowledgement must not be null", exception.getMessage());
     }
 
     @Test
     void rejectsNullOutput() {
-        TelemetryAck acknowledgement = new TelemetryAck(
-                ProtocolConstants.PROTOCOL_VERSION,
-                UUID.randomUUID(),
-                AckStatus.ACCEPTED,
-                Instant.EPOCH,
-                null
-        );
+        TelemetryAck acknowledgement =
+            new TelemetryAck(ProtocolConstants.PROTOCOL_VERSION, UUID.randomUUID(),
+                AckStatus.ACCEPTED, Instant.EPOCH, null);
 
-        NullPointerException exception = assertThrows(
-                NullPointerException.class,
-                () -> encoder.write(acknowledgement, null)
-        );
+        NullPointerException exception =
+            assertThrows(NullPointerException.class, () -> encoder.write(acknowledgement, null));
 
-        assertEquals(
-                "output must not be null",
-                exception.getMessage()
-        );
+        assertEquals("output must not be null", exception.getMessage());
     }
 
 }

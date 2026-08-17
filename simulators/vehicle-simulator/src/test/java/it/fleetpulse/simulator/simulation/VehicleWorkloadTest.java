@@ -31,35 +31,17 @@ class VehicleWorkloadTest {
         TelemetryProfile profile = current -> {
             generatedSequences.add(current.sequenceNumber());
             SimulatedVehicleState next = current.next(10, 85, 13.8, 10_000, 41.9, 12.5);
-            TelemetryMessage message = new TelemetryMessage(
-                    ProtocolConstants.PROTOCOL_VERSION,
-                    UUID.randomUUID(),
-                    current.vehicleId(),
-                    current.sequenceNumber(),
-                    Instant.parse("2026-08-12T12:00:00Z"),
-                    10,
-                    85,
-                    13.8,
-                    10_000,
-                    41.9,
-                    12.5
-            );
+            TelemetryMessage message =
+                new TelemetryMessage(ProtocolConstants.PROTOCOL_VERSION, UUID.randomUUID(),
+                    current.vehicleId(), current.sequenceNumber(),
+                    Instant.parse("2026-08-12T12:00:00Z"), 10, 85, 13.8, 10_000, 41.9, 12.5);
             return new TelemetrySample(next, message);
         };
         VehicleWorkload workload = new VehicleWorkload(
-                SimulatedVehicleState.initial(
-                        new ProvisionedVehicle(VEHICLE_ID, "FP-SIM-001"),
-                        10_000,
-                        41.9,
-                        12.5
-                ),
-                connection,
-                profile,
-                Duration.ofSeconds(1),
-                ignored -> {
-                    throw new InterruptedException("test completed");
-                }
-        );
+            SimulatedVehicleState.initial(new ProvisionedVehicle(VEHICLE_ID, "FP-SIM-001"), 10_000,
+                41.9, 12.5), connection, profile, Duration.ofSeconds(1), ignored -> {
+            throw new InterruptedException("test completed");
+        });
 
         workload.run();
 

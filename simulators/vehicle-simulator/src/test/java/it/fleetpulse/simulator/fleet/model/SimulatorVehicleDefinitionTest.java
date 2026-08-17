@@ -24,6 +24,6 @@ class SimulatorVehicleDefinitionTest {
     @Test
     void rejectsNonPositiveIndex() {
         assertThrows(IllegalArgumentException.class,
-                () -> SimulatorVehicleDefinition.of(0, new VehicleProperties(15_000, 10_000)));
+            () -> SimulatorVehicleDefinition.of(0, new VehicleProperties(15_000, 10_000)));
     }
 }

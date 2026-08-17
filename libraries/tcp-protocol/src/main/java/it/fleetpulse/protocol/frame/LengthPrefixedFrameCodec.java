@@ -26,8 +26,8 @@ public final class LengthPrefixedFrameCodec {
             throw new TruncatedFrameHeaderException(headerBytesRead);
         }
 
-        long length = Integer.toUnsignedLong(ByteBuffer.wrap(header)
-                .order(ByteOrder.BIG_ENDIAN).getInt());
+        long length =
+            Integer.toUnsignedLong(ByteBuffer.wrap(header).order(ByteOrder.BIG_ENDIAN).getInt());
         validateLength(length);
 
         byte[] payload = new byte[(int) length];

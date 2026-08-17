@@ -9,6 +9,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.time.Clock;
 import java.util.UUID;
 
@@ -23,10 +24,8 @@ public class VehicleService {
     /**
      * Crea il servizio con repository, mapper e sorgente temporale applicativa.
      */
-    public VehicleService(
-            VehicleRepository vehicleRepository,
-            VehicleMapper vehicleMapper,
-            Clock clock) {
+    public VehicleService(VehicleRepository vehicleRepository, VehicleMapper vehicleMapper,
+        Clock clock) {
         this.vehicleRepository = vehicleRepository;
         this.vehicleMapper = vehicleMapper;
         this.clock = clock;
@@ -37,7 +36,8 @@ public class VehicleService {
      */
     @Transactional
     public VehicleResponse create(CreateVehicleRequest request) {
-        boolean externalCodeConflict = vehicleRepository.existsByExternalCode(request.externalCode());
+        boolean externalCodeConflict =
+            vehicleRepository.existsByExternalCode(request.externalCode());
         if (externalCodeConflict) {
             throw new ApplicationException(ErrorCode.VEHICLE_EXTERNAL_CODE_CONFLICT);
         }
@@ -45,7 +45,8 @@ public class VehicleService {
         if (plateConflict) {
             throw new ApplicationException(ErrorCode.VEHICLE_PLATE_CONFLICT);
         }
-        VehicleEntity entity = vehicleMapper.toEntity(request, clock.instant(), VehicleStatus.ACTIVE);
+        VehicleEntity entity =
+            vehicleMapper.toEntity(request, clock.instant(), VehicleStatus.ACTIVE);
         entity = vehicleRepository.save(entity);
         log.info("Vehicle registered: vehicleId={}, status={}", entity.getId(), entity.getStatus());
         return vehicleMapper.toResponse(entity);
@@ -57,8 +58,8 @@ public class VehicleService {
     @Transactional(readOnly = true)
     public VehicleResponse findById(UUID id) {
         log.debug("Looking up vehicle: vehicleId={}", id);
-        VehicleEntity entity = vehicleRepository.findById(id).orElseThrow(() ->
-                new ApplicationException(ErrorCode.VEHICLE_NOT_FOUND));
+        VehicleEntity entity = vehicleRepository.findById(id)
+            .orElseThrow(() -> new ApplicationException(ErrorCode.VEHICLE_NOT_FOUND));
         return vehicleMapper.toResponse(entity);
     }
 
@@ -66,21 +67,13 @@ public class VehicleService {
      * Cerca i veicoli applicando filtri, paginazione e ordinamento richiesti.
      */
     @Transactional(readOnly = true)
-    public PagedResponse<VehicleResponse> search(
-            VehicleSearchCriteria criteria,
-            Pageable pageable
-    ) {
-        Page<VehicleEntity> result = vehicleRepository.findAll(
-                VehicleSpecifications.from(criteria),
-                pageable
-        );
-        log.debug(
-                "Vehicle search completed: page={}, size={}, results={}, total={}",
-                pageable.getPageNumber(),
-                pageable.getPageSize(),
-                result.getNumberOfElements(),
-                result.getTotalElements()
-        );
+    public PagedResponse<VehicleResponse> search(VehicleSearchCriteria criteria,
+        Pageable pageable) {
+        Page<VehicleEntity> result =
+            vehicleRepository.findAll(VehicleSpecifications.from(criteria), pageable);
+        log.debug("Vehicle search completed: page={}, size={}, results={}, total={}",
+            pageable.getPageNumber(), pageable.getPageSize(), result.getNumberOfElements(),
+            result.getTotalElements());
 
         return PagedResponse.from(result, vehicleMapper::toResponse);
     }
@@ -91,16 +84,12 @@ public class VehicleService {
     @Transactional
     public VehicleResponse changeStatus(UUID id, ChangeVehicleStatusRequest request) {
         VehicleEntity entity = vehicleRepository.findById(id)
-                .orElseThrow(() -> new ApplicationException(ErrorCode.VEHICLE_NOT_FOUND));
+            .orElseThrow(() -> new ApplicationException(ErrorCode.VEHICLE_NOT_FOUND));
         VehicleStatus previousStatus = entity.getStatus();
         entity.changeStatus(request.status());
         entity = vehicleRepository.save(entity);
-        log.info(
-                "Vehicle status updated: vehicleId={}, previousStatus={}, currentStatus={}",
-                id,
-                previousStatus,
-                entity.getStatus()
-        );
+        log.info("Vehicle status updated: vehicleId={}, previousStatus={}, currentStatus={}", id,
+            previousStatus, entity.getStatus());
         return vehicleMapper.toResponse(entity);
     }
 }

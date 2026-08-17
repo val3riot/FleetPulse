@@ -18,22 +18,13 @@ public final class VehicleWorkload implements VehicleTask {
     private final RetrySleeper sleeper;
     private SimulatedVehicleState state;
 
-    public VehicleWorkload(
-            SimulatedVehicleState initialState,
-            VehicleConnection connection,
-            TelemetryProfile telemetryProfile,
-            Duration sendInterval
-    ) {
+    public VehicleWorkload(SimulatedVehicleState initialState, VehicleConnection connection,
+        TelemetryProfile telemetryProfile, Duration sendInterval) {
         this(initialState, connection, telemetryProfile, sendInterval, Thread::sleep);
     }
 
-    VehicleWorkload(
-            SimulatedVehicleState initialState,
-            VehicleConnection connection,
-            TelemetryProfile telemetryProfile,
-            Duration sendInterval,
-            RetrySleeper sleeper
-    ) {
+    VehicleWorkload(SimulatedVehicleState initialState, VehicleConnection connection,
+        TelemetryProfile telemetryProfile, Duration sendInterval, RetrySleeper sleeper) {
         this.state = Objects.requireNonNull(initialState, "initialState");
         this.connection = Objects.requireNonNull(connection, "connection");
         this.telemetryProfile = Objects.requireNonNull(telemetryProfile, "telemetryProfile");
@@ -60,21 +51,16 @@ public final class VehicleWorkload implements VehicleTask {
                     sleeper.sleep(sendInterval);
                 } catch (IOException sendFailure) {
                     log.debug(
-                            "Vehicle {} telemetry send failed; connection will be restored before the next sample",
-                            state.externalCode(),
-                            sendFailure
-                    );
+                        "Vehicle {} telemetry send failed; connection will be restored before the" +
+                            " next sample", state.externalCode(), sendFailure);
                 }
             }
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();
         } catch (IOException connectionStopped) {
             if (!Thread.currentThread().isInterrupted()) {
-                log.error(
-                        "Vehicle {} telemetry workload stopped after a connection error",
-                        state.externalCode(),
-                        connectionStopped
-                );
+                log.error("Vehicle {} telemetry workload stopped after a connection error",
+                    state.externalCode(), connectionStopped);
             }
         } catch (RuntimeException unexpected) {
             log.error("Vehicle {} telemetry workload failed", state.externalCode(), unexpected);

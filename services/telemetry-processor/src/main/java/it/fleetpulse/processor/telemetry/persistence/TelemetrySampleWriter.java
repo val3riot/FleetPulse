@@ -10,16 +10,12 @@ public class TelemetrySampleWriter {
 
     private final TelemetrySampleRepository repository;
 
-    public TelemetrySampleWriter(
-            TelemetrySampleRepository repository
-    ) {
+    public TelemetrySampleWriter(TelemetrySampleRepository repository) {
         this.repository = Objects.requireNonNull(repository);
     }
 
     @Transactional
-    public TelemetrySampleEntity insert(
-            TelemetrySampleEntity entity
-    ) {
+    public TelemetrySampleEntity insert(TelemetrySampleEntity entity) {
         Objects.requireNonNull(entity, "entity must not be null");
         return repository.saveAndFlush(entity);
     }

@@ -5,8 +5,8 @@ import it.fleetpulse.protocol.TelemetryMessage;
 import java.util.Objects;
 
 public record TelemetrySample(
-        SimulatedVehicleState nextState,
-        TelemetryMessage message
+    SimulatedVehicleState nextState,
+    TelemetryMessage message
 ) {
     public TelemetrySample {
         Objects.requireNonNull(nextState, "nextState must not be null");
@@ -16,8 +16,7 @@ public record TelemetrySample(
         }
         if (nextState.sequenceNumber() != message.sequenceNumber() + 1) {
             throw new IllegalArgumentException(
-                    "next state sequenceNumber must immediately follow message sequenceNumber"
-            );
+                "next state sequenceNumber must immediately follow message sequenceNumber");
         }
     }
 }

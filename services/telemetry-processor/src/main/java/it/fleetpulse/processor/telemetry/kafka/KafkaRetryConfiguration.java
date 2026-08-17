@@ -16,46 +16,27 @@ import org.springframework.kafka.listener.DefaultErrorHandler;
 public class KafkaRetryConfiguration {
 
     @Bean
-    DefaultErrorHandler kafkaErrorHandler(
-            KafkaConsumerProperties properties,
-            KafkaRetryObservability observability,
-            ConsumerRecordRecoverer recoverer
-    ) {
+    DefaultErrorHandler kafkaErrorHandler(KafkaConsumerProperties properties,
+        KafkaRetryObservability observability, ConsumerRecordRecoverer recoverer) {
         JitteredExponentialBackOff backOff =
-                new JitteredExponentialBackOff(
-                        properties.retryInitialBackoff(),
-                        properties.retryMaxBackoff(),
-                        properties.retryMaxAttempts(),
-                        properties.retryMultiplier(),
-                        properties.retryJitterRatio()
-                );
+            new JitteredExponentialBackOff(properties.retryInitialBackoff(),
+                properties.retryMaxBackoff(), properties.retryMaxAttempts(),
+                properties.retryMultiplier(), properties.retryJitterRatio());
 
-        DefaultErrorHandler errorHandler =
-                new DefaultErrorHandler(
-                        recoverer,
-                        backOff
-                );
+        DefaultErrorHandler errorHandler = new DefaultErrorHandler(recoverer, backOff);
 
         errorHandler.defaultFalse(true);
-        errorHandler.addRetryableExceptions(
-                TransientDataAccessException.class,
-                RecoverableDataAccessException.class,
-                DataAccessResourceFailureException.class,
-                RetriableException.class,
-                TelemetryTerminalPublicationException.class
-        );
-        errorHandler.addNotRetryableExceptions(
-                UnsupportedTelemetryEventVersionException.class,
-                DataIntegrityViolationException.class
-        );
+        errorHandler.addRetryableExceptions(TransientDataAccessException.class,
+            RecoverableDataAccessException.class, DataAccessResourceFailureException.class,
+            RetriableException.class, TelemetryTerminalPublicationException.class);
+        errorHandler.addNotRetryableExceptions(UnsupportedTelemetryEventVersionException.class,
+            DataIntegrityViolationException.class);
         errorHandler.setRetryListeners(observability);
         return errorHandler;
     }
 
     @Bean
-    KafkaRetryObservability kafkaRetryObservability(
-            MeterRegistry registry
-    ) {
+    KafkaRetryObservability kafkaRetryObservability(MeterRegistry registry) {
         return new KafkaRetryObservability(registry);
     }
 }

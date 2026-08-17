@@ -10,9 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class VehicleEligibilityEvaluatorTest {
 
-    private static final UUID VEHICLE_ID = UUID.fromString(
-            "97e194a8-64b3-4885-b1e6-25fd482f58c0"
-    );
+    private static final UUID VEHICLE_ID = UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0");
 
     @Test
     void acceptsActiveVehicle() {
@@ -27,8 +25,8 @@ class VehicleEligibilityEvaluatorTest {
         VehicleRegistry registry = id -> Optional.empty();
         VehicleEligibilityEvaluator evaluator = new VehicleEligibilityEvaluator(registry);
 
-        assertThat(evaluator.rejectionReason(VEHICLE_ID))
-                .contains(TelemetryRejectionReason.UNKNOWN_VEHICLE);
+        assertThat(evaluator.rejectionReason(VEHICLE_ID)).contains(
+            TelemetryRejectionReason.UNKNOWN_VEHICLE);
     }
 
     @Test
@@ -36,7 +34,7 @@ class VehicleEligibilityEvaluatorTest {
         VehicleRegistry registry = id -> Optional.of(VehicleStatus.DISABLED);
         VehicleEligibilityEvaluator evaluator = new VehicleEligibilityEvaluator(registry);
 
-        assertThat(evaluator.rejectionReason(VEHICLE_ID))
-                .contains(TelemetryRejectionReason.VEHICLE_DISABLED);
+        assertThat(evaluator.rejectionReason(VEHICLE_ID)).contains(
+            TelemetryRejectionReason.VEHICLE_DISABLED);
     }
 }

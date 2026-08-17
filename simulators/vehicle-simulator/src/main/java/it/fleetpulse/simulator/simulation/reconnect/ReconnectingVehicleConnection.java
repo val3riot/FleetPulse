@@ -24,30 +24,20 @@ public final class ReconnectingVehicleConnection implements VehicleConnection {
     private final double jitterRatio;
     private final Duration maximumDelay;
 
-    public ReconnectingVehicleConnection(
-            String vehicleCode,
-            VehicleConnection delegate,
-            ReconnectProperties properties
-    ) {
+    public ReconnectingVehicleConnection(String vehicleCode, VehicleConnection delegate,
+        ReconnectProperties properties) {
         this(vehicleCode, delegate, properties, Thread::sleep);
     }
 
-    ReconnectingVehicleConnection(
-            String vehicleCode,
-            VehicleConnection delegate,
-            ReconnectProperties properties,
-            RetrySleeper sleeper
-    ) {
+    ReconnectingVehicleConnection(String vehicleCode, VehicleConnection delegate,
+        ReconnectProperties properties, RetrySleeper sleeper) {
         if (vehicleCode == null || vehicleCode.isBlank()) {
             throw new IllegalArgumentException("vehicleCode must not be blank");
         }
         this.vehicleCode = vehicleCode;
         this.delegate = Objects.requireNonNull(delegate, "delegate");
         Objects.requireNonNull(properties, "properties");
-        this.backoff = new ExponentialBackoff(
-                properties.initialBackoff(),
-                properties.maxBackoff()
-        );
+        this.backoff = new ExponentialBackoff(properties.initialBackoff(), properties.maxBackoff());
         this.maxAttempts = properties.maxAttempts();
         this.jitterRatio = properties.jitterRatio();
         this.maximumDelay = properties.maxBackoff();
@@ -64,28 +54,21 @@ public final class ReconnectingVehicleConnection implements VehicleConnection {
             try {
                 delegate.connect();
                 if (!delegate.isConnected()) {
-                    throw new IOException("Connection attempt completed without an open connection");
+                    throw new IOException(
+                        "Connection attempt completed without an open connection");
                 }
                 backoff.reset();
                 log.info("Vehicle {} connected to telemetry gateway", vehicleCode);
             } catch (IOException connectionFailure) {
                 delegate.close();
                 if (attempt == maxAttempts) {
-                    log.error(
-                            "Vehicle {} exhausted {} gateway connection attempts",
-                            vehicleCode,
-                            maxAttempts
-                    );
+                    log.error("Vehicle {} exhausted {} gateway connection attempts", vehicleCode,
+                        maxAttempts);
                     throw connectionFailure;
                 }
                 Duration delay = withJitter(backoff.nextDelay());
-                log.warn(
-                        "Vehicle {} gateway connection attempt {} failed; retrying in {} ms: {}",
-                        vehicleCode,
-                        attempt,
-                        delay.toMillis(),
-                        connectionFailure.getMessage()
-                );
+                log.warn("Vehicle {} gateway connection attempt {} failed; retrying in {} ms: {}",
+                    vehicleCode, attempt, delay.toMillis(), connectionFailure.getMessage());
                 awaitRetry(delay, connectionFailure);
             }
         }
@@ -100,11 +83,8 @@ public final class ReconnectingVehicleConnection implements VehicleConnection {
             delegate.send(message);
         } catch (IOException sendFailure) {
             delegate.close();
-            log.warn(
-                    "Vehicle {} lost its gateway connection while sending telemetry: {}",
-                    vehicleCode,
-                    sendFailure.getMessage()
-            );
+            log.warn("Vehicle {} lost its gateway connection while sending telemetry: {}",
+                vehicleCode, sendFailure.getMessage());
             throw sendFailure;
         }
     }
@@ -119,14 +99,14 @@ public final class ReconnectingVehicleConnection implements VehicleConnection {
         delegate.close();
     }
 
-    private void awaitRetry(Duration delay, IOException connectionFailure) throws InterruptedIOException {
+    private void awaitRetry(Duration delay,
+        IOException connectionFailure) throws InterruptedIOException {
         try {
             sleeper.sleep(delay);
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();
             InterruptedIOException stopped = new InterruptedIOException(
-                    "Interrupted while waiting to reconnect vehicle " + vehicleCode
-            );
+                "Interrupted while waiting to reconnect vehicle " + vehicleCode);
             stopped.initCause(connectionFailure);
             stopped.addSuppressed(interrupted);
             throw stopped;

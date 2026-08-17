@@ -17,31 +17,14 @@ public final class JitteredExponentialBackOff implements BackOff {
     private final double jitterRatio;
     private final DoubleSupplier random;
 
-    public JitteredExponentialBackOff(
-            Duration initialInterval,
-            Duration maxInterval,
-            int maxAttempts,
-            double multiplier,
-            double jitterRatio
-    ) {
-        this(
-                initialInterval,
-                maxInterval,
-                maxAttempts,
-                multiplier,
-                jitterRatio,
-                () -> ThreadLocalRandom.current().nextDouble()
-        );
+    public JitteredExponentialBackOff(Duration initialInterval, Duration maxInterval,
+        int maxAttempts, double multiplier, double jitterRatio) {
+        this(initialInterval, maxInterval, maxAttempts, multiplier, jitterRatio,
+            () -> ThreadLocalRandom.current().nextDouble());
     }
 
-    JitteredExponentialBackOff(
-            Duration initialInterval,
-            Duration maxInterval,
-            int maxAttempts,
-            double multiplier,
-            double jitterRatio,
-            DoubleSupplier random
-    ) {
+    JitteredExponentialBackOff(Duration initialInterval, Duration maxInterval, int maxAttempts,
+        double multiplier, double jitterRatio, DoubleSupplier random) {
         Objects.requireNonNull(initialInterval);
         Objects.requireNonNull(maxInterval);
         this.random = Objects.requireNonNull(random);
@@ -71,22 +54,13 @@ public final class JitteredExponentialBackOff implements BackOff {
 
             attempts++;
 
-            double cappedInterval =
-                    Math.min(nextInterval, maxIntervalMillis);
+            double cappedInterval = Math.min(nextInterval, maxIntervalMillis);
 
-            nextInterval = Math.min(
-                    nextInterval * multiplier,
-                    maxIntervalMillis
-            );
+            nextInterval = Math.min(nextInterval * multiplier, maxIntervalMillis);
 
-            double jitter =
-                    (random.getAsDouble() * 2.0 - 1.0)
-                            * jitterRatio;
+            double jitter = (random.getAsDouble() * 2.0 - 1.0) * jitterRatio;
 
-            return Math.max(
-                    0L,
-                    Math.round(cappedInterval * (1.0 + jitter))
-            );
+            return Math.max(0L, Math.round(cappedInterval * (1.0 + jitter)));
         }
     }
 }

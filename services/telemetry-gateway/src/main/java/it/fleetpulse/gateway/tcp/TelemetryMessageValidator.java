@@ -11,16 +11,9 @@ import java.util.List;
 
 final class TelemetryMessageValidator {
 
-    private static final List<String> REQUIRED_NUMERIC_FIELDS = List.of(
-            "protocolVersion",
-            "sequenceNumber",
-            "speedKmh",
-            "engineTemperatureC",
-            "batteryVoltage",
-            "odometerKm",
-            "latitude",
-            "longitude"
-    );
+    private static final List<String> REQUIRED_NUMERIC_FIELDS =
+        List.of("protocolVersion", "sequenceNumber", "speedKmh", "engineTemperatureC",
+            "batteryVoltage", "odometerKm", "latitude", "longitude");
 
     private TelemetryMessageValidator() {
     }
@@ -33,13 +26,14 @@ final class TelemetryMessageValidator {
             JsonNode value = payload.get(field);
             if (value == null || !value.isNumber()) {
                 throw new MalformedTelemetryException(
-                        "Telemetry " + field + " must be present and numeric"
-                );
+                    "Telemetry " + field + " must be present and numeric");
             }
         }
     }
 
-    static void validate(TelemetryMessage message) throws InvalidTelemetryException, MalformedTelemetryException, UnsupportedProtocolVersionException {
+    static void validate(
+        TelemetryMessage message) throws InvalidTelemetryException, MalformedTelemetryException,
+        UnsupportedProtocolVersionException {
         if (message == null) {
             throw new MalformedTelemetryException("Telemetry message must not be null");
         }
@@ -70,12 +64,12 @@ final class TelemetryMessageValidator {
         if (message.odometerKm() < 0) {
             throw new InvalidTelemetryException("odometerKm must not be negative");
         }
-        if (!Double.isFinite(message.latitude())
-                || message.latitude() < -90 || message.latitude() > 90) {
+        if (!Double.isFinite(message.latitude()) || message.latitude() < -90 ||
+            message.latitude() > 90) {
             throw new InvalidTelemetryException("latitude must be between -90 and 90");
         }
-        if (!Double.isFinite(message.longitude())
-                || message.longitude() < -180 || message.longitude() > 180) {
+        if (!Double.isFinite(message.longitude()) || message.longitude() < -180 ||
+            message.longitude() > 180) {
             throw new InvalidTelemetryException("longitude must be between -180 and 180");
         }
     }

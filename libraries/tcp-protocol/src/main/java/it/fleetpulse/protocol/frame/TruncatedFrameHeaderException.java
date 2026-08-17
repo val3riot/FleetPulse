@@ -9,8 +9,8 @@ public final class TruncatedFrameHeaderException extends EOFException {
     private final int bytesRead;
 
     public TruncatedFrameHeaderException(int bytesRead) {
-        super("Truncated frame header: " + bytesRead + "/"
-                + ProtocolConstants.HEADER_SIZE_BYTES + " bytes");
+        super("Truncated frame header: " + bytesRead + "/" + ProtocolConstants.HEADER_SIZE_BYTES +
+            " bytes");
         this.bytesRead = bytesRead;
     }
 

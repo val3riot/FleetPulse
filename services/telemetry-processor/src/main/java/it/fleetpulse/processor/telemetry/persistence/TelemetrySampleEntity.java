@@ -18,12 +18,7 @@ public class TelemetrySampleEntity {
     @Column(name = "id", nullable = false, updatable = false)
     private Long id;
 
-    @Column(
-            name = "message_id",
-            nullable = false,
-            unique = true,
-            updatable = false
-    )
+    @Column(name = "message_id", nullable = false, unique = true, updatable = false)
     private UUID messageId;
 
     @Column(name = "vehicle_id", nullable = false, updatable = false)
@@ -44,11 +39,7 @@ public class TelemetrySampleEntity {
     @Column(name = "speed_kmh", nullable = false, updatable = false)
     private double speedKmh;
 
-    @Column(
-            name = "engine_temperature_c",
-            nullable = false,
-            updatable = false
-    )
+    @Column(name = "engine_temperature_c", nullable = false, updatable = false)
     private double engineTemperatureC;
 
     @Column(name = "battery_voltage", nullable = false, updatable = false)
@@ -66,20 +57,10 @@ public class TelemetrySampleEntity {
     protected TelemetrySampleEntity() {
     }
 
-    public TelemetrySampleEntity(
-            UUID messageId,
-            UUID vehicleId,
-            long sequenceNumber,
-            Instant observedAt,
-            Instant receivedAt,
-            Instant processedAt,
-            double speedKmh,
-            double engineTemperatureC,
-            double batteryVoltage,
-            long odometerKm,
-            double latitude,
-            double longitude
-    ) {
+    public TelemetrySampleEntity(UUID messageId, UUID vehicleId, long sequenceNumber,
+        Instant observedAt, Instant receivedAt, Instant processedAt, double speedKmh,
+        double engineTemperatureC, double batteryVoltage, long odometerKm, double latitude,
+        double longitude) {
         this.messageId = messageId;
         this.vehicleId = vehicleId;
         this.sequenceNumber = sequenceNumber;

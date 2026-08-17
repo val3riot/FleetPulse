@@ -34,38 +34,28 @@ import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.springframework.boot.jdbc.test.autoconfigure
-        .AutoConfigureTestDatabase.Replace.NONE;
+import static org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase.Replace.NONE;
 
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = NONE)
-@Import({
-        TelemetryEventProcessingService.class,
-        TelemetrySampleMapper.class,
-        TelemetrySampleWriter.class,
-        TelemetryPersistenceFailureClassifier.class,
-        TelemetrySamplePersistenceIntegrationTest.TestClockConfiguration.class
-})
+@Import({TelemetryEventProcessingService.class,
+    TelemetrySampleMapper.class,
+    TelemetrySampleWriter.class,
+    TelemetryPersistenceFailureClassifier.class,
+    TelemetrySamplePersistenceIntegrationTest.TestClockConfiguration.class})
 @ActiveProfiles("test")
-class TelemetrySamplePersistenceIntegrationTest
-        extends PostgreSqlIntegrationSupport {
+class TelemetrySamplePersistenceIntegrationTest extends PostgreSqlIntegrationSupport {
 
-    private static final UUID VEHICLE_ID =
-            UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0");
+    private static final UUID VEHICLE_ID = UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0");
 
-    private static final UUID MESSAGE_ID =
-            UUID.fromString("dc0fc799-0913-4e72-bd2d-8ee8ccf52e22");
+    private static final UUID MESSAGE_ID = UUID.fromString("dc0fc799-0913-4e72-bd2d-8ee8ccf52e22");
 
-    private static final Instant OBSERVED_AT =
-            Instant.parse("2026-08-01T10:15:30Z");
+    private static final Instant OBSERVED_AT = Instant.parse("2026-08-01T10:15:30Z");
 
-    private static final Instant RECEIVED_AT =
-            Instant.parse("2026-08-01T10:15:30.083Z");
+    private static final Instant RECEIVED_AT = Instant.parse("2026-08-01T10:15:30.083Z");
 
-    private static final Instant PROCESSED_AT =
-            Instant.parse("2026-08-01T10:15:30.150Z");
-    private static final TelemetrySource SOURCE =
-            new TelemetrySource("telemetry.raw.v1", 1, 42L);
+    private static final Instant PROCESSED_AT = Instant.parse("2026-08-01T10:15:30.150Z");
+    private static final TelemetrySource SOURCE = new TelemetrySource("telemetry.raw.v1", 1, 42L);
 
     @Autowired
     private TelemetrySampleRepository repository;
@@ -96,8 +86,7 @@ class TelemetrySamplePersistenceIntegrationTest
 
     @BeforeEach
     void insertVehicle() {
-        jdbcTemplate.update(
-                """
+        jdbcTemplate.update("""
                 insert into vehicles (
                     id,
                     external_code,
@@ -107,30 +96,19 @@ class TelemetrySamplePersistenceIntegrationTest
                     next_service_at_km,
                     created_at
                 ) values (?, ?, ?, 'ACTIVE', ?, ?, ?)
-                """,
-                VEHICLE_ID,
-                "VAN-PERSIST",
-                "FP100AA",
-                15_000,
-                90_000L,
-                OffsetDateTime.ofInstant(
-                        Instant.parse("2026-08-01T08:00:00Z"),
-                        ZoneOffset.UTC
-                )
-        );
+                """, VEHICLE_ID, "VAN-PERSIST", "FP100AA", 15_000, 90_000L,
+            OffsetDateTime.ofInstant(Instant.parse("2026-08-01T08:00:00Z"), ZoneOffset.UTC));
     }
 
     @Test
     void persistsAndReadsCompleteTelemetrySample() {
-        TelemetrySampleEntity saved =
-                repository.saveAndFlush(entity());
+        TelemetrySampleEntity saved = repository.saveAndFlush(entity());
 
         assertThat(saved.getId()).isNotNull();
 
         entityManager.clear();
 
-        TelemetrySampleEntity reloaded =
-                repository.findById(saved.getId()).orElseThrow();
+        TelemetrySampleEntity reloaded = repository.findById(saved.getId()).orElseThrow();
 
         assertThat(reloaded.getMessageId()).isEqualTo(MESSAGE_ID);
         assertThat(reloaded.getVehicleId()).isEqualTo(VEHICLE_ID);
@@ -148,101 +126,48 @@ class TelemetrySamplePersistenceIntegrationTest
 
     @Test
     void persistsTelemetryEventThroughApplicationService() {
-        TelemetryEvent event = new TelemetryEvent(
-                TelemetryEventVersions.V1,
-                MESSAGE_ID,
-                VEHICLE_ID,
-                42,
-                OBSERVED_AT,
-                RECEIVED_AT,
-                new TelemetryData(
-                        72.4,
-                        91.8,
-                        12.6,
-                        85_312,
-                        41.9028,
-                        12.4964
-                )
-        );
+        TelemetryEvent event =
+            new TelemetryEvent(TelemetryEventVersions.V1, MESSAGE_ID, VEHICLE_ID, 42, OBSERVED_AT,
+                RECEIVED_AT, new TelemetryData(72.4, 91.8, 12.6, 85_312, 41.9028, 12.4964));
 
         service.handle(event, SOURCE);
 
         entityManager.clear();
 
-        assertThat(repository.findAll())
-                .singleElement()
-                .satisfies(sample -> {
-                    assertThat(sample.getMessageId())
-                            .isEqualTo(MESSAGE_ID);
-                    assertThat(sample.getVehicleId())
-                            .isEqualTo(VEHICLE_ID);
-                    assertThat(sample.getProcessedAt())
-                            .isEqualTo(PROCESSED_AT);
-                    assertThat(sample.getSpeedKmh())
-                            .isEqualTo(72.4);
-                });
+        assertThat(repository.findAll()).singleElement().satisfies(sample -> {
+            assertThat(sample.getMessageId()).isEqualTo(MESSAGE_ID);
+            assertThat(sample.getVehicleId()).isEqualTo(VEHICLE_ID);
+            assertThat(sample.getProcessedAt()).isEqualTo(PROCESSED_AT);
+            assertThat(sample.getSpeedKmh()).isEqualTo(72.4);
+        });
     }
 
     @Test
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     void treatsRepeatedMessageIdAsSingleSample() {
-        TelemetryEvent event = new TelemetryEvent(
-                TelemetryEventVersions.V1,
-                MESSAGE_ID,
-                VEHICLE_ID,
-                42,
-                OBSERVED_AT,
-                RECEIVED_AT,
-                new TelemetryData(
-                        72.4,
-                        91.8,
-                        12.6,
-                        85_312,
-                        41.9028,
-                        12.4964
-                )
-        );
+        TelemetryEvent event =
+            new TelemetryEvent(TelemetryEventVersions.V1, MESSAGE_ID, VEHICLE_ID, 42, OBSERVED_AT,
+                RECEIVED_AT, new TelemetryData(72.4, 91.8, 12.6, 85_312, 41.9028, 12.4964));
 
         try {
             service.handle(event, SOURCE);
             service.handle(event, SOURCE);
 
             assertThat(repository.count()).isEqualTo(1);
-            assertThat(repository.findAll())
-                    .singleElement()
-                    .extracting(TelemetrySampleEntity::getMessageId)
-                    .isEqualTo(MESSAGE_ID);
+            assertThat(repository.findAll()).singleElement()
+                .extracting(TelemetrySampleEntity::getMessageId).isEqualTo(MESSAGE_ID);
         } finally {
-            jdbcTemplate.update(
-                    "delete from telemetry_samples where message_id = ?",
-                    MESSAGE_ID
-            );
-            jdbcTemplate.update(
-                    "delete from vehicles where id = ?",
-                    VEHICLE_ID
-            );
+            jdbcTemplate.update("delete from telemetry_samples where message_id = ?", MESSAGE_ID);
+            jdbcTemplate.update("delete from vehicles where id = ?", VEHICLE_ID);
         }
     }
 
     @Test
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     void concurrentDeliveryCreatesSingleSample() throws Exception {
-        TelemetryEvent event = new TelemetryEvent(
-                TelemetryEventVersions.V1,
-                MESSAGE_ID,
-                VEHICLE_ID,
-                42,
-                OBSERVED_AT,
-                RECEIVED_AT,
-                new TelemetryData(
-                        72.4,
-                        91.8,
-                        12.6,
-                        85_312,
-                        41.9028,
-                        12.4964
-                )
-        );
+        TelemetryEvent event =
+            new TelemetryEvent(TelemetryEventVersions.V1, MESSAGE_ID, VEHICLE_ID, 42, OBSERVED_AT,
+                RECEIVED_AT, new TelemetryData(72.4, 91.8, 12.6, 85_312, 41.9028, 12.4964));
 
         ExecutorService executor = Executors.newFixedThreadPool(2);
         CountDownLatch ready = new CountDownLatch(2);
@@ -259,9 +184,7 @@ class TelemetrySamplePersistenceIntegrationTest
             Future<Void> first = executor.submit(processing);
             Future<Void> second = executor.submit(processing);
 
-            assertThat(
-                    ready.await(10, TimeUnit.SECONDS)
-            ).isTrue();
+            assertThat(ready.await(10, TimeUnit.SECONDS)).isTrue();
 
             start.countDown();
 
@@ -273,82 +196,38 @@ class TelemetrySamplePersistenceIntegrationTest
             start.countDown();
             executor.shutdownNow();
 
-            jdbcTemplate.update(
-                    "delete from telemetry_samples where message_id = ?",
-                    MESSAGE_ID
-            );
-            jdbcTemplate.update(
-                    "delete from vehicles where id = ?",
-                    VEHICLE_ID
-            );
+            jdbcTemplate.update("delete from telemetry_samples where message_id = ?", MESSAGE_ID);
+            jdbcTemplate.update("delete from vehicles where id = ?", VEHICLE_ID);
         }
     }
 
     @Test
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     void replayAfterServiceRestartCreatesSingleSample() {
-        TelemetryEvent event = new TelemetryEvent(
-                TelemetryEventVersions.V1,
-                MESSAGE_ID,
-                VEHICLE_ID,
-                42,
-                OBSERVED_AT,
-                RECEIVED_AT,
-                new TelemetryData(
-                        72.4,
-                        91.8,
-                        12.6,
-                        85_312,
-                        41.9028,
-                        12.4964
-                )
-        );
+        TelemetryEvent event =
+            new TelemetryEvent(TelemetryEventVersions.V1, MESSAGE_ID, VEHICLE_ID, 42, OBSERVED_AT,
+                RECEIVED_AT, new TelemetryData(72.4, 91.8, 12.6, 85_312, 41.9028, 12.4964));
 
         TelemetryEventProcessingService restartedService =
-                new TelemetryEventProcessingService(
-                        writer,
-                        mapper,
-                        clock,
-                        failureClassifier,
-                        eligibilityGuard
-                );
+            new TelemetryEventProcessingService(writer, mapper, clock, failureClassifier,
+                eligibilityGuard);
 
         try {
             service.handle(event, SOURCE);
             restartedService.handle(event, SOURCE);
 
             assertThat(repository.count()).isEqualTo(1);
-            assertThat(repository.findAll())
-                    .singleElement()
-                    .extracting(TelemetrySampleEntity::getMessageId)
-                    .isEqualTo(MESSAGE_ID);
+            assertThat(repository.findAll()).singleElement()
+                .extracting(TelemetrySampleEntity::getMessageId).isEqualTo(MESSAGE_ID);
         } finally {
-            jdbcTemplate.update(
-                    "delete from telemetry_samples where message_id = ?",
-                    MESSAGE_ID
-            );
-            jdbcTemplate.update(
-                    "delete from vehicles where id = ?",
-                    VEHICLE_ID
-            );
+            jdbcTemplate.update("delete from telemetry_samples where message_id = ?", MESSAGE_ID);
+            jdbcTemplate.update("delete from vehicles where id = ?", VEHICLE_ID);
         }
     }
 
     private static TelemetrySampleEntity entity() {
-        return new TelemetrySampleEntity(
-                MESSAGE_ID,
-                VEHICLE_ID,
-                42,
-                OBSERVED_AT,
-                RECEIVED_AT,
-                PROCESSED_AT,
-                72.4,
-                91.8,
-                12.6,
-                85_312,
-                41.9028,
-                12.4964
-        );
+        return new TelemetrySampleEntity(MESSAGE_ID, VEHICLE_ID, 42, OBSERVED_AT, RECEIVED_AT,
+            PROCESSED_AT, 72.4, 91.8, 12.6, 85_312, 41.9028, 12.4964);
     }
 
     @TestConfiguration

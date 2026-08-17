@@ -19,25 +19,17 @@ public record KafkaConsumerProperties(
         @NotNull Duration retryInitialBackoff,
         @NotNull Duration retryMaxBackoff,
         @DecimalMin("1.0") double retryMultiplier,
-        @DecimalMin("0.0") @DecimalMax("1.0")
-        double retryJitterRatio
+        @DecimalMin("0.0") @DecimalMax("1.0") double retryJitterRatio
 ) {
-    @AssertTrue(
-            message = "retry backoff durations must be positive "
-                    + "and initial backoff must not exceed max backoff"
-    )
+    @AssertTrue(message = "retry backoff durations must be positive and initial backoff must not " +
+        "exceed max backoff")
     public boolean isRetryBackoffValid() {
-        if (
-                retryInitialBackoff == null
-                        || retryMaxBackoff == null
-        ) {
+        if (retryInitialBackoff == null || retryMaxBackoff == null) {
             return true;
         }
 
-        return !retryInitialBackoff.isNegative()
-                && !retryInitialBackoff.isZero()
-                && !retryMaxBackoff.isNegative()
-                && !retryMaxBackoff.isZero()
-                && retryInitialBackoff.compareTo(retryMaxBackoff) <= 0;
+        return !retryInitialBackoff.isNegative() && !retryInitialBackoff.isZero() &&
+            !retryMaxBackoff.isNegative() && !retryMaxBackoff.isZero() &&
+            retryInitialBackoff.compareTo(retryMaxBackoff) <= 0;
     }
 }

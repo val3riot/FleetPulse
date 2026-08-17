@@ -11,42 +11,27 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class KafkaTerminalPublishingPropertiesTest {
     private final ApplicationContextRunner contextRunner =
-            new ApplicationContextRunner()
-                    .withUserConfiguration(
-                            PropertiesConfiguration.class
-                    );
+        new ApplicationContextRunner().withUserConfiguration(PropertiesConfiguration.class);
 
     @Test
     void bindsPositiveConfirmationTimeout() {
-        contextRunner
-                .withPropertyValues(
-                        "fleetpulse.kafka.terminal-publication"
-                                + ".confirmation-timeout=5s"
-                )
-                .run(context -> {
-                    assertThat(context).hasNotFailed();
-                    assertThat(context.getBean(
-                            KafkaTerminalPublishingProperties.class
-                    ).confirmationTimeout()).isEqualTo(
-                            Duration.ofSeconds(5)
-                    );
-                });
+        contextRunner.withPropertyValues(
+            "fleetpulse.kafka.terminal-publication.confirmation-timeout=5s").run(context -> {
+            assertThat(context).hasNotFailed();
+            assertThat(context.getBean(KafkaTerminalPublishingProperties.class)
+                .confirmationTimeout()).isEqualTo(Duration.ofSeconds(5));
+        });
     }
 
     @Test
     void rejectsNonPositiveConfirmationTimeout() {
-        contextRunner
-                .withPropertyValues(
-                        "fleetpulse.kafka.terminal-publication"
-                                + ".confirmation-timeout=0s"
-                )
-                .run(context -> assertThat(context).hasFailed());
+        contextRunner.withPropertyValues(
+                "fleetpulse.kafka.terminal-publication.confirmation-timeout=0s")
+            .run(context -> assertThat(context).hasFailed());
     }
 
     @Configuration(proxyBeanMethods = false)
-    @EnableConfigurationProperties(
-            KafkaTerminalPublishingProperties.class
-    )
+    @EnableConfigurationProperties(KafkaTerminalPublishingProperties.class)
     static class PropertiesConfiguration {
     }
 }

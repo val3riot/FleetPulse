@@ -17,53 +17,40 @@ class TelemetryAckDecoderValidationTest {
 
     @Test
     void rejectsNullObjectMapperAtConstruction() {
-        NullPointerException exception = assertThrows(
-                NullPointerException.class,
-                () -> new TelemetryAckDecoder(null)
-        );
+        NullPointerException exception =
+            assertThrows(NullPointerException.class, () -> new TelemetryAckDecoder(null));
 
         assertEquals("objectMapper", exception.getMessage());
     }
 
     @Test
     void rejectsNullInputBeforeReading() {
-        NullPointerException exception = assertThrows(
-                NullPointerException.class,
-                () -> decoder.read(null)
-        );
+        NullPointerException exception =
+            assertThrows(NullPointerException.class, () -> decoder.read(null));
 
         assertEquals("input", exception.getMessage());
     }
 
     @Test
     void rejectsMalformedJson() {
-        assertThrows(
-                MalformedAcknowledgementException.class,
-                () -> decoder.read(frame("{"))
-        );
+        assertThrows(MalformedAcknowledgementException.class, () -> decoder.read(frame("{")));
     }
 
     @Test
     void rejectsJsonNull() {
-        assertThrows(
-                MalformedAcknowledgementException.class,
-                () -> decoder.read(frame("null"))
-        );
+        assertThrows(MalformedAcknowledgementException.class, () -> decoder.read(frame("null")));
     }
 
     @Test
     void rejectsAcknowledgementWithoutRequiredFields() {
-        assertThrows(
-                MalformedAcknowledgementException.class,
-                () -> decoder.read(frame("{\"protocolVersion\":1}"))
-        );
+        assertThrows(MalformedAcknowledgementException.class,
+            () -> decoder.read(frame("{\"protocolVersion\":1}")));
     }
 
     private ByteArrayInputStream frame(String json) {
         byte[] payload = json.getBytes(StandardCharsets.UTF_8);
-        byte[] frame = ByteBuffer.allocate(Integer.BYTES + payload.length)
-                .putInt(payload.length)
-                .put(payload)
+        byte[] frame =
+            ByteBuffer.allocate(Integer.BYTES + payload.length).putInt(payload.length).put(payload)
                 .array();
         return new ByteArrayInputStream(frame);
     }

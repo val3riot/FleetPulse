@@ -11,6 +11,6 @@ import java.time.Duration;
 @Validated
 public record KafkaPublisherProperties(
         @NotNull @DurationMin(millis = 1) Duration confirmationTimeout
-){
+) {
 }
 

@@ -6,11 +6,13 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
 import java.time.Duration;
 
 @ConfigurationProperties(prefix = "gateway.tcp")
-public record TcpServerProperties(@DefaultValue("false") boolean enabled,
-                                  @DefaultValue("7000") int port,
-                                  @DefaultValue("100") int maxConnections,
-                                  @DefaultValue("30s") Duration readTimeout,
-                                  @DefaultValue("5s") Duration shutdownGracePeriod) {
+public record TcpServerProperties(
+        @DefaultValue("false") boolean enabled,
+        @DefaultValue("7000") int port,
+        @DefaultValue("100") int maxConnections,
+        @DefaultValue("30s") Duration readTimeout,
+        @DefaultValue("5s") Duration shutdownGracePeriod
+) {
 
     public TcpServerProperties {
         if (port < 0 || port > 65_535) {

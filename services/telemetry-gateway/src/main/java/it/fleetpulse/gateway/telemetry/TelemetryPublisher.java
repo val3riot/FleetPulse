@@ -7,5 +7,5 @@ import java.util.concurrent.CompletionStage;
 @FunctionalInterface
 public interface TelemetryPublisher {
 
-    CompletionStage<Void> publish (TelemetryEvent event);
+    CompletionStage<Void> publish(TelemetryEvent event);
 }

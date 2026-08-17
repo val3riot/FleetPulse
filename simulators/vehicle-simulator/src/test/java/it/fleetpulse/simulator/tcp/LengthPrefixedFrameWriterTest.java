@@ -31,29 +31,19 @@ class LengthPrefixedFrameWriterTest {
 
     @Test
     void rejectsEmptyAndOversizedPayloads() {
-        assertThrows(
-                InvalidFrameLengthException.class,
-                () -> writer.write(new byte[0], new ByteArrayOutputStream())
-        );
-        assertThrows(
-                InvalidFrameLengthException.class,
-                () -> writer.write(
-                        new byte[ProtocolConstants.MAX_PAYLOAD_SIZE_BYTES + 1],
-                        new ByteArrayOutputStream()
-                )
-        );
+        assertThrows(InvalidFrameLengthException.class,
+            () -> writer.write(new byte[0], new ByteArrayOutputStream()));
+        assertThrows(InvalidFrameLengthException.class,
+            () -> writer.write(new byte[ProtocolConstants.MAX_PAYLOAD_SIZE_BYTES + 1],
+                new ByteArrayOutputStream()));
     }
 
     @Test
     void rejectsNullArguments() {
-        NullPointerException nullPayload = assertThrows(
-                NullPointerException.class,
-                () -> writer.write(null, new ByteArrayOutputStream())
-        );
-        NullPointerException nullOutput = assertThrows(
-                NullPointerException.class,
-                () -> writer.write(new byte[]{1}, null)
-        );
+        NullPointerException nullPayload = assertThrows(NullPointerException.class,
+            () -> writer.write(null, new ByteArrayOutputStream()));
+        NullPointerException nullOutput =
+            assertThrows(NullPointerException.class, () -> writer.write(new byte[]{1}, null));
 
         assertEquals("payload must not be null", nullPayload.getMessage());
         assertEquals("output must not be null", nullOutput.getMessage());

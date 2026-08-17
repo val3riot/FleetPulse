@@ -32,12 +32,8 @@ public final class FrameDecoder {
             TelemetryMessageValidator.validateRequiredNumericFields(payloadTree);
             TelemetryMessage message = objectMapper.readValue(payload, TelemetryMessage.class);
             TelemetryMessageValidator.validate(message);
-            log.debug(
-                    "Decoded telemetry frame: messageId={}, vehicleId={}, payloadBytes={}",
-                    message.messageId(),
-                    message.vehicleId(),
-                    payload.length
-            );
+            log.debug("Decoded telemetry frame: messageId={}, vehicleId={}, payloadBytes={}",
+                message.messageId(), message.vehicleId(), payload.length);
             return message;
         } catch (JacksonException exception) {
             throw new MalformedTelemetryException(exception);

@@ -37,13 +37,13 @@ class RestFleetApiClientTest {
 
     @Test
     void findsExactExternalCodeAcrossPages() {
-        server.expect(once(), requestTo(
-                        "http://fleet.test/api/v1/vehicles?query=FP-SIM-002&page=0&size=100"))
-                .andExpect(method(HttpMethod.GET))
-                .andRespond(withSuccess(page("FP-SIM-001", 0, 2, false), MediaType.APPLICATION_JSON));
-        server.expect(once(), requestTo(
-                        "http://fleet.test/api/v1/vehicles?query=FP-SIM-002&page=1&size=100"))
-                .andRespond(withSuccess(page("FP-SIM-002", 1, 2, true), MediaType.APPLICATION_JSON));
+        server.expect(once(),
+                requestTo("http://fleet.test/api/v1/vehicles?query=FP-SIM-002&page=0&size=100"))
+            .andExpect(method(HttpMethod.GET))
+            .andRespond(withSuccess(page("FP-SIM-001", 0, 2, false), MediaType.APPLICATION_JSON));
+        server.expect(once(),
+                requestTo("http://fleet.test/api/v1/vehicles?query=FP-SIM-002&page=1&size=100"))
+            .andRespond(withSuccess(page("FP-SIM-002", 1, 2, true), MediaType.APPLICATION_JSON));
 
         Optional<FleetVehicle> result = client.findByExternalCode("FP-SIM-002");
 
@@ -54,8 +54,9 @@ class RestFleetApiClientTest {
 
     @Test
     void returnsEmptyWhenNoExactMatchExists() {
-        server.expect(requestTo("http://fleet.test/api/v1/vehicles?query=FP-SIM-002&page=0&size=100"))
-                .andRespond(withSuccess(page("FP-SIM-020", 0, 1, true), MediaType.APPLICATION_JSON));
+        server.expect(
+                requestTo("http://fleet.test/api/v1/vehicles?query=FP-SIM-002&page=0&size=100"))
+            .andRespond(withSuccess(page("FP-SIM-020", 0, 1, true), MediaType.APPLICATION_JSON));
 
         assertEquals(Optional.empty(), client.findByExternalCode("FP-SIM-002"));
     }
@@ -63,11 +64,11 @@ class RestFleetApiClientTest {
     @Test
     void createsVehicle() {
         server.expect(requestTo("http://fleet.test/api/v1/vehicles"))
-                .andExpect(method(HttpMethod.POST))
-                .andRespond(withSuccess(vehicle("FP-SIM-001"), MediaType.APPLICATION_JSON));
+            .andExpect(method(HttpMethod.POST))
+            .andRespond(withSuccess(vehicle("FP-SIM-001"), MediaType.APPLICATION_JSON));
 
         FleetVehicle result = client.createVehicle(
-                new CreateFleetVehicleCommand("FP-SIM-001", "SIM001", 15_000, 25_000));
+            new CreateFleetVehicleCommand("FP-SIM-001", "SIM001", 15_000, 25_000));
 
         assertEquals("FP-SIM-001", result.externalCode());
     }
@@ -75,43 +76,45 @@ class RestFleetApiClientTest {
     @Test
     void mapsConflictToDomainException() {
         server.expect(requestTo("http://fleet.test/api/v1/vehicles"))
-                .andRespond(withStatus(HttpStatus.CONFLICT));
+            .andRespond(withStatus(HttpStatus.CONFLICT));
 
         assertThrows(VehicleAlreadyExistsException.class, () -> client.createVehicle(
-                new CreateFleetVehicleCommand("FP-SIM-001", "SIM001", 15_000, 25_000)));
+            new CreateFleetVehicleCommand("FP-SIM-001", "SIM001", 15_000, 25_000)));
     }
 
     @Test
     void mapsServerFailureToUnavailableException() {
-        server.expect(requestTo("http://fleet.test/api/v1/vehicles?query=FP-SIM-001&page=0&size=100"))
-                .andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
+        server.expect(
+                requestTo("http://fleet.test/api/v1/vehicles?query=FP-SIM-001&page=0&size=100"))
+            .andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
 
         assertThrows(FleetApiUnavailableException.class,
-                () -> client.findByExternalCode("FP-SIM-001"));
+            () -> client.findByExternalCode("FP-SIM-001"));
     }
 
     @Test
     void rejectsEmptyResponse() {
-        server.expect(requestTo("http://fleet.test/api/v1/vehicles?query=FP-SIM-001&page=0&size=100"))
-                .andRespond(withNoContent());
+        server.expect(
+                requestTo("http://fleet.test/api/v1/vehicles?query=FP-SIM-001&page=0&size=100"))
+            .andRespond(withNoContent());
 
         assertThrows(FleetApiProtocolException.class,
-                () -> client.findByExternalCode("FP-SIM-001"));
+            () -> client.findByExternalCode("FP-SIM-001"));
     }
 
     private static String page(String externalCode, int page, int totalPages, boolean last) {
         return """
-                {"content":[%s],"page":%d,"size":1,"totalElements":%d,
-                 "totalPages":%d,"first":%s,"last":%s}
-                """.formatted(vehicle(externalCode), page, totalPages, totalPages, page == 0, last);
+            {"content":[%s],"page":%d,"size":1,"totalElements":%d,
+             "totalPages":%d,"first":%s,"last":%s}
+            """.formatted(vehicle(externalCode), page, totalPages, totalPages, page == 0, last);
     }
 
     private static String vehicle(String externalCode) {
         return """
-                {"id":"dc0fc799-0913-4e72-bd2d-8ee8ccf52e22",
-                 "externalCode":"%s","plate":"SIM001","status":"ACTIVE",
-                 "serviceIntervalKm":15000,"nextServiceAtKm":25000,
-                 "createdAt":"2026-08-12T10:00:00Z"}
-                """.formatted(externalCode);
+            {"id":"dc0fc799-0913-4e72-bd2d-8ee8ccf52e22",
+             "externalCode":"%s","plate":"SIM001","status":"ACTIVE",
+             "serviceIntervalKm":15000,"nextServiceAtKm":25000,
+             "createdAt":"2026-08-12T10:00:00Z"}
+            """.formatted(externalCode);
     }
 }

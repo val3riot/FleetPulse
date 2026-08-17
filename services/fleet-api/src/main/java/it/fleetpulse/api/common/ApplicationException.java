@@ -14,10 +14,7 @@ public class ApplicationException extends RuntimeException {
     /**
      * Crea un'eccezione con un messaggio applicativo specifico.
      */
-    public ApplicationException(
-            ErrorCode errorCode,
-            String message
-    ) {
+    public ApplicationException(ErrorCode errorCode, String message) {
         super(message);
         this.errorCode = errorCode;
     }
@@ -25,11 +22,7 @@ public class ApplicationException extends RuntimeException {
     /**
      * Crea un'eccezione applicativa preservandone la causa.
      */
-    public ApplicationException(
-            ErrorCode errorCode,
-            String message,
-            Throwable cause
-    ) {
+    public ApplicationException(ErrorCode errorCode, String message, Throwable cause) {
         super(message, cause);
         this.errorCode = errorCode;
     }
