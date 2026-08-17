@@ -17,8 +17,9 @@ public class RawTelemetryEventListenerTest {
     @Test
     void delegatesRecordValueToHandler() {
         AtomicReference<TelemetryEvent> handledEvent = new AtomicReference<>();
-        RawTelemetryEventListener listener =
-                new RawTelemetryEventListener(handledEvent::set);
+        RawTelemetryEventListener listener = new RawTelemetryEventListener(
+                (event, source) -> handledEvent.set(event)
+        );
 
         TelemetryEvent event = event(TelemetryEventVersions.V1);
 
@@ -31,7 +32,7 @@ public class RawTelemetryEventListenerTest {
     void propagatesHandlerFailure() {
         RuntimeException failure = new RuntimeException("processing failed");
         RawTelemetryEventListener listener =
-                new RawTelemetryEventListener(event -> {
+                new RawTelemetryEventListener((event, source) -> {
                     throw failure;
                 });
 

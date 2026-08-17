@@ -4,6 +4,8 @@ import it.fleetpulse.contracts.telemetry.TelemetryData;
 import it.fleetpulse.contracts.telemetry.TelemetryEvent;
 import it.fleetpulse.contracts.telemetry.TelemetryEventVersions;
 import it.fleetpulse.processor.telemetry.TelemetryEventProcessingService;
+import it.fleetpulse.processor.telemetry.TelemetrySource;
+import it.fleetpulse.processor.telemetry.vehicle.VehicleEligibilityGuard;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,6 +33,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 import static org.springframework.boot.jdbc.test.autoconfigure
         .AutoConfigureTestDatabase.Replace.NONE;
 
@@ -61,6 +64,8 @@ class TelemetrySamplePersistenceIntegrationTest
 
     private static final Instant PROCESSED_AT =
             Instant.parse("2026-08-01T10:15:30.150Z");
+    private static final TelemetrySource SOURCE =
+            new TelemetrySource("telemetry.raw.v1", 1, 42L);
 
     @Autowired
     private TelemetrySampleRepository repository;
@@ -85,6 +90,9 @@ class TelemetrySamplePersistenceIntegrationTest
 
     @Autowired
     private TelemetryPersistenceFailureClassifier failureClassifier;
+
+    @Autowired
+    private VehicleEligibilityGuard eligibilityGuard;
 
     @BeforeEach
     void insertVehicle() {
@@ -157,7 +165,7 @@ class TelemetrySamplePersistenceIntegrationTest
                 )
         );
 
-        service.handle(event);
+        service.handle(event, SOURCE);
 
         entityManager.clear();
 
@@ -196,8 +204,8 @@ class TelemetrySamplePersistenceIntegrationTest
         );
 
         try {
-            service.handle(event);
-            service.handle(event);
+            service.handle(event, SOURCE);
+            service.handle(event, SOURCE);
 
             assertThat(repository.count()).isEqualTo(1);
             assertThat(repository.findAll())
@@ -243,7 +251,7 @@ class TelemetrySamplePersistenceIntegrationTest
         Callable<Void> processing = () -> {
             ready.countDown();
             start.await();
-            service.handle(event);
+            service.handle(event, SOURCE);
             return null;
         };
 
@@ -301,12 +309,13 @@ class TelemetrySamplePersistenceIntegrationTest
                         writer,
                         mapper,
                         clock,
-                        failureClassifier
+                        failureClassifier,
+                        eligibilityGuard
                 );
 
         try {
-            service.handle(event);
-            restartedService.handle(event);
+            service.handle(event, SOURCE);
+            restartedService.handle(event, SOURCE);
 
             assertThat(repository.count()).isEqualTo(1);
             assertThat(repository.findAll())
@@ -347,10 +356,12 @@ class TelemetrySamplePersistenceIntegrationTest
 
         @Bean
         Clock clock() {
-            return Clock.fixed(
-                    PROCESSED_AT,
-                    ZoneOffset.UTC
-            );
+            return Clock.fixed(PROCESSED_AT, ZoneOffset.UTC);
+        }
+
+        @Bean
+        VehicleEligibilityGuard eligibilityGuard() {
+            return mock(VehicleEligibilityGuard.class);
         }
     }
 }

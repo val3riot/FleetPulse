@@ -41,7 +41,8 @@ public class KafkaRetryConfiguration {
                 TransientDataAccessException.class,
                 RecoverableDataAccessException.class,
                 DataAccessResourceFailureException.class,
-                RetriableException.class
+                RetriableException.class,
+                TelemetryTerminalPublicationException.class
         );
         errorHandler.addNotRetryableExceptions(
                 UnsupportedTelemetryEventVersionException.class,

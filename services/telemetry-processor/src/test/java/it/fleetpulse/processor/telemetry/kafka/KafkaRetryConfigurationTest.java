@@ -37,6 +37,9 @@ class KafkaRetryConfigurationTest {
         assertThat(errorHandler.removeClassification(
                 RetriableException.class
         )).isTrue();
+        assertThat(errorHandler.removeClassification(
+                TelemetryTerminalPublicationException.class
+        )).isTrue();
     }
 
     @Test

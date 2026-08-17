@@ -7,6 +7,7 @@ import it.fleetpulse.processor.telemetry.persistence.TelemetryPersistenceFailure
 import it.fleetpulse.processor.telemetry.persistence.TelemetrySampleEntity;
 import it.fleetpulse.processor.telemetry.persistence.TelemetrySampleMapper;
 import it.fleetpulse.processor.telemetry.persistence.TelemetrySampleWriter;
+import it.fleetpulse.processor.telemetry.vehicle.VehicleEligibilityGuard;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -23,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -30,19 +32,24 @@ import static org.mockito.Mockito.when;
 class TelemetryEventProcessingServiceTest {
     private static final Instant PROCESSED_AT =
             Instant.parse("2026-08-01T10:15:30.150Z");
+    private static final TelemetrySource SOURCE =
+            new TelemetrySource("telemetry.raw.v1", 1, 42L);
 
     private final TelemetrySampleWriter writer =
             mock(TelemetrySampleWriter.class);
 
     private final TelemetryPersistenceFailureClassifier failureClassifier =
             mock(TelemetryPersistenceFailureClassifier.class);
+    private final VehicleEligibilityGuard eligibilityGuard =
+            mock(VehicleEligibilityGuard.class);
 
     private final TelemetryEventProcessingService service =
             new TelemetryEventProcessingService(
                     writer,
                     new TelemetrySampleMapper(),
                     Clock.fixed(PROCESSED_AT, ZoneOffset.UTC),
-                    failureClassifier
+                    failureClassifier,
+                    eligibilityGuard
             );
 
     @BeforeEach
@@ -55,7 +62,7 @@ class TelemetryEventProcessingServiceTest {
     void persistsVersionOne() {
         TelemetryEvent event = event(TelemetryEventVersions.V1);
 
-        service.handle(event);
+        service.handle(event, SOURCE);
 
         ArgumentCaptor<TelemetrySampleEntity> captor =
                 ArgumentCaptor.forClass(TelemetrySampleEntity.class);
@@ -70,10 +77,20 @@ class TelemetryEventProcessingServiceTest {
     }
 
     @Test
+    void doesNotPersistRejectedTelemetry() {
+        TelemetryEvent event = event(TelemetryEventVersions.V1);
+        when(eligibilityGuard.rejectIfIneligible(event, SOURCE)).thenReturn(true);
+
+        service.handle(event, SOURCE);
+
+        verify(writer, never()).insert(any(TelemetrySampleEntity.class));
+    }
+
+    @Test
     void rejectsUnsupportedVersion() {
         UnsupportedTelemetryEventVersionException exception = assertThrows(
                 UnsupportedTelemetryEventVersionException.class,
-                () -> service.handle(event(99))
+                () -> service.handle(event(99), SOURCE)
         );
 
         assertEquals(99, exception.actualVersion());
@@ -82,7 +99,7 @@ class TelemetryEventProcessingServiceTest {
 
     @Test
     void rejectsNullEvent() {
-        assertThrows(NullPointerException.class, () -> service.handle(null));
+        assertThrows(NullPointerException.class, () -> service.handle(null, SOURCE));
         verifyNoInteractions(writer);
     }
 
@@ -97,7 +114,7 @@ class TelemetryEventProcessingServiceTest {
                 .thenReturn(true);
 
         assertDoesNotThrow(
-                () -> service.handle(event(TelemetryEventVersions.V1))
+                () -> service.handle(event(TelemetryEventVersions.V1), SOURCE)
         );
     }
 
@@ -113,7 +130,7 @@ class TelemetryEventProcessingServiceTest {
 
         DataIntegrityViolationException thrown = assertThrows(
                 DataIntegrityViolationException.class,
-                () -> service.handle(event(TelemetryEventVersions.V1))
+                () -> service.handle(event(TelemetryEventVersions.V1), SOURCE)
         );
 
         assertSame(failure, thrown);

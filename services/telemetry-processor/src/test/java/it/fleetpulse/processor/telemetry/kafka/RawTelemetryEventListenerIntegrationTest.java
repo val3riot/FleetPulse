@@ -6,6 +6,7 @@ import it.fleetpulse.contracts.telemetry.TelemetryData;
 import it.fleetpulse.contracts.telemetry.TelemetryEvent;
 import it.fleetpulse.contracts.telemetry.TelemetryEventVersions;
 import it.fleetpulse.processor.telemetry.TelemetryEventHandler;
+import it.fleetpulse.processor.telemetry.TelemetrySource;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.NewTopic;
@@ -559,7 +560,7 @@ public class RawTelemetryEventListenerIntegrationTest {
         private volatile CountDownLatch release = new CountDownLatch(0);
 
         @Override
-        public void handle(TelemetryEvent event) {
+        public void handle(TelemetryEvent event, TelemetrySource source) {
             int currentAttempt = attempts.merge(
                     event.messageId(),
                     1,

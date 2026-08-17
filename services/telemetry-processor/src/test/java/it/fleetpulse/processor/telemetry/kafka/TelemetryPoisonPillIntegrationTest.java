@@ -251,7 +251,7 @@ class TelemetryPoisonPillIntegrationTest {
 
         @Bean
         TelemetryEventHandler telemetryEventHandler() {
-            return event -> {
+            return (event, source) -> {
                 throw new AssertionError(
                         "Poison pill must not reach the handler"
                 );

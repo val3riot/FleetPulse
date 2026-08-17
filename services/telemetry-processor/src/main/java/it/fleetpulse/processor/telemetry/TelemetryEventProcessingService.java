@@ -6,6 +6,7 @@ import it.fleetpulse.processor.telemetry.persistence.TelemetryPersistenceFailure
 import it.fleetpulse.processor.telemetry.persistence.TelemetrySampleEntity;
 import it.fleetpulse.processor.telemetry.persistence.TelemetrySampleMapper;
 import it.fleetpulse.processor.telemetry.persistence.TelemetrySampleWriter;
+import it.fleetpulse.processor.telemetry.vehicle.VehicleEligibilityGuard;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -25,27 +26,37 @@ public final class TelemetryEventProcessingService implements TelemetryEventHand
     private final TelemetryPersistenceFailureClassifier failureClassifier;
     private final TelemetrySampleMapper mapper;
     private final Clock clock;
+    private final VehicleEligibilityGuard eligibilityGuard;
 
     public TelemetryEventProcessingService(
             TelemetrySampleWriter writer,
             TelemetrySampleMapper mapper,
             Clock clock,
-            TelemetryPersistenceFailureClassifier failureClassifier
+            TelemetryPersistenceFailureClassifier failureClassifier,
+            VehicleEligibilityGuard eligibilityGuard
     ) {
         this.writer = Objects.requireNonNull(writer);
         this.mapper = Objects.requireNonNull(mapper);
         this.clock = Objects.requireNonNull(clock);
-        this.failureClassifier =
-                Objects.requireNonNull(failureClassifier);
+        this.failureClassifier = Objects.requireNonNull(failureClassifier);
+        this.eligibilityGuard = Objects.requireNonNull(
+                eligibilityGuard,
+                "eligibilityGuard must not be null"
+        );
     }
 
     @Override
-    public void handle(TelemetryEvent event) {
+    public void handle(TelemetryEvent event, TelemetrySource source) {
         Objects.requireNonNull(event, "event must not be null");
+        Objects.requireNonNull(source, "source must not be null");
         if (event.eventVersion() != TelemetryEventVersions.V1) {
             throw new UnsupportedTelemetryEventVersionException(
                     event.eventVersion()
             );
+        }
+
+        if (eligibilityGuard.rejectIfIneligible(event, source)) {
+            return;
         }
         TelemetrySampleEntity entity = mapper.toEntity(
                 event,

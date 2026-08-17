@@ -2,6 +2,7 @@ package it.fleetpulse.processor.telemetry.kafka;
 
 import it.fleetpulse.contracts.telemetry.TelemetryEvent;
 import it.fleetpulse.processor.telemetry.TelemetryEventHandler;
+import it.fleetpulse.processor.telemetry.TelemetrySource;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +33,12 @@ public final class RawTelemetryEventListener {
                 record.key(),
                 event.messageId()
         );
-        handler.handle(event);
+        TelemetrySource source = new TelemetrySource(
+                record.topic(),
+                record.partition(),
+                record.offset()
+        );
+        handler.handle(event, source);
         log.info(
                 "Kafka telemetry record handled: topic={}, partition={}, offset={}, key={}, messageId={}",
                 record.topic(),
