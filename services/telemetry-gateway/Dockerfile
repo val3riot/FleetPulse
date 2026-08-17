@@ -32,7 +32,7 @@ RUN addgroup -S -g 10001 fleetpulse \
 
 WORKDIR /app
 COPY --from=build --chown=10001:10001 \
-    /workspace/services/telemetry-gateway/target/telemetry-gateway-*.jar app.jar
+    /workspace/services/telemetry-gateway/target/telemetry-gateway-*-exec.jar app.jar
 
 USER 10001:10001
 EXPOSE 7000 8080
