@@ -16,12 +16,17 @@ spring:
       group-id: ${fleetpulse.kafka.consumer.group-id}
       enable-auto-commit: false
       auto-offset-reset: earliest
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+      key-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
       properties:
         spring.json.use.type.headers: false
         spring.json.value.default.type: it.fleetpulse.contracts.telemetry.TelemetryEvent
         spring.json.trusted.packages: it.fleetpulse.contracts.telemetry
+        spring.deserializer.key.delegate.class: org.apache.kafka.common.serialization.StringDeserializer
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
     listener:
       type: single
       ack-mode: record
@@ -42,7 +47,8 @@ fleetpulse:
       retry-max-backoff: ${KAFKA_CONSUMER_RETRY_MAX_BACKOFF:5s}
       retry-multiplier: ${KAFKA_CONSUMER_RETRY_MULTIPLIER:2.0}
       retry-jitter-ratio: ${KAFKA_CONSUMER_RETRY_JITTER_RATIO:0.2}
-
+    terminal-publication:
+      confirmation-timeout: ${KAFKA_TERMINAL_CONFIRMATION_TIMEOUT:5s}
     topics:
       raw: ${KAFKA_TOPIC_RAW:telemetry.raw.v1}
       rejected: ${KAFKA_TOPIC_REJECTED:telemetry.rejected.v1}

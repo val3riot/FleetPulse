@@ -34,5 +34,8 @@ class KafkaRetryObservabilityTest {
         assertThat(registry.get(
                 "fleetpulse.processor.failures.terminal"
         ).counter().count()).isEqualTo(1.0);
+        assertThat(registry.get(
+                "fleetpulse.processor.dead.letter"
+        ).counter().count()).isEqualTo(1.0);
     }
 }

@@ -30,6 +30,7 @@ import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.*;
 import org.springframework.kafka.listener.ContainerProperties;
+import org.springframework.kafka.listener.ConsumerRecordRecoverer;
 import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.kafka.support.serializer.JacksonJsonDeserializer;
 import org.springframework.kafka.support.serializer.JacksonJsonSerializer;
@@ -453,6 +454,14 @@ public class RawTelemetryEventListenerIntegrationTest {
         @Bean
         MeterRegistry meterRegistry() {
             return new SimpleMeterRegistry();
+        }
+
+        @Bean
+        ConsumerRecordRecoverer consumerRecordRecoverer() {
+            return (record, failure) -> {
+                // FP-025 integration tests only retry semantics. FP-026
+                // exercises the real recoverer in dedicated tests.
+            };
         }
 
         @Bean

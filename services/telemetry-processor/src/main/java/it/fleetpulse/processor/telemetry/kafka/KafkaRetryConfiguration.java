@@ -9,6 +9,7 @@ import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.RecoverableDataAccessException;
 import org.springframework.dao.TransientDataAccessException;
+import org.springframework.kafka.listener.ConsumerRecordRecoverer;
 import org.springframework.kafka.listener.DefaultErrorHandler;
 
 @Configuration(proxyBeanMethods = false)
@@ -17,7 +18,8 @@ public class KafkaRetryConfiguration {
     @Bean
     DefaultErrorHandler kafkaErrorHandler(
             KafkaConsumerProperties properties,
-            KafkaRetryObservability observability
+            KafkaRetryObservability observability,
+            ConsumerRecordRecoverer recoverer
     ) {
         JitteredExponentialBackOff backOff =
                 new JitteredExponentialBackOff(
@@ -29,7 +31,10 @@ public class KafkaRetryConfiguration {
                 );
 
         DefaultErrorHandler errorHandler =
-                new DefaultErrorHandler(backOff);
+                new DefaultErrorHandler(
+                        recoverer,
+                        backOff
+                );
 
         errorHandler.defaultFalse(true);
         errorHandler.addRetryableExceptions(

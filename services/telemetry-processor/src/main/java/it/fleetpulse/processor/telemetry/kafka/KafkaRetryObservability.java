@@ -15,6 +15,7 @@ public final class KafkaRetryObservability implements RetryListener {
 
     private final Counter failedDeliveries;
     private final Counter terminalFailures;
+    private final Counter deadLetters;
 
     public KafkaRetryObservability(MeterRegistry registry) {
         Objects.requireNonNull(registry, "registry must not be null");
@@ -33,6 +34,14 @@ public final class KafkaRetryObservability implements RetryListener {
                 .description(
                         "Telemetry processing failures not recovered "
                                 + "by retry"
+                )
+                .register(registry);
+
+        deadLetters = Counter.builder(
+                        "fleetpulse.processor.dead.letter"
+                )
+                .description(
+                        "Telemetry records published to the dead-letter topic"
                 )
                 .register(registry);
     }
@@ -64,6 +73,7 @@ public final class KafkaRetryObservability implements RetryListener {
             Exception failure
     ) {
         terminalFailures.increment();
+        deadLetters.increment();
 
         log.error(
                 "Kafka telemetry processing reached terminal handling: "

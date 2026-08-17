@@ -8,11 +8,13 @@ import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.RecoverableDataAccessException;
 import org.springframework.dao.TransientDataAccessException;
+import org.springframework.kafka.listener.ConsumerRecordRecoverer;
 import org.springframework.kafka.listener.DefaultErrorHandler;
 
 import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 class KafkaRetryConfigurationTest {
 
@@ -64,10 +66,12 @@ class KafkaRetryConfigurationTest {
                 new KafkaRetryObservability(
                         new SimpleMeterRegistry()
                 );
-
+        ConsumerRecordRecoverer recoverer =
+                mock(ConsumerRecordRecoverer.class);
         return configuration.kafkaErrorHandler(
                 properties,
-                observability
+                observability,
+                recoverer
         );
     }
 }
