@@ -16,6 +16,8 @@ COPY simulators/vehicle-simulator/pom.xml simulators/vehicle-simulator/pom.xml
 
 COPY libraries/telemetry-contracts/src libraries/telemetry-contracts/src
 COPY services/telemetry-processor/src services/telemetry-processor/src
+COPY libraries/tcp-protocol/src libraries/tcp-protocol/src
+COPY services/telemetry-gateway/src services/telemetry-gateway/src
 
 RUN --mount=type=cache,target=/root/.m2 \
     mvn --batch-mode --no-transfer-progress \
