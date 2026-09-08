@@ -8,6 +8,12 @@ import it.fleetpulse.processor.telemetry.persistence.TelemetrySampleEntity;
 import it.fleetpulse.processor.telemetry.persistence.TelemetrySampleMapper;
 import it.fleetpulse.processor.telemetry.persistence.TelemetrySampleWriter;
 import it.fleetpulse.processor.telemetry.vehicle.VehicleEligibilityGuard;
+import it.fleetpulse.processor.telemetry.projection.LatestStateProjection;
+import it.fleetpulse.processor.telemetry.projection.LatestStateProjectionException;
+import it.fleetpulse.processor.telemetry.projection.LatestStateProjectionObservability;
+import it.fleetpulse.processor.telemetry.projection.LatestVehicleState;
+import it.fleetpulse.processor.telemetry.projection.ProjectionUpdateResult;
+import org.springframework.transaction.TransactionSystemException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -23,11 +29,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.inOrder;
 
 class TelemetryEventProcessingServiceTest {
     private static final Instant PROCESSED_AT = Instant.parse("2026-08-01T10:15:30.150Z");
@@ -38,10 +47,13 @@ class TelemetryEventProcessingServiceTest {
     private final TelemetryPersistenceFailureClassifier failureClassifier =
         mock(TelemetryPersistenceFailureClassifier.class);
     private final VehicleEligibilityGuard eligibilityGuard = mock(VehicleEligibilityGuard.class);
+    private final LatestStateProjection projection = mock(LatestStateProjection.class);
+    private final LatestStateProjectionObservability observability = mock(LatestStateProjectionObservability.class);
 
     private final TelemetryEventProcessingService service =
         new TelemetryEventProcessingService(writer, new TelemetrySampleMapper(),
-            Clock.fixed(PROCESSED_AT, ZoneOffset.UTC), failureClassifier, eligibilityGuard);
+            Clock.fixed(PROCESSED_AT, ZoneOffset.UTC), failureClassifier, eligibilityGuard,
+            projection, observability);
 
     @BeforeEach
     void returnEntityBeingSaved() {
@@ -68,6 +80,56 @@ class TelemetryEventProcessingServiceTest {
     }
 
     @Test
+    void projectsCompleteSampleAfterWriterReturnsAndRecordsOutcome() {
+        var event = event(TelemetryEventVersions.V1);
+        var expected = new LatestVehicleState(event.vehicleId(), event.sequenceNumber(), event.observedAt(),
+            72.4, 91.8, 12.6, 85312, 41.9028, 12.4964);
+        when(projection.updateIfNewer(expected)).thenReturn(ProjectionUpdateResult.UPDATED);
+
+        service.handle(event, SOURCE);
+
+        var order = inOrder(writer, projection, observability);
+        order.verify(writer).insert(any(TelemetrySampleEntity.class));
+        order.verify(projection).updateIfNewer(expected);
+        order.verify(observability).completed(event.messageId(), expected, ProjectionUpdateResult.UPDATED);
+    }
+
+    @Test
+    void recordsSkippedProjection() {
+        var event = event(TelemetryEventVersions.V1);
+        when(projection.updateIfNewer(any())).thenReturn(ProjectionUpdateResult.SKIPPED);
+
+        service.handle(event, SOURCE);
+
+        verify(observability).completed(eq(event.messageId()), any(),
+            eq(ProjectionUpdateResult.SKIPPED));
+    }
+
+    @Test
+    void projectionFailureIsObservedWithoutReachingCaller() {
+        var event = event(TelemetryEventVersions.V1);
+        var failure = new LatestStateProjectionException("Redis unavailable");
+        when(projection.updateIfNewer(any())).thenThrow(failure);
+
+        assertDoesNotThrow(() -> service.handle(event, SOURCE));
+
+        verify(observability).failed(eq(event.messageId()), any(),
+            same(failure));
+        verify(writer).insert(any(TelemetrySampleEntity.class));
+    }
+
+    @Test
+    void failedCommitPreventsProjection() {
+        var failure = new TransactionSystemException("Commit failed");
+        when(writer.insert(any())).thenThrow(failure);
+
+        assertSame(failure, assertThrows(TransactionSystemException.class,
+            () -> service.handle(event(TelemetryEventVersions.V1), SOURCE)));
+
+        verifyNoInteractions(projection, observability);
+    }
+
+    @Test
     void doesNotPersistRejectedTelemetry() {
         TelemetryEvent event = event(TelemetryEventVersions.V1);
         when(eligibilityGuard.rejectIfIneligible(event, SOURCE)).thenReturn(true);
@@ -75,6 +137,7 @@ class TelemetryEventProcessingServiceTest {
         service.handle(event, SOURCE);
 
         verify(writer, never()).insert(any(TelemetrySampleEntity.class));
+        verifyNoInteractions(projection, observability);
     }
 
     @Test
@@ -101,6 +164,7 @@ class TelemetryEventProcessingServiceTest {
         when(failureClassifier.isDuplicateMessageId(failure)).thenReturn(true);
 
         assertDoesNotThrow(() -> service.handle(event(TelemetryEventVersions.V1), SOURCE));
+        verifyNoInteractions(projection, observability);
     }
 
     @Test
@@ -115,6 +179,7 @@ class TelemetryEventProcessingServiceTest {
             () -> service.handle(event(TelemetryEventVersions.V1), SOURCE));
 
         assertSame(failure, thrown);
+        verifyNoInteractions(projection, observability);
     }
 
     private static TelemetryEvent event(int version) {

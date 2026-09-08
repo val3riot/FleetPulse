@@ -2,6 +2,8 @@ package it.fleetpulse.processor.telemetry.kafka;
 
 import it.fleetpulse.contracts.telemetry.TelemetryData;
 import it.fleetpulse.contracts.telemetry.TelemetryEvent;
+import io.micrometer.core.instrument.MeterRegistry;
+import it.fleetpulse.processor.telemetry.projection.LatestStateProjectionException;
 import it.fleetpulse.contracts.telemetry.TelemetryEventVersions;
 import it.fleetpulse.processor.telemetry.TelemetryEventHandler;
 import it.fleetpulse.processor.telemetry.TelemetryEventProcessingService;
@@ -43,6 +45,9 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
 import static org.assertj.core.api.Assertions.fail;
 
 @SpringBootTest
@@ -70,6 +75,9 @@ class TelemetryOffsetSemanticsIntegrationTest extends PostgreSqlIntegrationSuppo
 
     @Autowired
     private KafkaListenerEndpointRegistry listenerRegistry;
+
+    @Autowired
+    private MeterRegistry meterRegistry;
 
     @BeforeAll
     static void createTopics() throws Exception {
@@ -174,6 +182,31 @@ class TelemetryOffsetSemanticsIntegrationTest extends PostgreSqlIntegrationSuppo
 
         assertThat(crashPointHandler.attemptsFor(event.messageId())).isOne();
         assertThat(sampleCount(event.messageId())).isOne();
+    }
+
+    @Test
+    void redisFailureAfterCommitDoesNotRetryKafkaAndIsCounted() throws Exception {
+        TelemetryEvent event = event();
+        insertActiveVehicle(event.vehicleId());
+        double failuresBefore = meterRegistry.get("fleetpulse.redis.update.failures").counter().count();
+        double outcomesBefore = meterRegistry.get("fleetpulse.telemetry.latest_state.updates")
+            .tag("outcome", "failed").counter().count();
+        when(latestStateProjection.updateIfNewer(any()))
+            .thenThrow(new LatestStateProjectionException(
+                "Redis unavailable"));
+
+        var sent = kafkaTemplate.send(RAW_TOPIC, event.vehicleId().toString(), event)
+            .get(10, TimeUnit.SECONDS);
+        var partition = new TopicPartition(RAW_TOPIC, sent.getRecordMetadata().partition());
+        awaitCommittedOffset(partition, sent.getRecordMetadata().offset() + 1);
+
+        assertThat(sampleCount(event.messageId())).isOne();
+        assertThat(crashPointHandler.attemptsFor(event.messageId())).isOne();
+        verify(latestStateProjection).updateIfNewer(any());
+        assertThat(meterRegistry.get("fleetpulse.redis.update.failures").counter().count())
+            .isEqualTo(failuresBefore + 1);
+        assertThat(meterRegistry.get("fleetpulse.telemetry.latest_state.updates")
+            .tag("outcome", "failed").counter().count()).isEqualTo(outcomesBefore + 1);
     }
 
     private void insertActiveVehicle(UUID vehicleId) {

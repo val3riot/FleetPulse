@@ -103,16 +103,23 @@ I nomi sono centralizzati nelle variabili `KAFKA_TOPIC_RAW`,
 
 ### TTL della latest-state projection (FP-030)
 
-Configurazione prevista da [ADR-009 — Contratto e aggiornamento della latest-state projection](adr/ADR-009-LATEST-STATE-PROJECTION.md), da implementare in FP-030:
+Configurazione implementata in FP-030 secondo [ADR-009 — Contratto e aggiornamento della latest-state projection](adr/ADR-009-LATEST-STATE-PROJECTION.md):
 
 | Property | Tipo | Default | Validazione all'avvio |
 |---|---|---|---|
 | `fleetpulse.telemetry.latest-state.ttl` | `Duration` | `5m` | Non nulla e almeno `1ms` |
+| `fleetpulse.telemetry.latest-state.max-attempts` | `int` | `1` | Almeno `1` |
 
 Il valore è sovrascrivibile tramite configurazione Spring. Un valore invalido
 impedisce l'avvio. La conversione deve rispettare la precisione Redis; il TTL
 si rinnova solo quando viene accettato un aggiornamento. Non rappresenta la
 soglia di freshness della State API.
+
+Le variabili d'ambiente del processor sono `TELEMETRY_LATEST_STATE_TTL` e
+`TELEMETRY_LATEST_STATE_MAX_ATTEMPTS`. Il limite dei tentativi include il primo:
+con `1`, un conflitto concorrente causa subito un fallimento osservabile della
+proiezione, senza rollback PostgreSQL o retry Kafka. I warning sono limitati
+a uno ogni 30 secondi per istanza; le metriche contano tutti i fallimenti.
 
 ## 4. Container design
 

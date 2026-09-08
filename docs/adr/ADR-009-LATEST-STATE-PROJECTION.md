@@ -2,9 +2,8 @@
 
 ## Stato
 
-Accettata il 2026-09-08. Implementazione prevista in FP-030; integrazione del
-fallback e del repair in FP-031. Lo stato accettato riguarda la progettazione,
-non attesta il completamento del codice.
+Accettata il 2026-09-08. Adapter di lettura e scrittura, integrazione dopo commit,
+osservabilità e test implementati in FP-030. Fallback e repair restano in FP-031.
 
 ## Contesto
 
@@ -26,11 +25,12 @@ Redis. L'adapter gestisce questi dettagli e la conversione nel DTO Redis.
 `LatestVehicleState` rappresenta i dati della misura candidata alla proiezione.
 `ProjectionUpdateResult` distingue `UPDATED` e `SKIPPED`. Un errore
 infrastrutturale viene tradotto in un'eccezione applicativa dedicata, gestita
-dall'orchestratore dopo il commit. La porta di lettura per FP-031 è distinta.
+dall'orchestratore dopo il commit. La porta di lettura `LatestStateQuery` è
+distinta e restituisce `Optional<LatestVehicleState>`: vuoto per chiave assente
+o scaduta, eccezione applicativa per un errore Redis o JSON invalido.
 
-Nel codice attuale la porta è abbozzata nel package `telemetry.redis`; i tipi
-`LatestVehicleState` e `ProjectionUpdateResult` devono ancora essere creati.
-La collocazione della porta dovrà riflettere il suo ruolo applicativo.
+Porte e tipi applicativi risiedono nel package `telemetry.projection`;
+adapter, DTO Redis e codec JSON dedicato risiedono in `telemetry.redis`.
 
 ## 2. Key e DTO Redis
 
@@ -71,7 +71,23 @@ Si confronta la coppia `(observedAt, sequenceNumber)` in ordine lessicografico:
 Una chiave assente può essere inizializzata dal candidato. Confronto,
 scrittura e impostazione del TTL devono costituire un'operazione atomica:
 una lettura seguita da una scrittura indipendente non protegge dalla concorrenza.
-La scelta della tecnica Redis resta un dettaglio di implementazione.
+La tecnica scelta è optimistic locking con `WATCH`, `MULTI` e `EXEC`.
+L'adapter osserva la chiave prima di leggerla, deserializza il valore e confronta
+`Instant` e `long` in Java. Se il candidato è precedente o equivalente esegue
+`UNWATCH` e restituisce `SKIPPED`. Altrimenti accoda in `MULTI` un unico `SET`
+con valore JSON e TTL e tenta `EXEC`.
+
+Tutte le operazioni di un tentativo usano la stessa connessione Redis. Se la
+chiave cambia o scade prima di `EXEC`, la transazione viene abortita: l'adapter
+ripete lettura e confronto con un numero limitato di tentativi. L'esaurimento
+dei tentativi è un fallimento della proiezione, non `SKIPPED`, e viene gestito
+dopo commit senza provocare retry Kafka. Il limite è configurato con
+`fleetpulse.telemetry.latest-state.max-attempts`, default `1` e minimo `1`;
+include il primo tentativo, quindi il default non riprova dopo un conflitto.
+
+L'adapter deve rilasciare lo stato `WATCH`/`MULTI` anche in caso di errore,
+prima di restituire la connessione. L'atomicità riguarda la scrittura
+condizionata rispetto al valore letto; il confronto Java può essere ripetuto.
 
 Fallback e ricostruzione PostgreSQL devono usare lo stesso criterio di recency.
 Il reset della sequenza dopo un riavvio non impedisce di accettare una misura
@@ -138,13 +154,21 @@ l'eccezione applicativa, non è un valore di `ProjectionUpdateResult`.
 `vehicleId`, `messageId` e sequenza sono ammessi nei log, mai nei tag delle
 metriche. Niente payload completo nei log. Durante guasti prolungati i warning
 sono limitati in frequenza, mentre il contatore registra tutti i fallimenti.
-Intervallo e meccanismo del limite dei log restano dettagli da fissare in implementazione.
+L'implementazione limita i warning a uno ogni 30 secondi per istanza del processor,
+con un riferimento temporale monotono e aggiornamento atomico. Ogni fallimento
+incrementa comunque i contatori; i log riportano il tipo di errore senza messaggi
+o stack trace che potrebbero includere il payload serializzato.
 
 Il contatore affianca `fleetpulse_redis_update_failures_total`, che resta nel
 catalogo: ogni fallimento incrementa anche questa metrica, senza tag dinamici.
 
 ## Alternative considerate
 
+- Script Lua: permette confronto e scrittura sul server senza retry per
+  conflitti di optimistic locking. Si preferisce `WATCH` per mantenere il
+  confronto nei tipi Java, senza introdurre Lua e conversioni numeriche o
+  temporali aggiuntive. Il compromesso è un maggior numero di scambi con Redis
+  e la gestione dei conflitti tramite retry limitati.
 - Confrontare solo `sequenceNumber`: il reset dopo riavvio impedisce di
   riconoscere correttamente le nuove misure.
 - Attendere il TTL per accettare una sequenza bassa: la scadenza non ordina
