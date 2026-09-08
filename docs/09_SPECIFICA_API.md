@@ -251,6 +251,12 @@ Errori:
 Fleet API tenta prima Redis e usa PostgreSQL come fallback. La sorgente usata è
 un dettaglio interno e non modifica il contratto della response.
 
+`lastSeenAt` è l'`observedAt` della rilevazione selezionata come stato corrente:
+indica il momento della misura in UTC. Il mapping è identico per cache hit e
+fallback PostgreSQL. `stale` esprime la freschezza della misura a partire da
+questo timestamp, non dalla scadenza Redis o dal momento di elaborazione.
+Si veda [ADR-008](adr/ADR-008-LAST-SEEN-AT-E-FRESCHEZZA.md).
+
 `200 OK`:
 
 ```json
@@ -519,3 +525,10 @@ Il documento OpenAPI deve descrivere request, response, header `Location`,
 paginazione, enum e tutte le error response definite in questa specifica.
 L'OpenAPI generato deve essere verificato tramite test di contratto per evitare
 divergenze tra documentazione e implementazione.
+
+## ADR di riferimento
+
+- [ADR-001 — Confini dei servizi](adr/ADR-001-CONFINI-DEI-SERVIZI.md)
+- [ADR-004 — PostgreSQL come source of truth](adr/ADR-004-POSTGRESQL-SOURCE-OF-TRUTH.md)
+- [ADR-005 — Redis come cache ricostruibile](adr/ADR-005-REDIS-CACHE-RICOSTRUIBILE.md)
+- [ADR-007 — Validazione del veicolo nel telemetry processor](adr/ADR-007-VALIDAZIONE-VEICOLO.md)

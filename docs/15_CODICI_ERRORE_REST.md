@@ -179,3 +179,9 @@ Ogni nuovo errore REST deve essere aggiunto:
 
 La rimozione o la rinomina di un codice richiede un piano di compatibilità con i
 client esistenti.
+
+## ADR di riferimento
+
+- [ADR-004 — PostgreSQL come source of truth](adr/ADR-004-POSTGRESQL-SOURCE-OF-TRUTH.md)
+- [ADR-005 — Redis come cache ricostruibile](adr/ADR-005-REDIS-CACHE-RICOSTRUIBILE.md)
+- [ADR-007 — Validazione del veicolo nel telemetry processor](adr/ADR-007-VALIDAZIONE-VEICOLO.md)

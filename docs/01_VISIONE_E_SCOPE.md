@@ -86,3 +86,11 @@ Il riavvio di un servizio non deve richiedere correzioni manuali dei dati negli 
 ## 6. Confine del sistema
 
 FleetPulse inizia quando un client simulato apre una connessione TCP e termina nelle REST API, nei persistent store e nei segnali operativi prodotti dalla piattaforma.
+
+## ADR di riferimento
+
+- [ADR-001 — Confini dei servizi](adr/ADR-001-CONFINI-DEI-SERVIZI.md)
+- [ADR-003 — Kafka tra gateway e processor](adr/ADR-003-KAFKA-TRA-GATEWAY-E-PROCESSOR.md)
+- [ADR-004 — PostgreSQL come source of truth](adr/ADR-004-POSTGRESQL-SOURCE-OF-TRUTH.md)
+- [ADR-005 — Redis come cache ricostruibile](adr/ADR-005-REDIS-CACHE-RICOSTRUIBILE.md)
+- [ADR-006 — At-least-once con application idempotency](adr/ADR-006-AT-LEAST-ONCE-E-IDEMPOTENCY.md)

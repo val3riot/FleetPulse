@@ -209,3 +209,12 @@ disconnect probability: 1%
 - OpenAPI coerente con l'implementazione;
 - shutdown e restart ripetibili;
 - idempotency verificata.
+
+## ADR di riferimento
+
+- [ADR-002 — Protocollo TCP length-prefixed](adr/ADR-002-PROTOCOLLO-TCP-LENGTH-PREFIXED.md)
+- [ADR-004 — PostgreSQL come source of truth](adr/ADR-004-POSTGRESQL-SOURCE-OF-TRUTH.md)
+- [ADR-005 — Redis come cache ricostruibile](adr/ADR-005-REDIS-CACHE-RICOSTRUIBILE.md)
+- [ADR-006 — At-least-once con application idempotency](adr/ADR-006-AT-LEAST-ONCE-E-IDEMPOTENCY.md)
+- [ADR-007 — Validazione del veicolo nel telemetry processor](adr/ADR-007-VALIDAZIONE-VEICOLO.md)
+- [ADR-008 — Significato di lastSeenAt e freschezza dello stato](adr/ADR-008-LAST-SEEN-AT-E-FRESCHEZZA.md)

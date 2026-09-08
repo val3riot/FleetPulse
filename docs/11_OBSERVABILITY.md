@@ -121,3 +121,9 @@ Per un `messageId` devono essere individuabili:
 5. persistenza;
 6. aggiornamento Redis;
 7. eventuale alert o dead-letter.
+
+## ADR di riferimento
+
+- [ADR-005 — Redis come cache ricostruibile](adr/ADR-005-REDIS-CACHE-RICOSTRUIBILE.md)
+- [ADR-006 — At-least-once con application idempotency](adr/ADR-006-AT-LEAST-ONCE-E-IDEMPOTENCY.md)
+- [ADR-007 — Validazione del veicolo nel telemetry processor](adr/ADR-007-VALIDAZIONE-VEICOLO.md)

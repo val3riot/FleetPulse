@@ -184,7 +184,13 @@ vehicle:last:{vehicleId}
 - entry ricostruibili;
 - perdita della cache non equivalente a perdita dei dati;
 - fallback su PostgreSQL;
-- freshness derivata da `lastSeenAt`.
+- freshness derivata da `lastSeenAt`, uguale a `observedAt` della rilevazione
+  selezionata come stato corrente, sia in aggiornamento sia in ricostruzione.
+
+`lastSeenAt` rappresenta il momento della misura in UTC, non la ricezione nel
+gateway, l'elaborazione nel processor o la scrittura Redis. Il rinnovo del TTL
+non modifica il momento della misura. Motivazione e limiti sono definiti in
+[ADR-008](adr/ADR-008-LAST-SEEN-AT-E-FRESCHEZZA.md).
 
 Non esiste una tabella `vehicle_state`: lo stato corrente è una projection Redis
 ricostruibile dallo storico PostgreSQL.
@@ -207,3 +213,9 @@ Tutti i timestamp sono UTC.
 - Hibernate usa `ddl-auto=validate` e non modifica lo schema;
 - le entity Java vengono introdotte nelle ticket applicative che leggono o
   scrivono le rispettive tabelle.
+
+## ADR di riferimento
+
+- [ADR-004 — PostgreSQL come source of truth](adr/ADR-004-POSTGRESQL-SOURCE-OF-TRUTH.md)
+- [ADR-005 — Redis come cache ricostruibile](adr/ADR-005-REDIS-CACHE-RICOSTRUIBILE.md)
+- [ADR-006 — At-least-once con application idempotency](adr/ADR-006-AT-LEAST-ONCE-E-IDEMPOTENCY.md)

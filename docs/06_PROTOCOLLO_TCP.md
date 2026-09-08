@@ -161,3 +161,10 @@ un handler fittizio che rispondesse positivamente senza attendere il broker
 violerebbe la semantica definita nella sezione 7. Fino all'introduzione del
 `FrameHandler` di produzione previsto da FP-021, il listener resta disabilitato
 nell'avvio Compose e l'emissione ACK/NACK non è considerata coperta end-to-end.
+
+## ADR di riferimento
+
+- [ADR-002 — Protocollo TCP length-prefixed](adr/ADR-002-PROTOCOLLO-TCP-LENGTH-PREFIXED.md)
+- [ADR-003 — Kafka tra gateway e processor](adr/ADR-003-KAFKA-TRA-GATEWAY-E-PROCESSOR.md)
+- [ADR-006 — At-least-once con application idempotency](adr/ADR-006-AT-LEAST-ONCE-E-IDEMPOTENCY.md)
+- [ADR-007 — Validazione del veicolo nel telemetry processor](adr/ADR-007-VALIDAZIONE-VEICOLO.md)

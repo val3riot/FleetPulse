@@ -228,3 +228,10 @@ telemetria e dello storico specializzano rispettivamente UC-04 e UC-05.
 
 La consultazione dell'elenco specializza UC-06. L'eventuale aggiornamento dello
 stato segue UC-07.
+
+## ADR di riferimento
+
+- [ADR-003 — Kafka tra gateway e processor](adr/ADR-003-KAFKA-TRA-GATEWAY-E-PROCESSOR.md)
+- [ADR-005 — Redis come cache ricostruibile](adr/ADR-005-REDIS-CACHE-RICOSTRUIBILE.md)
+- [ADR-006 — At-least-once con application idempotency](adr/ADR-006-AT-LEAST-ONCE-E-IDEMPOTENCY.md)
+- [ADR-007 — Validazione del veicolo nel telemetry processor](adr/ADR-007-VALIDAZIONE-VEICOLO.md)
