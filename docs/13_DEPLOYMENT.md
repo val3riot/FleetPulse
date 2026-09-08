@@ -231,3 +231,22 @@ In produzione servirebbero:
 - [ADR-005 — Redis come cache ricostruibile](adr/ADR-005-REDIS-CACHE-RICOSTRUIBILE.md)
 
 - [ADR-009 — Contratto e aggiornamento della latest-state projection](adr/ADR-009-LATEST-STATE-PROJECTION.md)
+
+## State API (FP-031)
+
+| Property | Override ambiente | Default |
+|---|---|---|
+| `fleetpulse.api.state.stale-after` | `API_STATE_STALE_AFTER` | `1m` |
+| `fleetpulse.api.state.cache.ttl` | `TELEMETRY_LATEST_STATE_TTL` | `5m` |
+| `fleetpulse.api.state.cache.max-attempts` | `API_STATE_CACHE_MAX_ATTEMPTS` | `1` |
+| `spring.data.redis.connect-timeout` | `SPRING_DATA_REDIS_CONNECT_TIMEOUT` | `500ms` |
+| `spring.data.redis.timeout` | `SPRING_DATA_REDIS_TIMEOUT` | `500ms` |
+
+Freshness e TTL devono essere non nulli e almeno `1ms`; i tentativi almeno uno.
+Il repair applica il TTL soltanto a una scrittura accettata. Redis non rispondente
+può consumare il timeout sia in lettura sia nel repair best effort. I valori sono
+configurabili via Spring; per override in Compose aggiungere le variabili al
+blocco `environment` della Fleet API. La migration V2 aggiunge l'indice del latest
+sample e deve essere applicata dal servizio Flyway prima dell'avvio.
+
+Contratto: [ADR-010](adr/ADR-010-STATE-API-FALLBACK.md).

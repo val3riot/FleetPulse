@@ -218,3 +218,35 @@ disconnect probability: 1%
 - [ADR-006 — At-least-once con application idempotency](adr/ADR-006-AT-LEAST-ONCE-E-IDEMPOTENCY.md)
 - [ADR-007 — Validazione del veicolo nel telemetry processor](adr/ADR-007-VALIDAZIONE-VEICOLO.md)
 - [ADR-008 — Significato di lastSeenAt e freshness dello stato](adr/ADR-008-LAST-SEEN-AT-E-FRESHNESS.md)
+
+## State API — verifiche FP-031
+
+| Requisito | Evidenza nel modulo fleet-api |
+|---|---|
+| Cache hit senza query PostgreSQL | `VehicleStateServiceTest.cacheHitAvoidsSampleQueryAndRepair`, test REST hit dopo repair |
+| Cache miss, failure e repair isolato | `VehicleStateServiceTest`, `VehicleStateApiIntegrationTest` |
+| Freshness e confine esatto con clock fisso | `VehicleStateServiceTest.freshnessHasExactBoundaryAndDoesNotCorrectFutureTime` |
+| 404 distinti, UUID invalido, veicolo disabilitato consultabile | `VehicleStateApiIntegrationTest` |
+| Redis arrestato, poi entrambi i servizi arrestati | `VehicleStateUnavailableIntegrationTest` |
+| PostgreSQL arrestato: hit stale servibile, miss con 503 | `VehicleStateCacheHitDatabaseUnavailableIntegrationTest` |
+| Chiave orfana fresh/stale servibile, poi 404 alla scadenza reale | `VehicleStateApiIntegrationTest.missingStateAndMissingVehicleAreDifferentAfterCacheExpires` |
+| Ordering stabile e isolamento veicolo PostgreSQL | `VehicleStateApiIntegrationTest.latestSampleOrdersByObservationThenSequenceThenStableId`, `fallbackDoesNotReadAnotherVehiclesNewerSample` |
+| Migration V2 da database vuoto | `VehicleStateApiIntegrationTest.latestStateIndexIsCreatedByMigration` |
+| JSON, numeri e timestamp compatibili con FP-030 | `RedisLatestStateCodecTest` |
+| TTL reale, concorrenza e precisione della sequenza | `RedisLatestStateProjectionIntegrationTest` |
+| Repair concorrente con stato più recente | `VehicleStateApiIntegrationTest.repairDoesNotOverwriteNewerConcurrentProjection` |
+| Timeout Redis tradotto per il fallback | `RedisLatestStateTimeoutTest` |
+| Configurazione invalida rifiutata | `VehicleStatePropertiesTest`, `LatestStateProjectionPropertiesTest` |
+| Metriche senza tag dinamici, warning limitati e senza payload | `VehicleStateObservabilityTest` |
+| Endpoint presente nella specifica generata | `OpenApiIntegrationTest` |
+
+Il percorso REST usa PostgreSQL e Redis Testcontainers reali. Il guasto dei servizi
+arresta container isolati, senza modificare l'infrastruttura di sviluppo.
+La riconciliazione degli hit e gli ulteriori scenari di recovery restano fuori
+FP-031; si vedano ADR-010 e la ticket di resilienza FP-039.
+
+Verifica finale FP-031 del 2026-09-08: `clean verify` dalla root con Docker
+rootless, BUILD SUCCESS; 496 test, zero failure/errori/skipped. Fleet API:
+189 test, di cui 78 nel package dello stato. Superati anche Compose config e
+`git diff --check`. Il percorso finale è Redis prima di PostgreSQL, inclusi
+hit durante guasto DB e cache orfana fresh/stale fino alla scadenza.

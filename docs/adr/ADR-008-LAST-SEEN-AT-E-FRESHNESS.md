@@ -56,8 +56,8 @@ del TTL non devono rendere artificialmente recente una misura vecchia.
   corrente: sequenze dopo riavvio, eventi fuori ordine e parità di timestamp
   sono disciplinati da [ADR-009](ADR-009-LATEST-STATE-PROJECTION.md),
   che definisce il confronto e i limiti da gestire nel fallback.
-- FP-031 deve definire soglia e confronto esatto per `stale`, con un `Clock`
-  iniettabile per verificarli deterministicamente.
+- [ADR-010](ADR-010-STATE-API-FALLBACK.md) definisce soglia e confronto esatto
+  per `stale`, con un `Clock` iniettabile per verificarli deterministicamente.
 
 ## Verifiche previste
 

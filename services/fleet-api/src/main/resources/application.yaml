@@ -7,6 +7,8 @@ spring:
     password: ${SPRING_DATASOURCE_PASSWORD}
   data:
     redis:
+      connect-timeout: ${SPRING_DATA_REDIS_CONNECT_TIMEOUT:500ms}
+      timeout: ${SPRING_DATA_REDIS_TIMEOUT:500ms}
       host: ${SPRING_DATA_REDIS_HOST:localhost}
       port: ${SPRING_DATA_REDIS_PORT:6379}
       password: ${SPRING_DATA_REDIS_PASSWORD}
@@ -42,3 +44,11 @@ springdoc:
     display-request-duration: true
 
   writer-with-order-by-keys: true
+
+fleetpulse:
+  api:
+    state:
+      stale-after: ${API_STATE_STALE_AFTER:1m}
+      cache:
+        ttl: ${TELEMETRY_LATEST_STATE_TTL:5m}
+        max-attempts: ${API_STATE_CACHE_MAX_ATTEMPTS:1}

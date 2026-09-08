@@ -230,3 +230,12 @@ Tutti i timestamp sono UTC.
 - [ADR-006 — At-least-once con application idempotency](adr/ADR-006-AT-LEAST-ONCE-E-IDEMPOTENCY.md)
 
 - [ADR-009 — Contratto e aggiornamento della latest-state projection](adr/ADR-009-LATEST-STATE-PROJECTION.md)
+
+## Latest sample per State API (FP-031)
+
+La query di fallback ordina per `observed_at DESC, sequence_number DESC, id DESC`
+e seleziona una sola riga del veicolo. La migration V2 aggiunge
+`ix_telemetry_samples_vehicle_latest_state` sui campi
+`(vehicle_id, observed_at DESC, sequence_number DESC, id DESC)` senza cambiare V1.
+Il tie-breaker `id` non entra nella recency Redis. Contratto di lettura e repair:
+[ADR-010](adr/ADR-010-STATE-API-FALLBACK.md).

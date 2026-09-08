@@ -90,8 +90,17 @@ possono comparire nei log, mai nei tag. Contratto e verifiche in
 fleetpulse_api_cache_hits_total
 fleetpulse_api_cache_misses_total
 fleetpulse_api_cache_fallback_total
+fleetpulse_api_cache_failures_total
+fleetpulse_api_cache_repair_failures_total
 fleetpulse_api_request_latency
 ```
+
+FP-031 implementa i cinque contatori cache senza tag dinamici. `misses` conta
+solo chiavi assenti, `failures` errori di lettura/decodifica; `fallback` conta ogni
+accesso al percorso PostgreSQL, anche senza sample o in errore. Il repair fallito
+incrementa `repair_failures`. I warning applicativi sono limitati a uno ogni
+30 secondi per istanza senza payload o stacktrace; i contatori restano completi.
+Si veda [ADR-010](adr/ADR-010-STATE-API-FALLBACK.md).
 
 ## 4. Health
 

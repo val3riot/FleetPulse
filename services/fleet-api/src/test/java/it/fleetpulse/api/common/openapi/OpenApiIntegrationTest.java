@@ -45,17 +45,18 @@ class OpenApiIntegrationTest extends PostgreSqlIntegrationSupport {
     }
 
     /**
-     * Verifica che siano pubblicati soltanto i quattro endpoint vehicle implementati.
+     * Verifica che siano pubblicati gli endpoint vehicle implementati.
      */
     @Test
     @DisplayName("Documenta tutti e soli gli endpoint vehicle operativi")
     void documentsImplementedVehicleEndpoints() throws Exception {
         mockMvc.perform(get(OPEN_API_PATH)).andExpect(status().isOk())
-            .andExpect(jsonPath("$.paths.length()").value(3))
+            .andExpect(jsonPath("$.paths.length()").value(4))
             .andExpect(jsonPath("$.paths['/api/v1/vehicles'].get").exists())
             .andExpect(jsonPath("$.paths['/api/v1/vehicles'].post").exists())
             .andExpect(jsonPath("$.paths['/api/v1/vehicles/{vehicleId}'].get").exists())
             .andExpect(jsonPath("$.paths['/api/v1/vehicles/{vehicleId}/status'].patch").exists())
+            .andExpect(jsonPath("$.paths['/api/v1/vehicles/{vehicleId}/state'].get").exists())
             .andExpect(jsonPath("$.paths['/api/v1/dashboard']").doesNotExist())
             .andExpect(jsonPath("$.paths['/api/v1/alerts']").doesNotExist()).andExpect(
                 jsonPath("$.paths['/api/v1/vehicles/{vehicleId}/telemetry']").doesNotExist());

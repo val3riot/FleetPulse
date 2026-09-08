@@ -255,11 +255,24 @@ un dettaglio interno e non modifica il contratto della response.
 indica il momento della misura in UTC. Il mapping è identico per cache hit e
 fallback PostgreSQL. `stale` esprime la freshness della misura a partire da
 questo timestamp, non dalla scadenza Redis o dal momento di elaborazione.
-Si veda [ADR-008](adr/ADR-008-LAST-SEEN-AT-E-FRESHNESS.md).
+La soglia configurabile `fleetpulse.api.state.stale-after` ha default `1m`:
+`stale` è vero se l'età della misura supera strettamente la soglia. Alla soglia
+esatta e per timestamp futuri è falso. Si vedano
+[ADR-008](adr/ADR-008-LAST-SEEN-AT-E-FRESHNESS.md) e
+[ADR-010](adr/ADR-010-STATE-API-FALLBACK.md).
+
+Un hit Redis valido non interroga PostgreSQL ed è servibile anche durante un
+suo guasto. La verifica dell'esistenza del veicolo avviene solo nel fallback.
+Per il progetto di studio si accetta una chiave temporaneamente orfana dopo
+cancellazione DB: senza altre scritture scompare entro il TTL residuo (default
+`5m`). `stale` non segnala cancellazioni e non impone un'età massima alla risposta.
+Compromesso e limiti sono descritti in ADR-010. I veicoli disabilitati restano consultabili.
+Miss, errore di connessione, timeout o JSON invalido attivano il fallback;
+il successivo ripopolamento è best effort e non fa fallire la risposta.
 
 La selezione del latest sample e la ricostruzione seguono il criterio
-`observedAt`, poi `sequenceNumber`, definito in
-[ADR-009 — Contratto e aggiornamento della latest-state projection](adr/ADR-009-LATEST-STATE-PROJECTION.md). L'ADR esplicita anche i limiti in caso di parità completa e perdita della cache.
+`observedAt`, poi `sequenceNumber` (entrambi discendenti), definito in
+[ADR-009 — Contratto e aggiornamento della latest-state projection](adr/ADR-009-LATEST-STATE-PROJECTION.md). Il fallback aggiunge `id DESC` come tie-breaker stabile. Gli ADR esplicitano anche i limiti in caso di parità completa e perdita della cache.
 
 `200 OK`:
 
@@ -281,8 +294,8 @@ La selezione del latest sample e la ricostruzione seguono il criterio
 Errori:
 
 - `400 REQUEST_INVALID` se `vehicleId` non è valido;
-- `404 VEHICLE_NOT_FOUND` se il veicolo non esiste;
-- `404 VEHICLE_STATE_NOT_AVAILABLE` se il veicolo esiste ma non ha ancora telemetria;
+- `404 VEHICLE_NOT_FOUND` se, durante il fallback, il veicolo non esiste;
+- `404 VEHICLE_STATE_NOT_AVAILABLE` se il fallback trova il veicolo ma nessuna telemetria;
 - `503 SERVICE_UNAVAILABLE` soltanto quando neppure PostgreSQL consente il fallback;
 - `500 INTERNAL_ERROR`.
 

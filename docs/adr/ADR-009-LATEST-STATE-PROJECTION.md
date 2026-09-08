@@ -3,7 +3,8 @@
 ## Stato
 
 Accettata il 2026-09-08. Adapter di lettura e scrittura, integrazione dopo commit,
-osservabilità e test implementati in FP-030. Fallback e repair restano in FP-031.
+osservabilità e test implementati in FP-030. Fallback e repair della Fleet API sono descritti in
+[ADR-010](ADR-010-STATE-API-FALLBACK.md) (FP-031).
 
 ## Contesto
 
@@ -99,7 +100,7 @@ Limiti da mantenere espliciti:
   nuova policy per clock skew o timestamp futuri.
 - Misure con stessa coppia ma payload diversi sono equivalenti per questo
   confronto. La selezione deterministica tra tali righe nel fallback deve essere
-  precisata in FP-031; non è garantita l'identità del payload tra i percorsi.
+  precisata in ADR-010 tramite `id DESC`; non è garantita l'identità del payload tra i percorsi.
 - Dopo scadenza o perdita della chiave manca il precedente termine di confronto:
   un evento ritardato può inizializzarla. Il TTL non garantisce che la cache
   contenga il massimo storico PostgreSQL; il tema resta nel percorso di repair.
