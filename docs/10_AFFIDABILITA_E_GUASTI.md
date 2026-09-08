@@ -174,4 +174,4 @@ La degradazione deve essere visibile tramite log e metriche.
 - [ADR-005 — Redis come cache ricostruibile](adr/ADR-005-REDIS-CACHE-RICOSTRUIBILE.md)
 - [ADR-006 — At-least-once con application idempotency](adr/ADR-006-AT-LEAST-ONCE-E-IDEMPOTENCY.md)
 - [ADR-007 — Validazione del veicolo nel telemetry processor](adr/ADR-007-VALIDAZIONE-VEICOLO.md)
-- [ADR-008 — Significato di lastSeenAt e freschezza dello stato](adr/ADR-008-LAST-SEEN-AT-E-FRESCHEZZA.md)
+- [ADR-008 — Significato di lastSeenAt e freshness dello stato](adr/ADR-008-LAST-SEEN-AT-E-FRESHNESS.md)

@@ -101,6 +101,19 @@ I nomi sono centralizzati nelle variabili `KAFKA_TOPIC_RAW`,
 `KAFKA_TOPIC_REJECTED` e `KAFKA_TOPIC_DEAD_LETTER`. Il replication factor `1`
 è adatto esclusivamente alla configurazione locale con un solo broker.
 
+### TTL della latest-state projection (FP-030)
+
+Configurazione prevista da [ADR-009 — Contratto e aggiornamento della latest-state projection](adr/ADR-009-LATEST-STATE-PROJECTION.md), da implementare in FP-030:
+
+| Property | Tipo | Default | Validazione all'avvio |
+|---|---|---|---|
+| `fleetpulse.telemetry.latest-state.ttl` | `Duration` | `5m` | Non nulla e almeno `1ms` |
+
+Il valore è sovrascrivibile tramite configurazione Spring. Un valore invalido
+impedisce l'avvio. La conversione deve rispettare la precisione Redis; il TTL
+si rinnova solo quando viene accettato un aggiornamento. Non rappresenta la
+soglia di freshness della State API.
+
 ## 4. Container design
 
 Le application image dovrebbero:
@@ -209,3 +222,5 @@ In produzione servirebbero:
 - [ADR-003 — Kafka tra gateway e processor](adr/ADR-003-KAFKA-TRA-GATEWAY-E-PROCESSOR.md)
 - [ADR-004 — PostgreSQL come source of truth](adr/ADR-004-POSTGRESQL-SOURCE-OF-TRUTH.md)
 - [ADR-005 — Redis come cache ricostruibile](adr/ADR-005-REDIS-CACHE-RICOSTRUIBILE.md)
+
+- [ADR-009 — Contratto e aggiornamento della latest-state projection](adr/ADR-009-LATEST-STATE-PROJECTION.md)

@@ -1,4 +1,4 @@
-# ADR-008 — Significato di lastSeenAt e freschezza dello stato
+# ADR-008 — Significato di lastSeenAt e freshness dello stato
 
 ## Stato
 
@@ -7,7 +7,7 @@ Accettata.
 ## Contesto
 
 La projection Redis e la State API espongono `lastSeenAt`, usato per
-determinare la freschezza della telemetria. Il contratto non specificava quale
+determinare la freshness della telemetria, cioè quanto è recente la misura. Il contratto non specificava quale
 timestamp della rilevazione alimentasse questo campo.
 
 Una rilevazione può essere prodotta alle 10:00, ricevuta dal gateway alle
@@ -30,7 +30,7 @@ Il mapping deve essere identico nei tre percorsi:
 nel gateway ed elaborazione nel processor. Non vengono modificati e non
 sostituiscono `observedAt` nel calcolo di `lastSeenAt`.
 
-La freschezza esprime l'età della misura rispetto all'orario corrente. Il TTL
+La freshness esprime l'età della misura rispetto all'orario corrente. Il TTL
 esprime invece la durata della chiave Redis: scrittura, ricostruzione e rinnovo
 del TTL non devono rendere artificialmente recente una misura vecchia.
 
@@ -41,20 +41,21 @@ del TTL non devono rendere artificialmente recente una misura vecchia.
 - **`processedAt`:** misura l'elaborazione, ma può far apparire recenti tutte
   le rilevazioni recuperate da un arretrato Kafka.
 - **`observedAt`:** descrive il momento a cui si riferiscono i valori mostrati;
-  scelta accettata per la freschezza dello stato telemetrico.
+  scelta accettata per la freshness dello stato telemetrico.
 
 ## Conseguenze e limiti
 
 - Un hit Redis può restituire una misura vecchia; il TTL positivo non ne
-  garantisce la freschezza.
-- La freschezza non dimostra l'allineamento tra Redis e PostgreSQL: anche una
+  garantisce la freshness.
+- La freshness non dimostra l'allineamento tra Redis e PostgreSQL: anche una
   misura recente può essere superata da un'altra già persistita.
 - La scelta assume un orologio del dispositivo sufficientemente affidabile.
   Timestamp futuri o clock skew richiedono una policy esplicita; questo ADR
   non introduce correzioni silenziose o nuove regole di rifiuto.
 - La scelta del campo non definisce l'ordinamento completo dello stato
   corrente: sequenze dopo riavvio, eventi fuori ordine e parità di timestamp
-  devono essere risolti in FP-030 in modo coerente con il fallback.
+  sono disciplinati da [ADR-009](ADR-009-LATEST-STATE-PROJECTION.md),
+  che definisce il confronto e i limiti da gestire nel fallback.
 - FP-031 deve definire soglia e confronto esatto per `stale`, con un `Clock`
   iniettabile per verificarli deterministicamente.
 
@@ -73,3 +74,5 @@ del TTL non devono rendere artificialmente recente una misura vecchia.
 - [Modello dati](../07_DATA_MODEL.md)
 - [Specifica API](../09_SPECIFICA_API.md)
 - Ticket FP-030 e FP-031.
+
+- [ADR-009 — Latest-state projection](ADR-009-LATEST-STATE-PROJECTION.md)

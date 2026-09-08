@@ -72,6 +72,18 @@ fleetpulse_processing_latency
 fleetpulse_redis_update_failures_total
 ```
 
+Per la latest-state projection, il contatore applicativo
+`fleetpulse.telemetry.latest_state.updates` usa solo il tag `outcome`, con valori
+`updated`, `skipped`, `failed`. Ogni tentativo incrementa un solo esito.
+`fleetpulse_redis_update_failures_total` resta nel catalogo e viene incrementato
+anche per ciascun esito `failed`, senza tag dinamici.
+
+Gli esiti `UPDATED` e `SKIPPED` producono log `DEBUG`; `FAILED` produce `WARN`
+con frequenza limitata durante guasti prolungati. Il limite dei log non riduce
+il conteggio delle metriche. Identificativi di veicolo, messaggio e sequenza
+possono comparire nei log, mai nei tag. Contratto e verifiche in
+[ADR-009 — Contratto e aggiornamento della latest-state projection](adr/ADR-009-LATEST-STATE-PROJECTION.md).
+
 ### Fleet API
 
 ```text
@@ -127,3 +139,5 @@ Per un `messageId` devono essere individuabili:
 - [ADR-005 — Redis come cache ricostruibile](adr/ADR-005-REDIS-CACHE-RICOSTRUIBILE.md)
 - [ADR-006 — At-least-once con application idempotency](adr/ADR-006-AT-LEAST-ONCE-E-IDEMPOTENCY.md)
 - [ADR-007 — Validazione del veicolo nel telemetry processor](adr/ADR-007-VALIDAZIONE-VEICOLO.md)
+
+- [ADR-009 — Contratto e aggiornamento della latest-state projection](adr/ADR-009-LATEST-STATE-PROJECTION.md)

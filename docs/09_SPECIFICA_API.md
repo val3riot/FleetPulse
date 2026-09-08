@@ -253,9 +253,13 @@ un dettaglio interno e non modifica il contratto della response.
 
 `lastSeenAt` è l'`observedAt` della rilevazione selezionata come stato corrente:
 indica il momento della misura in UTC. Il mapping è identico per cache hit e
-fallback PostgreSQL. `stale` esprime la freschezza della misura a partire da
+fallback PostgreSQL. `stale` esprime la freshness della misura a partire da
 questo timestamp, non dalla scadenza Redis o dal momento di elaborazione.
-Si veda [ADR-008](adr/ADR-008-LAST-SEEN-AT-E-FRESCHEZZA.md).
+Si veda [ADR-008](adr/ADR-008-LAST-SEEN-AT-E-FRESHNESS.md).
+
+La selezione del latest sample e la ricostruzione seguono il criterio
+`observedAt`, poi `sequenceNumber`, definito in
+[ADR-009 — Contratto e aggiornamento della latest-state projection](adr/ADR-009-LATEST-STATE-PROJECTION.md). L'ADR esplicita anche i limiti in caso di parità completa e perdita della cache.
 
 `200 OK`:
 
@@ -532,3 +536,5 @@ divergenze tra documentazione e implementazione.
 - [ADR-004 — PostgreSQL come source of truth](adr/ADR-004-POSTGRESQL-SOURCE-OF-TRUTH.md)
 - [ADR-005 — Redis come cache ricostruibile](adr/ADR-005-REDIS-CACHE-RICOSTRUIBILE.md)
 - [ADR-007 — Validazione del veicolo nel telemetry processor](adr/ADR-007-VALIDAZIONE-VEICOLO.md)
+
+- [ADR-009 — Contratto e aggiornamento della latest-state projection](adr/ADR-009-LATEST-STATE-PROJECTION.md)

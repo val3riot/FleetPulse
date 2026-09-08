@@ -190,10 +190,19 @@ vehicle:last:{vehicleId}
 `lastSeenAt` rappresenta il momento della misura in UTC, non la ricezione nel
 gateway, l'elaborazione nel processor o la scrittura Redis. Il rinnovo del TTL
 non modifica il momento della misura. Motivazione e limiti sono definiti in
-[ADR-008](adr/ADR-008-LAST-SEEN-AT-E-FRESCHEZZA.md).
+[ADR-008](adr/ADR-008-LAST-SEEN-AT-E-FRESHNESS.md).
 
 Non esiste una tabella `vehicle_state`: lo stato corrente è una projection Redis
 ricostruibile dallo storico PostgreSQL.
+
+### Contratto di aggiornamento
+
+La porta applicativa, il DTO Redis e il confine di orchestrazione sono definiti
+in [ADR-009 — Contratto e aggiornamento della latest-state projection](adr/ADR-009-LATEST-STATE-PROJECTION.md). Il confronto usa prima `observedAt`, poi
+`sequenceNumber`; a parità completa non aggiorna. Confronto, scrittura e TTL
+sono atomici. Il TTL si rinnova solo per aggiornamenti accettati.
+Fallback e ricostruzione adottano lo stesso criterio di recency, con i limiti
+per parità completa e perdita della chiave descritti nell'ADR.
 
 ## 5. Time model
 
@@ -219,3 +228,5 @@ Tutti i timestamp sono UTC.
 - [ADR-004 — PostgreSQL come source of truth](adr/ADR-004-POSTGRESQL-SOURCE-OF-TRUTH.md)
 - [ADR-005 — Redis come cache ricostruibile](adr/ADR-005-REDIS-CACHE-RICOSTRUIBILE.md)
 - [ADR-006 — At-least-once con application idempotency](adr/ADR-006-AT-LEAST-ONCE-E-IDEMPOTENCY.md)
+
+- [ADR-009 — Contratto e aggiornamento della latest-state projection](adr/ADR-009-LATEST-STATE-PROJECTION.md)
