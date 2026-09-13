@@ -114,6 +114,8 @@ La foreign key composita garantisce che il sample sorgente appartenga allo
 stesso veicolo dell'alert. La migration vincola inoltre:
 
 - `status` a `OPEN`, `ACKNOWLEDGED` o `CLOSED`;
+- `type` a `ENGINE_TEMPERATURE_HIGH`, `BATTERY_VOLTAGE_LOW` o `SERVICE_DUE`;
+- `severity` a `LOW`, `MEDIUM`, `HIGH` o `CRITICAL`;
 - `type`, `severity` e `description` a valori non blank;
 - coerenza tra stato e timestamp;
 - `acknowledged_at >= created_at`;
@@ -222,6 +224,10 @@ Tutti i timestamp sono UTC.
 - Hibernate usa `ddl-auto=validate` e non modifica lo schema;
 - le entity Java vengono introdotte nelle ticket applicative che leggono o
   scrivono le rispettive tabelle.
+
+La migration additiva V3 stabilizza i valori ammessi per tipo e severità degli
+alert tramite `ck_maintenance_alerts_type` e
+`ck_maintenance_alerts_severity`, senza modificare V1.
 
 ## ADR di riferimento
 

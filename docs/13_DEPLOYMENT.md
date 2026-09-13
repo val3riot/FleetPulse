@@ -69,6 +69,9 @@ REDIS_PORT=6379
 KAFKA_VERSION=4.3.1
 KAFKA_PORT=9092
 
+TELEMETRY_ALERT_MAXIMUM_ENGINE_TEMPERATURE_C=110.0
+TELEMETRY_ALERT_MINIMUM_BATTERY_VOLTAGE=11.8
+
 FLEET_API_PORT=8080
 GATEWAY_TCP_PORT=7000
 GATEWAY_HTTP_PORT=8081
@@ -120,6 +123,19 @@ Le variabili d'ambiente del processor sono `TELEMETRY_LATEST_STATE_TTL` e
 con `1`, un conflitto concorrente causa subito un fallimento osservabile della
 proiezione, senza rollback PostgreSQL o retry Kafka. I warning sono limitati
 a uno ogni 30 secondi per istanza; le metriche contano tutti i fallimenti.
+
+### Soglie alert (FP-033)
+
+| Property | Tipo | Default | Validazione all'avvio |
+|---|---|---:|---|
+| `fleetpulse.telemetry.alerts.maximum-engine-temperature-c` | `double` | `110.0` | Finito e non inferiore a `-273.15` |
+| `fleetpulse.telemetry.alerts.minimum-battery-voltage` | `double` | `11.8` | Finito e strettamente positivo |
+
+Le variabili d'ambiente corrispondenti sono
+`TELEMETRY_ALERT_MAXIMUM_ENGINE_TEMPERATURE_C` e
+`TELEMETRY_ALERT_MINIMUM_BATTERY_VOLTAGE`. Valori mancanti o non validi
+impediscono l'avvio del processor. La soglia manutenzione è specifica del
+veicolo ed è rappresentata da `nextServiceAtKm`.
 
 ## 4. Container design
 

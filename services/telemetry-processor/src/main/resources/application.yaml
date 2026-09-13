@@ -54,6 +54,9 @@ fleetpulse:
       rejected: ${KAFKA_TOPIC_REJECTED:telemetry.rejected.v1}
       dead-letter: ${KAFKA_TOPIC_DEAD_LETTER:telemetry.dead-letter.v1}
   telemetry:
+    alerts:
+      maximum-engine-temperature-c: ${TELEMETRY_ALERT_MAXIMUM_ENGINE_TEMPERATURE_C:110.0}
+      minimum-battery-voltage: ${TELEMETRY_ALERT_MINIMUM_BATTERY_VOLTAGE:11.8}
     latest-state:
       ttl: ${TELEMETRY_LATEST_STATE_TTL:5m}
       max-attempts: ${TELEMETRY_LATEST_STATE_MAX_ATTEMPTS:1}

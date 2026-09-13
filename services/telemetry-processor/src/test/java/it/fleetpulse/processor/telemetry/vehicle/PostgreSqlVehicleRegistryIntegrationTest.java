@@ -1,5 +1,7 @@
 package it.fleetpulse.processor.telemetry.vehicle;
 
+import it.fleetpulse.processor.telemetry.alert.AlertVehicle;
+import it.fleetpulse.processor.telemetry.alert.PostgreSqlAlertVehicleQuery;
 import it.fleetpulse.processor.telemetry.persistence.PostgreSqlIntegrationSupport;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,7 +21,7 @@ import static org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTest
 
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = NONE)
-@Import(PostgreSqlVehicleRegistry.class)
+@Import({PostgreSqlVehicleRegistry.class, PostgreSqlAlertVehicleQuery.class})
 @ActiveProfiles("test")
 class PostgreSqlVehicleRegistryIntegrationTest extends PostgreSqlIntegrationSupport {
 
@@ -31,6 +33,9 @@ class PostgreSqlVehicleRegistryIntegrationTest extends PostgreSqlIntegrationSupp
 
     @Autowired
     private PostgreSqlVehicleRegistry registry;
+
+    @Autowired
+    private PostgreSqlAlertVehicleQuery alertVehicleQuery;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -54,6 +59,17 @@ class PostgreSqlVehicleRegistryIntegrationTest extends PostgreSqlIntegrationSupp
     @Test
     void returnsEmptyForUnknownVehicle() {
         assertThat(registry.findStatus(UUID.randomUUID())).isEmpty();
+    }
+
+    @Test
+    void loadsVehicleMaintenanceThresholdForAlertEvaluation() {
+        assertThat(alertVehicleQuery.findById(ACTIVE_VEHICLE_ID))
+            .contains(new AlertVehicle(ACTIVE_VEHICLE_ID, 90_000));
+    }
+
+    @Test
+    void returnsNoAlertVehicleForUnknownVehicle() {
+        assertThat(alertVehicleQuery.findById(UUID.randomUUID())).isEmpty();
     }
 
     private void insertVehicle(UUID id, String externalCode, String plate, String status) {

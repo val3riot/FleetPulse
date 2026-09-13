@@ -36,6 +36,11 @@ La test suite verifica:
 - transizioni degli alert;
 - projection dello stato.
 
+Per le regole alert, la boundary value analysis copre il valore immediatamente
+inferiore, uguale e immediatamente superiore a ogni soglia. Sono inoltre
+verificati assenza e molteplicità degli alert, ordine e output deterministici,
+invarianti degli input e rifiuto della configurazione non valida all'avvio.
+
 ### Retry classification
 
 - errori retryable;
@@ -250,3 +255,20 @@ rootless, BUILD SUCCESS; 496 test, zero failure/errori/skipped. Fleet API:
 189 test, di cui 78 nel package dello stato. Superati anche Compose config e
 `git diff --check`. Il percorso finale è Redis prima di PostgreSQL, inclusi
 hit durante guasto DB e cache orfana fresh/stale fino alla scadenza.
+
+## Regole alert — verifiche FP-033
+
+| Requisito | Evidenza nel modulo telemetry-processor |
+|---|---|
+| Boundary di temperatura, batteria e manutenzione | `AlertRuleTest` |
+| Zero, uno o più alert e ordine deterministico | `AlertEvaluatorTest` |
+| Invarianti degli input e descrizioni bounded | `AlertDomainInvariantTest` |
+| Properties valide e startup impedito per valori invalidi | `AlertThresholdPropertiesTest` |
+| Mapping dal contratto di telemetria | `AlertTelemetryMapperTest` |
+| Lettura di `nextServiceAtKm` da PostgreSQL | `PostgreSqlVehicleRegistryIntegrationTest` |
+| V3 su database vuoto e upgrade da V1 con dati | `AlertEnumMigrationIntegrationTest` |
+| Enforcement PostgreSQL di type e severity | `AlertEnumMigrationIntegrationTest` |
+
+Verifica finale FP-033 del 2026-09-13: `./mvnw verify` dalla root con Docker,
+BUILD SUCCESS; 561 test, zero failure/errori/skipped. La persistenza degli alert
+e il transaction boundary con il sample appartengono a FP-034.

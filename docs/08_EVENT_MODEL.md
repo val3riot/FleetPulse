@@ -70,6 +70,14 @@ Un evento può essere riconsegnato quando:
 Per un veicolo sconosciuto o `DISABLED`, il processor non avvia i side effect
 di dominio e segue il flusso di rifiuto asincrono descritto nella sezione 7.
 
+### 5.1 Contratto degli alert derivati
+
+La valutazione produce candidate interne e non introduce un nuovo evento
+Kafka. I tipi ammessi sono `ENGINE_TEMPERATURE_HIGH`, `BATTERY_VOLTAGE_LOW` e
+`SERVICE_DUE`; le severità ammesse sono `LOW`, `MEDIUM`, `HIGH` e `CRITICAL`.
+Gli stessi valori devono essere usati dal dominio, dalla persistenza e dalle
+API REST.
+
 ## 6. Classificazione dei retry
 
 ### Retryable

@@ -63,9 +63,24 @@ class MaintenanceAlert {
   +Instant closedAt
 }
 
+enum AlertType {
+  ENGINE_TEMPERATURE_HIGH
+  BATTERY_VOLTAGE_LOW
+  SERVICE_DUE
+}
+
+enum AlertSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
 Vehicle "1" -- "0..*" TelemetrySample
 Vehicle "1" -- "0..1" VehicleState
 Vehicle "1" -- "0..*" MaintenanceAlert
+MaintenanceAlert --> AlertType
+MaintenanceAlert --> AlertSeverity
 @enduml
 ```
 
@@ -113,6 +128,19 @@ Rappresenta una condizione deterministica derivata da un sample.
 - `acknowledgedAt` non precedente a `createdAt`;
 - `closedAt` non precedente a `acknowledgedAt`, quando presente, altrimenti a `createdAt`.
 
+I valori normativi di `AlertType` sono:
+
+- `ENGINE_TEMPERATURE_HIGH`;
+- `BATTERY_VOLTAGE_LOW`;
+- `SERVICE_DUE`.
+
+I valori normativi di `AlertSeverity`, in ordine crescente, sono:
+
+- `LOW`;
+- `MEDIUM`;
+- `HIGH`;
+- `CRITICAL`.
+
 ## 6. Stato degli alert
 
 ```plantuml
@@ -140,9 +168,18 @@ interface AlertRule {
 
 Implementazioni iniziali:
 
-- `EngineTemperatureRule`
-- `BatteryVoltageRule`
-- `ServiceDueRule`
+- `EngineTemperatureRule`: produce `ENGINE_TEMPERATURE_HIGH` con severità `HIGH`
+  quando `engineTemperatureC` è strettamente maggiore della soglia configurata;
+- `BatteryVoltageRule`: produce `BATTERY_VOLTAGE_LOW` con severità `HIGH` quando
+  `batteryVoltage` è strettamente minore della soglia configurata;
+- `ServiceDueRule`: produce `SERVICE_DUE` con severità `MEDIUM` quando
+  `odometerKm` è maggiore o uguale a `nextServiceAtKm` del veicolo.
+
+`nextServiceAtKm = 0` significa che la manutenzione è dovuta fin dal primo
+sample. Una valutazione può restituire zero, uno o più alert. L'ordine iniziale
+è temperatura, batteria, manutenzione; a parità di input l'output e le
+descrizioni sono deterministici. Le descrizioni non possono superare i 255
+caratteri previsti dallo schema dati.
 
 ## 8. Confini del dominio
 

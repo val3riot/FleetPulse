@@ -396,6 +396,22 @@ Errori:
 
 ## 6. Alert
 
+I valori ammessi per `type` sono:
+
+- `ENGINE_TEMPERATURE_HIGH`;
+- `BATTERY_VOLTAGE_LOW`;
+- `SERVICE_DUE`.
+
+I valori ammessi per `severity`, in ordine crescente, sono:
+
+- `LOW`;
+- `MEDIUM`;
+- `HIGH`;
+- `CRITICAL`.
+
+Valori differenti nei filtri producono `400 REQUEST_INVALID`; valori differenti
+in un request body producono `400 REQUEST_MALFORMED_JSON`.
+
 ### 6.1 `GET /api/v1/vehicles/{vehicleId}/alerts`
 
 Filtri opzionali:
