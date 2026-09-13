@@ -422,8 +422,10 @@ Filtri opzionali:
 - `from` e `to` su `createdAt`;
 - `page`, `size`, `sort`.
 
-Il sort predefinito è `createdAt,desc`. La response usa la struttura paginata e
-contiene `MaintenanceAlertResponse`.
+Il sort predefinito è `createdAt,desc`; sono ammessi `createdAt,asc` e
+`createdAt,desc`. L'ordinamento aggiunge sempre `id` nella stessa direzione come
+tie-breaker deterministico. La response usa la struttura paginata e contiene
+`MaintenanceAlertResponse`.
 
 ### 6.2 `GET /api/v1/alerts`
 
@@ -438,6 +440,8 @@ Filtri opzionali:
 - `page`;
 - `size`;
 - `sort`.
+
+Il sort e il tie-breaker sono gli stessi della collection scoped al veicolo.
 
 `MaintenanceAlertResponse`:
 

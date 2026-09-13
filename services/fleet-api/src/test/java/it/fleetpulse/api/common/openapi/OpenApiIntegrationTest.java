@@ -48,10 +48,10 @@ class OpenApiIntegrationTest extends PostgreSqlIntegrationSupport {
      * Verifica che siano pubblicati gli endpoint vehicle implementati.
      */
     @Test
-    @DisplayName("Documenta tutti e soli gli endpoint vehicle operativi")
+    @DisplayName("Documenta tutti gli endpoint operativi")
     void documentsImplementedVehicleEndpoints() throws Exception {
         mockMvc.perform(get(OPEN_API_PATH)).andExpect(status().isOk())
-            .andExpect(jsonPath("$.paths.length()").value(5))
+            .andExpect(jsonPath("$.paths.length()").value(8))
             .andExpect(jsonPath("$.paths['/api/v1/vehicles'].get").exists())
             .andExpect(jsonPath("$.paths['/api/v1/vehicles'].post").exists())
             .andExpect(jsonPath("$.paths['/api/v1/vehicles/{vehicleId}'].get").exists())
@@ -60,7 +60,47 @@ class OpenApiIntegrationTest extends PostgreSqlIntegrationSupport {
             .andExpect(
                 jsonPath("$.paths['/api/v1/vehicles/{vehicleId}/telemetry'].get").exists())
             .andExpect(jsonPath("$.paths['/api/v1/dashboard']").doesNotExist())
-            .andExpect(jsonPath("$.paths['/api/v1/alerts']").doesNotExist());
+            .andExpect(jsonPath("$.paths['/api/v1/alerts'].get").exists())
+            .andExpect(jsonPath("$.paths['/api/v1/alerts/{alertId}'].get").exists())
+            .andExpect(jsonPath("$.paths['/api/v1/vehicles/{vehicleId}/alerts'].get").exists());
+    }
+
+    /**
+     * Verifica endpoint, filtri, paginazione e schema pubblico degli alert.
+     */
+    @Test
+    @DisplayName("Documenta il contratto di ricerca e dettaglio alert")
+    void documentsMaintenanceAlertContracts() throws Exception {
+        String global = "$.paths['/api/v1/alerts'].get";
+        String scoped = "$.paths['/api/v1/vehicles/{vehicleId}/alerts'].get";
+        String detail = "$.paths['/api/v1/alerts/{alertId}'].get";
+
+        mockMvc.perform(get(OPEN_API_PATH)).andExpect(status().isOk())
+            .andExpect(jsonPath(global + ".parameters[*].name").value(hasItems("vehicleId",
+                "status", "type", "severity", "from", "to", "page", "size", "sort")))
+            .andExpect(jsonPath(scoped + ".parameters[*].name").value(hasItems("vehicleId",
+                "status", "type", "severity", "from", "to", "page", "size", "sort")))
+            .andExpect(jsonPath(global + ".parameters[?(@.name == 'page')].schema.default")
+                .value(0))
+            .andExpect(jsonPath(global + ".parameters[?(@.name == 'size')].schema.default")
+                .value(50))
+            .andExpect(jsonPath(global + ".parameters[?(@.name == 'size')].schema.maximum")
+                .value(100))
+            .andExpect(jsonPath(global + ".parameters[?(@.name == 'sort')].schema.default")
+                .value("createdAt,desc"))
+            .andExpect(jsonPath(global + ".responses['200'].content['application/json']" +
+                ".schema.$ref").value(endsWith("/PagedResponseMaintenanceAlertResponse")))
+            .andExpect(jsonPath(detail + ".responses['200'].content['application/json']" +
+                ".schema.$ref").value(endsWith("/MaintenanceAlertResponse")))
+            .andExpect(jsonPath(detail + ".responses['404'].content['application/json']" +
+                ".schema.$ref").value(endsWith("/ApiErrorResponse")))
+            .andExpect(jsonPath("$.components.schemas.MaintenanceAlertResponse.properties.type" +
+                ".enum").value(hasItems("ENGINE_TEMPERATURE_HIGH", "BATTERY_VOLTAGE_LOW",
+                    "SERVICE_DUE")))
+            .andExpect(jsonPath("$.components.schemas.MaintenanceAlertResponse.properties" +
+                ".severity.enum").value(hasItems("LOW", "MEDIUM", "HIGH", "CRITICAL")))
+            .andExpect(jsonPath("$.components.schemas.MaintenanceAlertResponse.properties" +
+                ".status.enum").value(hasItems("OPEN", "ACKNOWLEDGED", "CLOSED")));
     }
 
     /**

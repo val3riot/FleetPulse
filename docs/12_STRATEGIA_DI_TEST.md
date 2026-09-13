@@ -288,3 +288,22 @@ e il transaction boundary con il sample appartengono a FP-034.
 Verifica finale FP-034 del 2026-09-13: `./mvnw verify` dalla root con Docker,
 BUILD SUCCESS; 575 test, zero failure/errori/skipped. Superati anche
 `git diff --check` e la validazione Hibernate dello schema Flyway.
+
+## Query e dettaglio alert — verifiche FP-035
+
+| Requisito | Evidenza nel modulo fleet-api |
+|---|---|
+| Filtri singoli e combinati con semantica AND | `MaintenanceAlertRepositoryIntegrationTest` |
+| Collection globale e scoped coerenti | `MaintenanceAlertRepositoryIntegrationTest`, `MaintenanceAlertServiceTest` |
+| Range `createdAt` inclusivo ai confini | `MaintenanceAlertRepositoryIntegrationTest`, `MaintenanceAlertRequestValidatorTest` |
+| Paginazione bounded e ordering stabile `createdAt` + `id` | `MaintenanceAlertPageableFactoryTest`, `MaintenanceAlertRepositoryIntegrationTest` |
+| Mapping completo del dettaglio | `MaintenanceAlertMapperTest`, `MaintenanceAlertControllerTest` |
+| Veicolo e alert assenti | `MaintenanceAlertServiceTest`, `MaintenanceAlertControllerTest` |
+| Enum, UUID, date, sort e pagination invalidi | `MaintenanceAlertControllerTest` |
+| Errori infrastrutturali senza leakage | `MaintenanceAlertControllerTest` |
+| Endpoint e schemi OpenAPI | `OpenApiIntegrationTest` |
+
+Verifica finale FP-035 del 2026-09-13: `./mvnw verify` dalla root con Docker,
+BUILD SUCCESS; 614 test, zero failure/errori/skipped. Superati anche
+`git diff --check`, la validazione Hibernate dello schema Flyway e il controllo
+di assenza di dichiarazioni locali con `var` nel codice e nei test FP-035.
