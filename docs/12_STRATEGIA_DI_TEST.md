@@ -272,3 +272,19 @@ hit durante guasto DB e cache orfana fresh/stale fino alla scadenza.
 Verifica finale FP-033 del 2026-09-13: `./mvnw verify` dalla root con Docker,
 BUILD SUCCESS; 561 test, zero failure/errori/skipped. La persistenza degli alert
 e il transaction boundary con il sample appartengono a FP-034.
+
+## Persistenza alert transazionale — verifiche FP-034
+
+| Requisito | Evidenza nel modulo telemetry-processor |
+|---|---|
+| Mapping completo candidate → entity `OPEN` con timestamp deterministico | `MaintenanceAlertMapperTest` |
+| Sample senza regole e aggregate con uno o più alert distinti | `TelemetryAggregateWriterIntegrationTest`, `TelemetrySamplePersistenceIntegrationTest` |
+| Sample e alert visibili prima dell'aggiornamento Redis e fuori da una transaction attiva | `TelemetrySamplePersistenceIntegrationTest.persistsDerivedAlertBeforeUpdatingRedis` |
+| Rollback del sample quando fallisce l'insert dell'alert | `TelemetryAggregateWriterIntegrationTest.rollsBackSampleWhenAlertViolatesCompositeForeignKey` |
+| Foreign key composita e unique source/type applicate da PostgreSQL | `TelemetryAggregateWriterIntegrationTest` |
+| Replay, restart e consegne concorrenti producono un solo aggregate | `TelemetrySamplePersistenceIntegrationTest` |
+| Riconoscimento dei soli constraint idempotenti previsti | `TelemetryPersistenceFailureClassifierTest`, `TelemetryEventProcessingServiceTest` |
+
+Verifica finale FP-034 del 2026-09-13: `./mvnw verify` dalla root con Docker,
+BUILD SUCCESS; 575 test, zero failure/errori/skipped. Superati anche
+`git diff --check` e la validazione Hibernate dello schema Flyway.

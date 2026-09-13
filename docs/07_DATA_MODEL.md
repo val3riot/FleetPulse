@@ -153,6 +153,12 @@ La transaction PostgreSQL del processor include:
 1. inserimento idempotente del sample;
 2. persistenza degli alert derivati.
 
+Il boundary applicativo è `TelemetryAggregateWriter`: il sample viene prima
+inserito e sottoposto a flush, quindi gli alert derivati vengono inseriti e
+sottoposti a flush senza uscire dalla stessa transaction. Il commit avviene
+soltanto al ritorno dal writer; una violazione durante la persistenza degli
+alert provoca quindi il rollback anche del sample.
+
 L'aggiornamento Redis avviene dopo la transaction autorevole. Un errore Redis
 non annulla il commit PostgreSQL.
 

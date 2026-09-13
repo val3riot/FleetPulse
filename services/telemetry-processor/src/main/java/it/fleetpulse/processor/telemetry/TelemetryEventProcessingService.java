@@ -1,6 +1,8 @@
 package it.fleetpulse.processor.telemetry;
 
 import java.time.Clock;
+import java.time.Instant;
+import java.util.List;
 import java.util.Objects;
 
 import org.slf4j.Logger;
@@ -10,14 +12,20 @@ import org.springframework.stereotype.Service;
 
 import it.fleetpulse.contracts.telemetry.TelemetryEvent;
 import it.fleetpulse.contracts.telemetry.TelemetryEventVersions;
+import it.fleetpulse.processor.telemetry.alert.AlertEvaluator;
+import it.fleetpulse.processor.telemetry.alert.AlertCandidate;
+import it.fleetpulse.processor.telemetry.alert.AlertTelemetryMapper;
+import it.fleetpulse.processor.telemetry.alert.AlertVehicle;
+import it.fleetpulse.processor.telemetry.alert.AlertVehicleQuery;
+import it.fleetpulse.processor.telemetry.persistence.TelemetryAggregateWriter;
 import it.fleetpulse.processor.telemetry.persistence.TelemetryPersistenceFailureClassifier;
 import it.fleetpulse.processor.telemetry.persistence.TelemetrySampleEntity;
 import it.fleetpulse.processor.telemetry.persistence.TelemetrySampleMapper;
-import it.fleetpulse.processor.telemetry.persistence.TelemetrySampleWriter;
 import it.fleetpulse.processor.telemetry.projection.LatestStateProjection;
 import it.fleetpulse.processor.telemetry.projection.LatestStateProjectionException;
 import it.fleetpulse.processor.telemetry.projection.LatestStateProjectionObservability;
 import it.fleetpulse.processor.telemetry.projection.LatestVehicleState;
+import it.fleetpulse.processor.telemetry.projection.ProjectionUpdateResult;
 import it.fleetpulse.processor.telemetry.vehicle.VehicleEligibilityGuard;
 
 @Service
@@ -25,20 +33,26 @@ public final class TelemetryEventProcessingService implements TelemetryEventHand
 
     private static final Logger log = LoggerFactory.getLogger(TelemetryEventProcessingService.class);
 
-    private final TelemetrySampleWriter writer;
+    private final TelemetryAggregateWriter writer;
     private final TelemetryPersistenceFailureClassifier failureClassifier;
     private final TelemetrySampleMapper mapper;
     private final Clock clock;
     private final VehicleEligibilityGuard eligibilityGuard;
     private final LatestStateProjection latestStateProjection;
     private final LatestStateProjectionObservability projectionObservability;
+    private final AlertVehicleQuery alertVehicleQuery;
+    private final AlertTelemetryMapper alertTelemetryMapper;
+    private final AlertEvaluator alertEvaluator;
 
-    public TelemetryEventProcessingService(TelemetrySampleWriter writer,
+    public TelemetryEventProcessingService(TelemetryAggregateWriter writer,
             TelemetrySampleMapper mapper, Clock clock,
             TelemetryPersistenceFailureClassifier failureClassifier,
             VehicleEligibilityGuard eligibilityGuard,
             LatestStateProjection latestStateProjection,
-            LatestStateProjectionObservability projectionObservability) {
+            LatestStateProjectionObservability projectionObservability,
+            AlertVehicleQuery alertVehicleQuery,
+            AlertTelemetryMapper alertTelemetryMapper,
+            AlertEvaluator alertEvaluator) {
         this.writer = Objects.requireNonNull(writer);
         this.mapper = Objects.requireNonNull(mapper);
         this.clock = Objects.requireNonNull(clock);
@@ -47,6 +61,11 @@ public final class TelemetryEventProcessingService implements TelemetryEventHand
         this.latestStateProjection = Objects.requireNonNull(latestStateProjection,
                 "latestStateProjection must not be null");
         this.projectionObservability = Objects.requireNonNull(projectionObservability);
+        this.alertVehicleQuery =
+            Objects.requireNonNull(alertVehicleQuery, "alertVehicleQuery must not be null");
+        this.alertTelemetryMapper =
+            Objects.requireNonNull(alertTelemetryMapper, "alertTelemetryMapper must not be null");
+        this.alertEvaluator = Objects.requireNonNull(alertEvaluator, "alertEvaluator must not be null");
     }
 
     @Override
@@ -60,18 +79,25 @@ public final class TelemetryEventProcessingService implements TelemetryEventHand
         if (eligibilityGuard.rejectIfIneligible(event, source)) {
             return;
         }
-        TelemetrySampleEntity entity = mapper.toEntity(event, clock.instant());
+        Instant processedAt = clock.instant();
+        TelemetrySampleEntity entity = mapper.toEntity(event, processedAt);
+        AlertVehicle vehicle = alertVehicleQuery.findById(event.vehicleId())
+            .orElseThrow(() -> new IllegalStateException(
+                "Eligible vehicle is not available for alert evaluation: " + event.vehicleId()));
+        List<AlertCandidate> candidates =
+            alertEvaluator.evaluate(vehicle, alertTelemetryMapper.toSample(event));
 
         TelemetrySampleEntity saved;
         try {
-            saved = writer.insert(entity);
+            saved = writer.insert(entity, candidates, processedAt).sample();
         } catch (DataIntegrityViolationException failure) {
-            if (!failureClassifier.isDuplicateMessageId(failure)) {
+            if (!failureClassifier.isDuplicateMessageId(failure) &&
+                !failureClassifier.isDuplicateAlertSourceType(failure)) {
                 throw failure;
             }
 
             log.info(
-                    "Duplicate telemetry event ignored: messageId={}, vehicleId={}, sequenceNumber={}",
+                    "Duplicate telemetry aggregate ignored: messageId={}, vehicleId={}, sequenceNumber={}",
                     event.messageId(), event.vehicleId(), event.sequenceNumber());
 
             return;
@@ -97,7 +123,7 @@ public final class TelemetryEventProcessingService implements TelemetryEventHand
                 saved.getLongitude());
 
         try {
-            var result = latestStateProjection.updateIfNewer(candidate);
+            ProjectionUpdateResult result = latestStateProjection.updateIfNewer(candidate);
 
             projectionObservability.completed(saved.getMessageId(), candidate, result);
         } catch (LatestStateProjectionException failure) {
