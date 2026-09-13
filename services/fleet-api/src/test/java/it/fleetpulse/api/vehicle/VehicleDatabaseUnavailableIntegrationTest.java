@@ -72,8 +72,10 @@ class VehicleDatabaseUnavailableIntegrationTest {
         assertThat(repository.count()).isZero();
         POSTGRESQL.stop();
 
+        UUID vehicleId = UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0");
+
         mockMvc.perform(get("/api/v1/vehicles/{vehicleId}",
-                UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0")))
+                vehicleId))
             .andExpect(status().isServiceUnavailable())
             .andExpect(jsonPath("$.timestamp").value(NOW.toString()))
             .andExpect(jsonPath("$.status").value(503))
@@ -82,6 +84,20 @@ class VehicleDatabaseUnavailableIntegrationTest {
             .andExpect(
                 jsonPath("$.path").value("/api/v1/vehicles/97e194a8-64b3-4885-b1e6-25fd482f58c0"))
             .andExpect(jsonPath("$.details").isArray()).andExpect(jsonPath("$.details").isEmpty())
+            .andExpect(jsonPath("$.error").doesNotExist());
+
+        mockMvc.perform(get("/api/v1/vehicles/{vehicleId}/telemetry", vehicleId)
+                .param("from", "2026-08-01T10:00:00Z")
+                .param("to", "2026-08-01T11:00:00Z"))
+            .andExpect(status().isServiceUnavailable())
+            .andExpect(jsonPath("$.timestamp").value(NOW.toString()))
+            .andExpect(jsonPath("$.status").value(503))
+            .andExpect(jsonPath("$.code").value("SERVICE_UNAVAILABLE"))
+            .andExpect(jsonPath("$.message")
+                .value("A required service is temporarily unavailable"))
+            .andExpect(jsonPath("$.path").value(
+                "/api/v1/vehicles/97e194a8-64b3-4885-b1e6-25fd482f58c0/telemetry"))
+            .andExpect(jsonPath("$.details").isEmpty())
             .andExpect(jsonPath("$.error").doesNotExist());
     }
 

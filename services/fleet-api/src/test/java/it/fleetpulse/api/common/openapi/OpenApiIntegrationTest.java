@@ -51,15 +51,56 @@ class OpenApiIntegrationTest extends PostgreSqlIntegrationSupport {
     @DisplayName("Documenta tutti e soli gli endpoint vehicle operativi")
     void documentsImplementedVehicleEndpoints() throws Exception {
         mockMvc.perform(get(OPEN_API_PATH)).andExpect(status().isOk())
-            .andExpect(jsonPath("$.paths.length()").value(4))
+            .andExpect(jsonPath("$.paths.length()").value(5))
             .andExpect(jsonPath("$.paths['/api/v1/vehicles'].get").exists())
             .andExpect(jsonPath("$.paths['/api/v1/vehicles'].post").exists())
             .andExpect(jsonPath("$.paths['/api/v1/vehicles/{vehicleId}'].get").exists())
             .andExpect(jsonPath("$.paths['/api/v1/vehicles/{vehicleId}/status'].patch").exists())
             .andExpect(jsonPath("$.paths['/api/v1/vehicles/{vehicleId}/state'].get").exists())
+            .andExpect(
+                jsonPath("$.paths['/api/v1/vehicles/{vehicleId}/telemetry'].get").exists())
             .andExpect(jsonPath("$.paths['/api/v1/dashboard']").doesNotExist())
-            .andExpect(jsonPath("$.paths['/api/v1/alerts']").doesNotExist()).andExpect(
-                jsonPath("$.paths['/api/v1/vehicles/{vehicleId}/telemetry']").doesNotExist());
+            .andExpect(jsonPath("$.paths['/api/v1/alerts']").doesNotExist());
+    }
+
+    /**
+     * Verifica parametri, paginazione, schema ed errori della history telemetrica.
+     */
+    @Test
+    @DisplayName("Documenta il contratto della history telemetrica")
+    void documentsTelemetryHistoryContract() throws Exception {
+        String operation = "$.paths['/api/v1/vehicles/{vehicleId}/telemetry'].get";
+        String parameters = operation + ".parameters";
+
+        mockMvc.perform(get(OPEN_API_PATH)).andExpect(status().isOk())
+            .andExpect(jsonPath(parameters + "[*].name").value(
+                hasItems("vehicleId", "from", "to", "page", "size", "sort")))
+            .andExpect(jsonPath(parameters + "[?(@.name == 'vehicleId')].required").value(true))
+            .andExpect(jsonPath(parameters + "[?(@.name == 'vehicleId')].schema.format")
+                .value("uuid"))
+            .andExpect(jsonPath(parameters + "[?(@.name == 'from')].required").value(true))
+            .andExpect(jsonPath(parameters + "[?(@.name == 'from')].schema.format")
+                .value("date-time"))
+            .andExpect(jsonPath(parameters + "[?(@.name == 'to')].required").value(true))
+            .andExpect(jsonPath(parameters + "[?(@.name == 'page')].schema.default").value(0))
+            .andExpect(jsonPath(parameters + "[?(@.name == 'page')].schema.minimum").value(0))
+            .andExpect(jsonPath(parameters + "[?(@.name == 'size')].schema.default").value(50))
+            .andExpect(jsonPath(parameters + "[?(@.name == 'size')].schema.minimum").value(1))
+            .andExpect(jsonPath(parameters + "[?(@.name == 'size')].schema.maximum").value(100))
+            .andExpect(jsonPath(parameters + "[?(@.name == 'sort')].schema.default")
+                .value("observedAt,desc"))
+            .andExpect(jsonPath(operation + ".responses['200'].content['application/json']" +
+                ".schema.$ref").value(endsWith("/TelemetryHistoryResponse")))
+            .andExpect(jsonPath("$.components.schemas.TelemetryHistoryResponse.properties" +
+                ".content.items.$ref").value(endsWith("/TelemetrySampleResponse")))
+            .andExpect(jsonPath(operation + ".responses['400'].content['application/json']" +
+                ".schema.$ref").value(endsWith("/ApiErrorResponse")))
+            .andExpect(jsonPath(operation + ".responses['404'].content['application/json']" +
+                ".schema.$ref").value(endsWith("/ApiErrorResponse")))
+            .andExpect(jsonPath(operation + ".responses['500'].content['application/json']" +
+                ".schema.$ref").value(endsWith("/ApiErrorResponse")))
+            .andExpect(jsonPath(operation + ".responses['503'].content['application/json']" +
+                ".schema.$ref").value(endsWith("/ApiErrorResponse")));
     }
 
     /**
