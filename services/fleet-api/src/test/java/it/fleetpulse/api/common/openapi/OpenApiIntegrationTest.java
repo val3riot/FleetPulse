@@ -62,6 +62,7 @@ class OpenApiIntegrationTest extends PostgreSqlIntegrationSupport {
             .andExpect(jsonPath("$.paths['/api/v1/dashboard']").doesNotExist())
             .andExpect(jsonPath("$.paths['/api/v1/alerts'].get").exists())
             .andExpect(jsonPath("$.paths['/api/v1/alerts/{alertId}'].get").exists())
+            .andExpect(jsonPath("$.paths['/api/v1/alerts/{alertId}'].patch").exists())
             .andExpect(jsonPath("$.paths['/api/v1/vehicles/{vehicleId}/alerts'].get").exists());
     }
 
@@ -74,6 +75,7 @@ class OpenApiIntegrationTest extends PostgreSqlIntegrationSupport {
         String global = "$.paths['/api/v1/alerts'].get";
         String scoped = "$.paths['/api/v1/vehicles/{vehicleId}/alerts'].get";
         String detail = "$.paths['/api/v1/alerts/{alertId}'].get";
+        String changeStatus = "$.paths['/api/v1/alerts/{alertId}'].patch";
 
         mockMvc.perform(get(OPEN_API_PATH)).andExpect(status().isOk())
             .andExpect(jsonPath(global + ".parameters[*].name").value(hasItems("vehicleId",
@@ -101,6 +103,27 @@ class OpenApiIntegrationTest extends PostgreSqlIntegrationSupport {
                 ".severity.enum").value(hasItems("LOW", "MEDIUM", "HIGH", "CRITICAL")))
             .andExpect(jsonPath("$.components.schemas.MaintenanceAlertResponse.properties" +
                 ".status.enum").value(hasItems("OPEN", "ACKNOWLEDGED", "CLOSED")));
+
+        mockMvc.perform(get(OPEN_API_PATH)).andExpect(status().isOk())
+            .andExpect(jsonPath(changeStatus + ".requestBody.required").value(true))
+            .andExpect(jsonPath(changeStatus + ".requestBody.content['application/json']" +
+                ".schema.$ref").value(endsWith("/ChangeAlertStatusRequest")))
+            .andExpect(jsonPath("$.components.schemas.ChangeAlertStatusRequest.required")
+                .value(hasItems("status")))
+            .andExpect(jsonPath("$.components.schemas.ChangeAlertStatusRequest.properties" +
+                ".status.enum").value(hasItems("ACKNOWLEDGED", "CLOSED")))
+            .andExpect(jsonPath(changeStatus + ".responses['200'].content['application/json']" +
+                ".schema.$ref").value(endsWith("/MaintenanceAlertResponse")))
+            .andExpect(jsonPath(changeStatus + ".responses['400'].content['application/json']" +
+                ".schema.$ref").value(endsWith("/ApiErrorResponse")))
+            .andExpect(jsonPath(changeStatus + ".responses['404'].content['application/json']" +
+                ".schema.$ref").value(endsWith("/ApiErrorResponse")))
+            .andExpect(jsonPath(changeStatus + ".responses['409'].content['application/json']" +
+                ".schema.$ref").value(endsWith("/ApiErrorResponse")))
+            .andExpect(jsonPath(changeStatus + ".responses['500'].content['application/json']" +
+                ".schema.$ref").value(endsWith("/ApiErrorResponse")))
+            .andExpect(jsonPath(changeStatus + ".responses['503'].content['application/json']" +
+                ".schema.$ref").value(endsWith("/ApiErrorResponse")));
     }
 
     /**

@@ -61,6 +61,7 @@ class MaintenanceAlert {
   +Instant createdAt
   +Instant acknowledgedAt
   +Instant closedAt
+  +long version
 }
 
 enum AlertType {

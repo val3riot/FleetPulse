@@ -505,7 +505,9 @@ ACKNOWLEDGED -> CLOSED
 ```
 
 Impostare lo stato già corrente è idempotente. Una transizione inversa o non
-supportata produce conflitto.
+supportata produce conflitto. Concorrenza, rivalutazione bounded e controllo
+della versione sono definiti in
+[ADR-011 — Transizioni alert con optimistic locking](adr/ADR-011-ALERT-OPTIMISTIC-LOCKING.md).
 
 `200 OK`: restituisce `MaintenanceAlertResponse` aggiornato.
 
@@ -571,3 +573,4 @@ divergenze tra documentazione e implementazione.
 - [ADR-007 — Validazione del veicolo nel telemetry processor](adr/ADR-007-VALIDAZIONE-VEICOLO.md)
 
 - [ADR-009 — Contratto e aggiornamento della latest-state projection](adr/ADR-009-LATEST-STATE-PROJECTION.md)
+- [ADR-011 — Transizioni alert con optimistic locking](adr/ADR-011-ALERT-OPTIMISTIC-LOCKING.md)

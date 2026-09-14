@@ -57,7 +57,7 @@ valida esistenza o stato operativo del veicolo.
 - gestisce i veicoli;
 - espone stato corrente;
 - espone storico;
-- espone alert;
+- espone alert e ne protegge le transizioni concorrenti tramite optimistic locking;
 - pubblica OpenAPI;
 - applica fallback PostgreSQL.
 

@@ -307,3 +307,22 @@ Verifica finale FP-035 del 2026-09-13: `./mvnw verify` dalla root con Docker,
 BUILD SUCCESS; 614 test, zero failure/errori/skipped. Superati anche
 `git diff --check`, la validazione Hibernate dello schema Flyway e il controllo
 di assenza di dichiarazioni locali con `var` nel codice e nei test FP-035.
+
+## Transizioni alert — verifiche FP-036
+
+| Requisito | Evidenza nel modulo fleet-api |
+|---|---|
+| Matrice delle transizioni consentite, idempotenti e vietate | `MaintenanceAlertStateMachineTest` |
+| Timestamp assegnati tramite `Clock` e stabili sui replay | `MaintenanceAlertTransitionAttemptTest`, `MaintenanceAlertTransitionIntegrationTest` |
+| Migration V4 e versione iniziale zero | `MaintenanceAlertTransitionIntegrationTest` |
+| Controllo `@Version` contro lost update | `MaintenanceAlertTransitionIntegrationTest` |
+| Rivalutazione bounded in una nuova transaction | `MaintenanceAlertCommandServiceTest`, `MaintenanceAlertTransitionIntegrationTest` |
+| Aggiornamenti concorrenti senza stati impossibili | `MaintenanceAlertTransitionIntegrationTest` |
+| Successo, body invalido, not found, conflict e database down | `MaintenanceAlertControllerTest` |
+| Endpoint PATCH, request, enum, response ed errori OpenAPI | `OpenApiIntegrationTest` |
+
+Verifica finale FP-036 del 2026-09-14: `./mvnw verify` dalla root con Docker,
+BUILD SUCCESS; 641 test, zero failure/errori/skipped. Superati anche
+`git diff --check`, la validazione Hibernate dello schema Flyway V4 e il
+controllo di assenza di dichiarazioni locali con `var` nel codice e nei test
+FP-036.

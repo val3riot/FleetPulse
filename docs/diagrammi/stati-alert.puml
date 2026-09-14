@@ -1,0 +1,29 @@
+@startuml
+hide empty description
+
+[*] --> OPEN : alert generato
+
+OPEN --> ACKNOWLEDGED : acknowledge\nacknowledgedAt = now
+OPEN --> CLOSED : close\nclosedAt = now
+ACKNOWLEDGED --> CLOSED : close\nclosedAt = now
+
+OPEN -[#gray,dashed]-> OPEN : target OPEN\nnon esposto
+ACKNOWLEDGED --> ACKNOWLEDGED : acknowledge idempotente
+CLOSED --> CLOSED : close idempotente
+
+ACKNOWLEDGED -[#red,dashed]-> OPEN : conflitto
+CLOSED -[#red,dashed]-> OPEN : conflitto
+CLOSED -[#red,dashed]-> ACKNOWLEDGED : conflitto
+
+CLOSED --> [*]
+
+note right of ACKNOWLEDGED
+  acknowledgedAt non cambia
+  nei comandi idempotenti
+end note
+
+note right of CLOSED
+  closedAt non cambia
+  nei comandi idempotenti
+end note
+@enduml

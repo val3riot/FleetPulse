@@ -172,6 +172,10 @@ OPEN -> ACKNOWLEDGED -> CLOSED
 OPEN -> CLOSED
 ```
 
+La matrice completa, inclusi idempotenza e conflitti, è rappresentata nel
+[diagramma degli stati alert](diagrammi/stati-alert.puml) e disciplinata da
+[ADR-011](adr/ADR-011-ALERT-OPTIMISTIC-LOCKING.md).
+
 ## 10. UC-08 — Monitorare la piattaforma
 
 L'Operations Engineer consulta:

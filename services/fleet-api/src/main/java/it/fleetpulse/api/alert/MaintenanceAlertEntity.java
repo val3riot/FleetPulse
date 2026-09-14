@@ -6,8 +6,10 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 
 import java.time.Instant;
+import java.util.Objects;
 import java.util.UUID;
 
 @Entity
@@ -47,6 +49,10 @@ public class MaintenanceAlertEntity {
 
     @Column(name = "closed_at")
     private Instant closedAt;
+
+    @Version
+    @Column(name = "version", nullable = false)
+    private long version;
 
     protected MaintenanceAlertEntity() {
     }
@@ -89,5 +95,19 @@ public class MaintenanceAlertEntity {
 
     public Instant getClosedAt() {
         return closedAt;
+    }
+
+    public long getVersion() {
+        return version;
+    }
+
+    void acknowledge(Instant acknowledgedAt) {
+        this.status = AlertStatus.ACKNOWLEDGED;
+        this.acknowledgedAt = Objects.requireNonNull(acknowledgedAt);
+    }
+
+    void close(Instant closedAt) {
+        this.status = AlertStatus.CLOSED;
+        this.closedAt = Objects.requireNonNull(closedAt);
     }
 }

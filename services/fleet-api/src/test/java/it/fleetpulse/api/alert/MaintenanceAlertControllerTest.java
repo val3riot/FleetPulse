@@ -31,6 +31,7 @@ import java.util.UUID;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -52,6 +53,9 @@ class MaintenanceAlertControllerTest {
 
     @MockitoBean
     private MaintenanceAlertService service;
+
+    @MockitoBean
+    private MaintenanceAlertCommandService commandService;
 
     @Test
     void returnsGlobalFilteredPage() throws Exception {
@@ -106,6 +110,89 @@ class MaintenanceAlertControllerTest {
             .andExpect(jsonPath("$.sourceMessageId")
                 .value("dc0fc799-0913-4e72-bd2d-8ee8ccf52e22"))
             .andExpect(jsonPath("$.createdAt").value("2026-08-01T10:16:00Z"));
+    }
+
+    @Test
+    void changesAlertStatus() throws Exception {
+        ChangeAlertStatusRequest request =
+            new ChangeAlertStatusRequest(AlertStatusTarget.ACKNOWLEDGED);
+        MaintenanceAlertResponse response = new MaintenanceAlertResponse(ALERT_ID, VEHICLE_ID,
+            UUID.fromString("dc0fc799-0913-4e72-bd2d-8ee8ccf52e22"),
+            AlertType.ENGINE_TEMPERATURE_HIGH, AlertSeverity.HIGH,
+            "Temperatura motore oltre soglia", AlertStatus.ACKNOWLEDGED,
+            Instant.parse("2026-08-01T10:16:00Z"), NOW, null);
+        when(commandService.changeStatus(ALERT_ID, request)).thenReturn(response);
+
+        mockMvc.perform(patch("/api/v1/alerts/{alertId}", ALERT_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"status\":\"ACKNOWLEDGED\"}"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.id").value(ALERT_ID.toString()))
+            .andExpect(jsonPath("$.status").value("ACKNOWLEDGED"))
+            .andExpect(jsonPath("$.acknowledgedAt").value(NOW.toString()))
+            .andExpect(jsonPath("$.closedAt").isEmpty());
+
+        verify(commandService).changeStatus(ALERT_ID, request);
+    }
+
+    @ParameterizedTest
+    @CsvSource(delimiter = '|', value = {
+        "{invalid|malformed JSON",
+        "{\"status\":\"OPEN\"}|unsupported target",
+        "{\"status\":\"INVALID\"}|unknown target"
+    })
+    void rejectsUnreadableStatusBodies(String body, String description) throws Exception {
+        expectError(mockMvc.perform(patch("/api/v1/alerts/{alertId}", ALERT_ID)
+                .contentType(MediaType.APPLICATION_JSON).content(body)),
+            400, ErrorCode.REQUEST_MALFORMED_JSON);
+    }
+
+    @Test
+    void rejectsMissingAndNullStatusBodies() throws Exception {
+        expectError(mockMvc.perform(patch("/api/v1/alerts/{alertId}", ALERT_ID)
+                .contentType(MediaType.APPLICATION_JSON)),
+            400, ErrorCode.REQUEST_MALFORMED_JSON);
+        expectError(mockMvc.perform(patch("/api/v1/alerts/{alertId}", ALERT_ID)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"status\":null}")),
+            400, ErrorCode.REQUEST_INVALID);
+    }
+
+    @Test
+    void mapsStatusChangeNotFoundAndConflict() throws Exception {
+        ChangeAlertStatusRequest acknowledge =
+            new ChangeAlertStatusRequest(AlertStatusTarget.ACKNOWLEDGED);
+        ChangeAlertStatusRequest close = new ChangeAlertStatusRequest(AlertStatusTarget.CLOSED);
+        when(commandService.changeStatus(ALERT_ID, acknowledge))
+            .thenThrow(new ApplicationException(ErrorCode.ALERT_NOT_FOUND));
+        when(commandService.changeStatus(ALERT_ID, close))
+            .thenThrow(new ApplicationException(ErrorCode.ALERT_STATUS_TRANSITION_CONFLICT));
+
+        expectError(mockMvc.perform(patch("/api/v1/alerts/{alertId}", ALERT_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"status\":\"ACKNOWLEDGED\"}")),
+            404, ErrorCode.ALERT_NOT_FOUND);
+        expectError(mockMvc.perform(patch("/api/v1/alerts/{alertId}", ALERT_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"status\":\"CLOSED\"}")),
+            409, ErrorCode.ALERT_STATUS_TRANSITION_CONFLICT);
+    }
+
+    @Test
+    void validatesStatusChangeUuidAndMapsDatabaseFailure() throws Exception {
+        ChangeAlertStatusRequest close = new ChangeAlertStatusRequest(AlertStatusTarget.CLOSED);
+        when(commandService.changeStatus(ALERT_ID, close)).thenThrow(
+            new DataAccessResourceFailureException("database unavailable",
+                new SQLException("connection refused", "08006")));
+
+        expectError(mockMvc.perform(patch("/api/v1/alerts/invalid")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"status\":\"CLOSED\"}")),
+            400, ErrorCode.REQUEST_INVALID);
+        expectError(mockMvc.perform(patch("/api/v1/alerts/{alertId}", ALERT_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"status\":\"CLOSED\"}")),
+            503, ErrorCode.SERVICE_UNAVAILABLE);
     }
 
     @ParameterizedTest

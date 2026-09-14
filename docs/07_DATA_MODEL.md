@@ -100,6 +100,7 @@ create table maintenance_alerts (
     created_at timestamptz not null,
     acknowledged_at timestamptz,
     closed_at timestamptz,
+    version bigint not null default 0,
 
     constraint pk_maintenance_alerts primary key (id),
     constraint uq_maintenance_alerts_source_message_type
@@ -120,6 +121,10 @@ stesso veicolo dell'alert. La migration vincola inoltre:
 - coerenza tra stato e timestamp;
 - `acknowledged_at >= created_at`;
 - `closed_at >= coalesce(acknowledged_at, created_at)`.
+
+La colonna `version`, introdotta dalla migration additiva V4, è il token interno
+usato dall'optimistic locking delle transizioni secondo
+[ADR-011 — Transizioni alert con optimistic locking](adr/ADR-011-ALERT-OPTIMISTIC-LOCKING.md).
 
 Indici:
 
@@ -235,6 +240,9 @@ La migration additiva V3 stabilizza i valori ammessi per tipo e severità degli
 alert tramite `ck_maintenance_alerts_type` e
 `ck_maintenance_alerts_severity`, senza modificare V1.
 
+La migration additiva V4 introduce `maintenance_alerts.version` con valore
+iniziale zero senza modificare le migration precedenti.
+
 ## ADR di riferimento
 
 - [ADR-004 — PostgreSQL come source of truth](adr/ADR-004-POSTGRESQL-SOURCE-OF-TRUTH.md)
@@ -242,6 +250,7 @@ alert tramite `ck_maintenance_alerts_type` e
 - [ADR-006 — At-least-once con application idempotency](adr/ADR-006-AT-LEAST-ONCE-E-IDEMPOTENCY.md)
 
 - [ADR-009 — Contratto e aggiornamento della latest-state projection](adr/ADR-009-LATEST-STATE-PROJECTION.md)
+- [ADR-011 — Transizioni alert con optimistic locking](adr/ADR-011-ALERT-OPTIMISTIC-LOCKING.md)
 
 ## Latest sample per State API (FP-031)
 

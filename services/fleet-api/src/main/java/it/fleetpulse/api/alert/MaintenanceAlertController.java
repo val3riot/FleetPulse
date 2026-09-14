@@ -14,21 +14,27 @@ import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
 
-@Tag(name = "Maintenance alerts", description = "Consultazione degli alert di manutenzione")
+@Tag(name = "Maintenance alerts",
+    description = "Consultazione e transizioni degli alert di manutenzione")
 @RestController
 @RequestMapping("/api/v1")
 public class MaintenanceAlertController {
     private final MaintenanceAlertService service;
+    private final MaintenanceAlertCommandService commandService;
 
-    public MaintenanceAlertController(MaintenanceAlertService service) {
+    public MaintenanceAlertController(MaintenanceAlertService service,
+        MaintenanceAlertCommandService commandService) {
         this.service = service;
+        this.commandService = commandService;
     }
 
     @Operation(summary = "Elenca gli alert di un veicolo")
@@ -88,5 +94,29 @@ public class MaintenanceAlertController {
         @Parameter(required = true, description = "Identificativo UUID dell'alert")
         @PathVariable UUID alertId) {
         return service.findById(alertId);
+    }
+
+    @Operation(summary = "Modifica lo stato di un alert")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Alert aggiornato",
+            content = @Content(schema = @Schema(implementation = MaintenanceAlertResponse.class))),
+        @ApiResponse(responseCode = "400", description = "Richiesta non valida",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "404", description = "Alert non trovato",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "409", description = "Transizione non consentita",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "500", description = "Errore interno",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "503", description = "Servizio non disponibile",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    })
+    @PatchMapping(path = "/alerts/{alertId}", consumes = MediaType.APPLICATION_JSON_VALUE,
+        produces = MediaType.APPLICATION_JSON_VALUE)
+    public MaintenanceAlertResponse changeStatus(
+        @Parameter(required = true, description = "Identificativo UUID dell'alert")
+        @PathVariable UUID alertId,
+        @Valid @RequestBody ChangeAlertStatusRequest request) {
+        return commandService.changeStatus(alertId, request);
     }
 }
