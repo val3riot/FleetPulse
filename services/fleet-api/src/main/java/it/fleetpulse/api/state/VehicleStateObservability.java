@@ -37,8 +37,12 @@ public class VehicleStateObservability {
         long now = System.nanoTime();
         if (now - previous >= Duration.ofSeconds(30).toNanos()
                 && lastWarning.compareAndSet(previous, now)) {
-            log.warn("State cache operation failed: operation={}, errorType={}",
-                repair ? "repair" : "read", failure.getClass().getSimpleName());
+            log.atWarn().addKeyValue("event.action", "state.cache.operation.failed")
+                .addKeyValue("operation", repair ? "repair" : "read")
+                .addKeyValue("errorType", failure.getClass().getSimpleName())
+                .log("State cache operation failed: operation={}, errorType={}",
+                repair ? "repair" : "read",
+                failure.getClass().getSimpleName());
         }
     }
 }

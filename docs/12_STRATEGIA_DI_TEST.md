@@ -543,3 +543,12 @@ esistenti di warning limitati, concorrenza e guasto simultaneo PostgreSQL/Redis.
 Nessuna modifica al codice di produzione, nessuna migration e nessun nuovo ADR.
 Stile delle nuove righe Java, link documentali e diff check validi.
 Nessun commit eseguito.
+
+## FP-040 — Logging e correlazione
+
+Verificare serializzazione con encoder ECS reale (timestamp, livello, versione,
+campi numerici, key/value e MDC), UUID HTTP assente/valido/invalido/ripetuto,
+header su errori e ripristino del contesto in caso di failure. La suite completa
+verifica inoltre privacy e rate limiting cache/projection, esiti gateway,
+retry/dead-letter Kafka e simulator. I log di integrazione devono identificare
+le applicazioni con `service.name` e rimanere JSON valido.

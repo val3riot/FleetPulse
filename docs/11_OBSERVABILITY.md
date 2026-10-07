@@ -15,25 +15,70 @@ I segnali operativi devono permettere di rispondere a:
 
 ## 2. Structured logging
 
-Campi consigliati:
+FP-040 adotta JSON ECS sulla console in `fleet-api`, `telemetry-gateway`,
+`telemetry-processor` e `vehicle-simulator`, in tutti i profili. Si usa il supporto
+nativo di Spring Boot con SLF4J fluent key/value; non sono necessarie dipendenze
+aggiuntive. Ogni record occupa una riga JSON.
 
 | Campo | Significato |
 |---|---|
-| `timestamp` | Timestamp UTC |
-| `level` | Log level |
-| `service` | Servizio |
-| `event` | Nome stabile dell'evento |
-| `messageId` | Correlation ID |
-| `vehicleId` | Identificativo veicolo |
-| `sequenceNumber` | Sequenza |
-| `connectionId` | Connessione gateway |
-| `topic` | Kafka topic |
-| `partition` | Kafka partition |
-| `offset` | Kafka offset |
-| `durationMs` | Durata |
-| `errorCode` | Classificazione dell'errore |
+| `@timestamp` | Timestamp UTC ECS |
+| `log.level`, `log.logger` | Livello e logger ECS |
+| `service.name` | Nome da `spring.application.name` |
+| `message` | Descrizione leggibile |
+| `event.action` | Nome stabile dell'evento applicativo |
+| `messageId` | Identificativo del messaggio di telemetria |
+| `vehicleId` | Identificativo del veicolo, quando disponibile |
+| `requestId` | Correlazione della richiesta HTTP |
+| `connectionId` | Correlazione della connessione TCP nel worker |
+| `sequenceNumber` | Sequenza della telemetria |
+| `topic`, `partition`, `offset` | Posizione del record Kafka |
+| `durationMs` | Durata numerica in millisecondi |
+| `errorType`, `errorCode` | Classificazione tecnica o applicativa |
 
-Il payload completo non deve essere loggato di default.
+I campi ECS di base sono oggetti JSON (`log`, `service`, `ecs`); `event.action`
+è passato come chiave puntata dal builder SLF4J e serializzato nell’oggetto `event`. I campi applicativi sono aggiunti
+solo quando noti. `messageId` e `requestId` sono distinti; non si introduce
+tracing distribuito né si modificano i contratti JSON REST, TCP o Kafka.
+
+Livelli: `INFO` per esiti principali, `DEBUG` per dettagli, `WARN` per
+situazioni degradate, `ERROR` per failure terminali/inattese. Rimangono i limiti
+di frequenza dei warning cache/projection e tutti i contatori esistenti.
+
+Non loggare payload completi, coordinate/valori di telemetria, credenziali,
+request body, header arbitrari o messaggi/stacktrace di eccezioni applicative
+che possono contenere questi dati. Le failure riportano la classe dell'errore.
+L'aumento dei livelli delle librerie richiede una verifica separata dei dati
+emessi; FP-040 non abilita DEBUG/TRACE delle librerie.
+
+### Correlazione HTTP
+
+`fleet-api` accetta e restituisce `X-Request-ID` su tutte le richieste HTTP,
+comprese le risposte di errore. Un unico UUID canonico valido è riutilizzato
+(normalizzato in minuscolo); header assente, invalido o ripetuto produce un nuovo
+UUID, senza respingere la richiesta. L'identificativo non è una credenziale.
+
+Il filtro salva il valore come attributo della richiesta e nel MDC durante il
+passaggio nella filter chain; il contesto precedente viene ripristinato anche
+in caso di eccezione. Dispatch async/error riutilizzano l'attributo. Non si
+propaga automaticamente il MDC a task asincroni creati dall'applicazione.
+
+`http.request.completed` registra metodo, stato e durata, senza query string o
+body; una failure che esce dalla chain registra `http.request.failed` con stato
+500. Per async la durata è quella del singolo dispatch, non end-to-end.
+
+### Eventi di telemetria
+
+Gli eventi consentono di seguire decodifica, ricezione, pubblicazione confermata
+(`telemetry.publication.confirmed`), consumo Kafka, persistenza/duplicato,
+rifiuto di dominio, aggiornamento della projection e retry/dead-letter.
+Le failure Kafka aggiungono gli identificativi solo se il record contiene un
+`TelemetryEvent` decodificato: per payload illeggibile si usano topic/partition/offset.
+Il log di persistenza include il numero di candidati alert dell'aggregato.
+
+Per sviluppo locale è disponibile un override esplicito al testo:
+`FLEETPULSE_LOG_FORMAT=''`. Il profilo `local` mantiene ECS per default.
+Vedi [ADR-013](adr/ADR-013-STRUCTURED-LOGGING.md).
 
 ## 3. Metriche
 

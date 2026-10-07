@@ -43,17 +43,31 @@ public final class PublishingFrameHandler implements FrameHandler {
         try {
             publisher.publish(event).toCompletableFuture()
                 .get(properties.confirmationTimeout().toMillis(), TimeUnit.MILLISECONDS);
+            log.atInfo().addKeyValue("event.action", "telemetry.publication.confirmed")
+                .addKeyValue("messageId", event.messageId())
+                .addKeyValue("vehicleId", event.vehicleId())
+                .log("Telemetry publication confirmed");
             return accepted(event);
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
             metrics.publicationFailed();
-            log.warn("Kafka publication interrupted: messageId={}, vehicleId={}", event.messageId(),
+            log.atWarn().addKeyValue("event.action", "kafka.publication.interrupted")
+                .addKeyValue("messageId", event.messageId())
+                .addKeyValue("vehicleId", event.vehicleId())
+                .log("Kafka publication interrupted: messageId={}, vehicleId={}",
+                event.messageId(),
                 event.vehicleId());
             return rejected(event);
         } catch (ExecutionException | TimeoutException | RuntimeException exception) {
             metrics.publicationFailed();
-            log.warn("Kafka publication not confirmed: messageId={}, vehicleId={}, failure={}",
-                event.messageId(), event.vehicleId(), exception.getClass().getSimpleName());
+            log.atWarn().addKeyValue("event.action", "kafka.publication.not.confirmed")
+                .addKeyValue("messageId", event.messageId())
+                .addKeyValue("vehicleId", event.vehicleId())
+                .addKeyValue("failure", exception.getClass().getSimpleName())
+                .log("Kafka publication not confirmed: messageId={}, vehicleId={}, failure={}",
+                event.messageId(),
+                event.vehicleId(),
+                exception.getClass().getSimpleName());
             return rejected(event);
         } finally {
             metrics.completeAcknowledgement(acknowledgement);

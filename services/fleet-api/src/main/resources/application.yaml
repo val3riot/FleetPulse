@@ -55,3 +55,8 @@ fleetpulse:
       cache:
         ttl: ${TELEMETRY_LATEST_STATE_TTL:5m}
         max-attempts: ${API_STATE_CACHE_MAX_ATTEMPTS:1}
+
+logging:
+  structured:
+    format:
+      console: ${FLEETPULSE_LOG_FORMAT:ecs}

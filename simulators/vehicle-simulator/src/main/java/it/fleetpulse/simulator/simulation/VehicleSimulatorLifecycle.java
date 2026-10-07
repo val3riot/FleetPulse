@@ -50,11 +50,13 @@ public final class VehicleSimulatorLifecycle implements SmartLifecycle {
             return;
         }
         if (!properties.enabled()) {
-            log.info("Vehicle simulator is disabled");
+            log.atInfo().addKeyValue("event.action", "vehicle.simulator.is.disabled")
+                .log("Vehicle simulator is disabled");
             return;
         }
 
-        log.info("Provisioning {} simulated vehicles", properties.vehicleCount());
+        log.atInfo().addKeyValue("event.action", "simulator.vehicles.provisioning")
+            .log("Provisioning {} simulated vehicles", properties.vehicleCount());
         List<ProvisionedVehicle> vehicles = provisioner.provision();
         ExecutorService newExecutor = executorFactory.get();
         try {
@@ -65,7 +67,8 @@ public final class VehicleSimulatorLifecycle implements SmartLifecycle {
             }
             executor = newExecutor;
             running = true;
-            log.info("Started {} vehicle workloads on virtual threads", vehicles.size());
+            log.atInfo().addKeyValue("event.action", "simulator.workloads.started")
+                .log("Started {} vehicle workloads on virtual threads", vehicles.size());
         } catch (RuntimeException startupFailure) {
             tasks.forEach(VehicleTask::close);
             tasks = List.of();
@@ -86,7 +89,8 @@ public final class VehicleSimulatorLifecycle implements SmartLifecycle {
             executorToStop.shutdownNow();
             awaitTermination(executorToStop);
         }
-        log.info("Vehicle simulator lifecycle stopped");
+        log.atInfo().addKeyValue("event.action", "vehicle.simulator.lifecycle.stopped")
+            .log("Vehicle simulator lifecycle stopped");
     }
 
     @Override
@@ -107,12 +111,16 @@ public final class VehicleSimulatorLifecycle implements SmartLifecycle {
         try {
             if (!executorToStop.awaitTermination(properties.shutdownGracePeriod().toMillis(),
                 TimeUnit.MILLISECONDS)) {
-                log.warn("Vehicle workload executor did not terminate within {} ms",
-                    properties.shutdownGracePeriod().toMillis());
+                log.atWarn().addKeyValue("event.action",
+                    "vehicle.workload.executor.did.not.terminate.within")
+                    .log("Vehicle workload executor did not terminate within {} ms",
+                properties.shutdownGracePeriod().toMillis());
             }
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();
-            log.warn("Interrupted while waiting for vehicle workloads to stop");
+            log.atWarn().addKeyValue("event.action",
+                "interrupted.while.waiting.for.vehicle.workloads.to.stop")
+                .log("Interrupted while waiting for vehicle workloads to stop");
         }
     }
 }

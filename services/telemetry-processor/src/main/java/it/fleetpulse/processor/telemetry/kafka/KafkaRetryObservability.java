@@ -8,6 +8,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.kafka.listener.RetryListener;
 
 import java.util.Objects;
+import it.fleetpulse.contracts.telemetry.TelemetryEvent;
+import org.slf4j.spi.LoggingEventBuilder;
 
 public final class KafkaRetryObservability implements RetryListener {
     private static final Logger log = LoggerFactory.getLogger(KafkaRetryObservability.class);
@@ -34,10 +36,21 @@ public final class KafkaRetryObservability implements RetryListener {
         int deliveryAttempt) {
         failedDeliveries.increment();
 
-        log.warn("Kafka telemetry processing failed: topic={}, partition={}, offset={}, " +
-                "deliveryAttempt={}, errorType={}, message={}", record.topic(), record.partition(),
-            record.offset(), deliveryAttempt, failure.getClass().getSimpleName(),
-            failure.getMessage());
+        correlate(log.atWarn(), record).addKeyValue("event.action",
+            "kafka.telemetry.processing.failed")
+            .addKeyValue("topic", record.topic())
+            .addKeyValue("partition", record.partition())
+            .addKeyValue("offset", record.offset())
+            .addKeyValue("deliveryAttempt", deliveryAttempt)
+            .addKeyValue("errorType", failure.getClass().getSimpleName())
+            .log("Kafka telemetry processing failed: topic={}, partition={}, offset={}, " +
+                "deliveryAttempt={}, errorType={}, message={}",
+            record.topic(),
+            record.partition(),
+            record.offset(),
+            deliveryAttempt,
+            failure.getClass().getSimpleName(),
+            failure.getClass().getSimpleName());
     }
 
     @Override
@@ -45,8 +58,26 @@ public final class KafkaRetryObservability implements RetryListener {
         terminalFailures.increment();
         deadLetters.increment();
 
-        log.error("Kafka telemetry processing reached terminal handling: topic={}, partition={}, " +
-                "offset={}, errorType={}, message={}", record.topic(), record.partition(),
-            record.offset(), failure.getClass().getSimpleName(), failure.getMessage());
+        correlate(log.atError(), record).addKeyValue("event.action",
+            "kafka.telemetry.processing.reached.terminal.handling")
+            .addKeyValue("topic", record.topic())
+            .addKeyValue("partition", record.partition())
+            .addKeyValue("offset", record.offset())
+            .addKeyValue("errorType", failure.getClass().getSimpleName())
+            .log("Kafka telemetry processing reached terminal handling: topic={}, partition={}, " +
+                "offset={}, errorType={}, message={}", record.topic(),
+            record.partition(),
+            record.offset(),
+            failure.getClass().getSimpleName(),
+            failure.getClass().getSimpleName());
     }
+    private static LoggingEventBuilder correlate(LoggingEventBuilder builder,
+            ConsumerRecord<?, ?> record) {
+        if (record.value() instanceof TelemetryEvent event) {
+            builder.addKeyValue("messageId", event.messageId())
+                .addKeyValue("vehicleId", event.vehicleId());
+        }
+        return builder;
+    }
+
 }

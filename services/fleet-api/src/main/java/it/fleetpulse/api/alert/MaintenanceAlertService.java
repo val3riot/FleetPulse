@@ -65,9 +65,18 @@ public class MaintenanceAlertService {
         MaintenanceAlertSearchCriteria criteria, Pageable pageable) {
         Page<MaintenanceAlertEntity> result = alerts.findAll(
             MaintenanceAlertSpecifications.from(criteria), pageable);
-        log.debug("Maintenance alert search completed: vehicleId={}, page={}, size={}, " +
-                "results={}, total={}", criteria.vehicleId(), pageable.getPageNumber(),
-            pageable.getPageSize(), result.getNumberOfElements(), result.getTotalElements());
+        log.atDebug().addKeyValue("event.action", "maintenance.alert.search.completed")
+            .addKeyValue("vehicleId", criteria.vehicleId())
+            .addKeyValue("page", pageable.getPageNumber())
+            .addKeyValue("size", pageable.getPageSize())
+            .addKeyValue("results", result.getNumberOfElements())
+            .addKeyValue("total", result.getTotalElements())
+            .log("Maintenance alert search completed: vehicleId={}, page={}, size={}, " +
+                "results={}, total={}", criteria.vehicleId(),
+            pageable.getPageNumber(),
+            pageable.getPageSize(),
+            result.getNumberOfElements(),
+            result.getTotalElements());
         return PagedResponse.from(result, mapper::toResponse);
     }
 

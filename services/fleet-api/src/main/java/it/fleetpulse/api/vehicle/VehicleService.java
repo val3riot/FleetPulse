@@ -48,7 +48,10 @@ public class VehicleService {
         VehicleEntity entity =
             vehicleMapper.toEntity(request, clock.instant(), VehicleStatus.ACTIVE);
         entity = vehicleRepository.save(entity);
-        log.info("Vehicle registered: vehicleId={}, status={}", entity.getId(), entity.getStatus());
+        log.atInfo().addKeyValue("event.action", "vehicle.registered")
+            .addKeyValue("vehicleId", entity.getId())
+            .addKeyValue("status", entity.getStatus())
+            .log("Vehicle registered: vehicleId={}, status={}", entity.getId(), entity.getStatus());
         return vehicleMapper.toResponse(entity);
     }
 
@@ -57,7 +60,9 @@ public class VehicleService {
      */
     @Transactional(readOnly = true)
     public VehicleResponse findById(UUID id) {
-        log.debug("Looking up vehicle: vehicleId={}", id);
+        log.atDebug().addKeyValue("event.action", "looking.up.vehicle")
+            .addKeyValue("vehicleId", id)
+            .log("Looking up vehicle: vehicleId={}", id);
         VehicleEntity entity = vehicleRepository.findById(id)
             .orElseThrow(() -> new ApplicationException(ErrorCode.VEHICLE_NOT_FOUND));
         return vehicleMapper.toResponse(entity);
@@ -71,9 +76,16 @@ public class VehicleService {
         Pageable pageable) {
         Page<VehicleEntity> result =
             vehicleRepository.findAll(VehicleSpecifications.from(criteria), pageable);
-        log.debug("Vehicle search completed: page={}, size={}, results={}, total={}",
-            pageable.getPageNumber(), pageable.getPageSize(), result.getNumberOfElements(),
-            result.getTotalElements());
+        log.atDebug().addKeyValue("event.action", "vehicle.search.completed")
+            .addKeyValue("page", pageable.getPageNumber())
+            .addKeyValue("size", pageable.getPageSize())
+            .addKeyValue("results", result.getNumberOfElements())
+            .addKeyValue("total", result.getTotalElements())
+            .log("Vehicle search completed: page={}, size={}, results={}, total={}",
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                result.getNumberOfElements(),
+                result.getTotalElements());
 
         return PagedResponse.from(result, vehicleMapper::toResponse);
     }
@@ -88,8 +100,14 @@ public class VehicleService {
         VehicleStatus previousStatus = entity.getStatus();
         entity.changeStatus(request.status());
         entity = vehicleRepository.save(entity);
-        log.info("Vehicle status updated: vehicleId={}, previousStatus={}, currentStatus={}", id,
-            previousStatus, entity.getStatus());
+        log.atInfo().addKeyValue("event.action", "vehicle.status.updated")
+            .addKeyValue("vehicleId", id)
+            .addKeyValue("previousStatus", previousStatus)
+            .addKeyValue("currentStatus", entity.getStatus())
+            .log("Vehicle status updated: vehicleId={}, previousStatus={}, currentStatus={}",
+                id,
+                previousStatus,
+                entity.getStatus());
         return vehicleMapper.toResponse(entity);
     }
 }

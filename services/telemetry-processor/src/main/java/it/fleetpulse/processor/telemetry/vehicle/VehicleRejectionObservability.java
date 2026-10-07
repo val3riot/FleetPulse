@@ -34,9 +34,20 @@ public final class VehicleRejectionObservability {
         Objects.requireNonNull(event, "event must not be null");
         counters.get(event.reason()).increment();
 
-        log.info(
-            "Telemetry event rejected: messageId={}, vehicleId={}, reason={}, sourceTopic={}, " +
-                "sourcePartition={}, sourceOffset={}", event.messageId(), event.vehicleId(),
-            event.reason(), event.sourceTopic(), event.sourcePartition(), event.sourceOffset());
+        log.atInfo().addKeyValue("event.action", "telemetry.event.rejected")
+            .addKeyValue("messageId", event.messageId())
+            .addKeyValue("vehicleId", event.vehicleId())
+            .addKeyValue("reason", event.reason())
+            .addKeyValue("sourceTopic", event.sourceTopic())
+            .addKeyValue("sourcePartition", event.sourcePartition())
+            .addKeyValue("sourceOffset", event.sourceOffset())
+            .log("Telemetry event rejected: messageId={}, vehicleId={}, reason={}," +
+                " sourceTopic={}, " +
+                "sourcePartition={}, sourceOffset={}", event.messageId(),
+            event.vehicleId(),
+            event.reason(),
+            event.sourceTopic(),
+            event.sourcePartition(),
+            event.sourceOffset());
     }
 }

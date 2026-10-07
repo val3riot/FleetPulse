@@ -49,9 +49,17 @@ public class TelemetryHistoryService {
 
         Page<TelemetrySampleEntity> result = samples.findAllByVehicleIdAndObservedAtBetween(
             vehicleId, request.from(), request.to(), pageable);
-        log.debug("Telemetry history query completed: vehicleId={}, page={}, size={}, results={}, " +
-                "total={}", vehicleId, pageable.getPageNumber(), pageable.getPageSize(),
-            result.getNumberOfElements(), result.getTotalElements());
+        log.atDebug().addKeyValue("event.action", "telemetry.history.query.completed")
+            .addKeyValue("vehicleId", vehicleId)
+            .addKeyValue("page", pageable.getPageNumber())
+            .addKeyValue("size", pageable.getPageSize())
+            .addKeyValue("results", result.getNumberOfElements())
+            .addKeyValue("total", result.getTotalElements())
+            .log("Telemetry history query completed: vehicleId={}, page={}, size={}, results={}, " +
+                "total={}", vehicleId, pageable.getPageNumber(),
+            pageable.getPageSize(),
+            result.getNumberOfElements(),
+            result.getTotalElements());
 
         return new TelemetryHistoryResponse(result.getContent().stream().map(mapper::toResponse)
             .toList(), result.getNumber(), result.getSize(), result.getTotalElements(),

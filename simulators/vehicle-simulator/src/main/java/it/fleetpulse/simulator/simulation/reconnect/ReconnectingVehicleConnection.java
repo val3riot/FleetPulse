@@ -58,17 +58,28 @@ public final class ReconnectingVehicleConnection implements VehicleConnection {
                         "Connection attempt completed without an open connection");
                 }
                 backoff.reset();
-                log.info("Vehicle {} connected to telemetry gateway", vehicleCode);
+                log.atInfo().addKeyValue("event.action", "simulator.connection.established")
+                    .addKeyValue("vehicleCode", vehicleCode)
+                    .log("Vehicle {} connected to telemetry gateway", vehicleCode);
             } catch (IOException connectionFailure) {
                 delegate.close();
                 if (attempt == maxAttempts) {
-                    log.error("Vehicle {} exhausted {} gateway connection attempts", vehicleCode,
+                    log.atError().addKeyValue("event.action", "simulator.connection.exhausted")
+                    .addKeyValue("vehicleCode", vehicleCode)
+                        .log("Vehicle {} exhausted {} gateway connection attempts",
+                        vehicleCode,
                         maxAttempts);
                     throw connectionFailure;
                 }
                 Duration delay = withJitter(backoff.nextDelay());
-                log.warn("Vehicle {} gateway connection attempt {} failed; retrying in {} ms: {}",
-                    vehicleCode, attempt, delay.toMillis(), connectionFailure.getMessage());
+                log.atWarn().addKeyValue("event.action", "simulator.connection.retry")
+                    .addKeyValue("errorType", connectionFailure.getClass().getSimpleName())
+                    .addKeyValue("vehicleCode", vehicleCode)
+                    .log("Vehicle {} gateway connection attempt {} failed; retrying in {} ms: {}",
+                vehicleCode,
+                attempt,
+                delay.toMillis(),
+                connectionFailure.getClass().getSimpleName());
                 awaitRetry(delay, connectionFailure);
             }
         }
@@ -83,8 +94,14 @@ public final class ReconnectingVehicleConnection implements VehicleConnection {
             delegate.send(message);
         } catch (IOException sendFailure) {
             delegate.close();
-            log.warn("Vehicle {} lost its gateway connection while sending telemetry: {}",
-                vehicleCode, sendFailure.getMessage());
+            log.atWarn().addKeyValue("event.action", "simulator.connection.lost")
+                .addKeyValue("messageId", message.messageId())
+                .addKeyValue("vehicleId", message.vehicleId())
+                .addKeyValue("errorType", sendFailure.getClass().getSimpleName())
+                    .addKeyValue("vehicleCode", vehicleCode)
+                .log("Vehicle {} lost its gateway connection while sending telemetry: {}",
+                vehicleCode,
+                sendFailure.getClass().getSimpleName());
             throw sendFailure;
         }
     }

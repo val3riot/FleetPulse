@@ -282,3 +282,11 @@ La dashboard richiede PostgreSQL e non usa Redis. La dipendenza Redis nel
 Compose rimane quella condivisa dal servizio Fleet API per gli altri endpoint.
 
 Contratto: [Dashboard REST](09_SPECIFICA_API.md#4-dashboard).
+
+## Formato dei log — FP-040
+
+Le quattro applicazioni emettono JSON ECS sulla console per default, anche con
+profilo `local`. Compose inoltra `FLEETPULSE_LOG_FORMAT` a ciascuna applicazione.
+Per testo locale impostare esplicitamente `FLEETPULSE_LOG_FORMAT=`; rimuovere
+l'override per tornare a ECS. La variabile può essere impostata anche avviando
+il JAR direttamente. Non serve configurare un file Logback custom.

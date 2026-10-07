@@ -37,7 +37,9 @@ public final class VehicleWorkload implements VehicleTask {
 
     @Override
     public void run() {
-        log.info("Starting telemetry workload for vehicle {}", state.externalCode());
+        log.atInfo().addKeyValue("event.action", "simulator.workload.started")
+            .addKeyValue("vehicleId", state.vehicleId())
+            .log("Starting telemetry workload for vehicle {}", state.externalCode());
         try {
             connection.connect();
             while (!Thread.currentThread().isInterrupted()) {
@@ -50,23 +52,34 @@ public final class VehicleWorkload implements VehicleTask {
                     state = sample.nextState();
                     sleeper.sleep(sendInterval);
                 } catch (IOException sendFailure) {
-                    log.debug(
-                        "Vehicle {} telemetry send failed; connection will be restored before the" +
-                            " next sample", state.externalCode(), sendFailure);
+                    log.atDebug().addKeyValue("event.action", "simulator.send.failed")
+                        .addKeyValue("vehicleId", state.vehicleId())
+                        .addKeyValue("errorType", sendFailure.getClass().getSimpleName())
+                        .log("Vehicle {} telemetry send failed; connection will be restored" +
+                            " before the" +
+                            " next sample", state.externalCode());
                 }
             }
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();
         } catch (IOException connectionStopped) {
             if (!Thread.currentThread().isInterrupted()) {
-                log.error("Vehicle {} telemetry workload stopped after a connection error",
-                    state.externalCode(), connectionStopped);
+                log.atError().addKeyValue("event.action", "simulator.workload.connection.failed")
+                    .addKeyValue("vehicleId", state.vehicleId())
+                    .addKeyValue("errorType", connectionStopped.getClass().getSimpleName())
+                    .log("Vehicle {} telemetry workload stopped after a connection error",
+                state.externalCode());
             }
         } catch (RuntimeException unexpected) {
-            log.error("Vehicle {} telemetry workload failed", state.externalCode(), unexpected);
+            log.atError().addKeyValue("event.action", "simulator.workload.failed")
+                .addKeyValue("vehicleId", state.vehicleId())
+                .addKeyValue("errorType", unexpected.getClass().getSimpleName())
+                .log("Vehicle {} telemetry workload failed", state.externalCode());
         } finally {
             connection.close();
-            log.info("Stopped telemetry workload for vehicle {}", state.externalCode());
+            log.atInfo().addKeyValue("event.action", "simulator.workload.stopped")
+                .addKeyValue("vehicleId", state.vehicleId())
+                .log("Stopped telemetry workload for vehicle {}", state.externalCode());
         }
     }
 

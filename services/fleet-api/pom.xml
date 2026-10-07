@@ -131,19 +131,6 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<executions>
-					<execution>
-						<id>compile-generated-mapstruct-sources</id>
-						<phase>process-classes</phase>
-						<goals>
-							<goal>compile</goal>
-						</goals>
-						<configuration>
-							<proc>none</proc>
-							<staleMillis>100000</staleMillis>
-						</configuration>
-					</execution>
-				</executions>
 				<configuration>
 					<release>${java.version}</release>
 					<annotationProcessorPaths>

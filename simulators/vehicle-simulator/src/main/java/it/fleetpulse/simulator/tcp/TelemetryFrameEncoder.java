@@ -30,8 +30,13 @@ public final class TelemetryFrameEncoder {
 
         byte[] payload = objectMapper.writeValueAsBytes(message);
         frameWriter.write(payload, output);
-        log.debug("Encoded telemetry frame: messageId={}, payloadBytes={}", message.messageId(),
-            payload.length);
+        log.atDebug().addKeyValue("event.action", "encoded.telemetry.frame")
+            .addKeyValue("messageId", message.messageId())
+            .addKeyValue("vehicleId", message.vehicleId())
+            .addKeyValue("payloadBytes", payload.length)
+            .log("Encoded telemetry frame: messageId={}, payloadBytes={}",
+                message.messageId(),
+                payload.length);
     }
 
     private static void validateProtocolVersion(

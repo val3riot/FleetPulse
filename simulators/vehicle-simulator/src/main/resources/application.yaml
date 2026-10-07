@@ -29,3 +29,8 @@ simulator:
   vehicle:
     service-interval-km: ${SIMULATOR_VEHICLE_SERVICE_INTERVAL_KM:15000}
     initial-odometer-km: ${SIMULATOR_VEHICLE_INITIAL_ODOMETER_KM:10000}
+
+logging:
+  structured:
+    format:
+      console: ${FLEETPULSE_LOG_FORMAT:ecs}

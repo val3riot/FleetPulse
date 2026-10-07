@@ -57,7 +57,8 @@ public final class TelemetryEventProcessingService implements TelemetryEventHand
         this.mapper = Objects.requireNonNull(mapper);
         this.clock = Objects.requireNonNull(clock);
         this.failureClassifier = Objects.requireNonNull(failureClassifier);
-        this.eligibilityGuard = Objects.requireNonNull(eligibilityGuard, "eligibilityGuard must not be null");
+        this.eligibilityGuard = Objects.requireNonNull(eligibilityGuard,
+            "eligibilityGuard must not be null");
         this.latestStateProjection = Objects.requireNonNull(latestStateProjection,
                 "latestStateProjection must not be null");
         this.projectionObservability = Objects.requireNonNull(projectionObservability);
@@ -65,7 +66,8 @@ public final class TelemetryEventProcessingService implements TelemetryEventHand
             Objects.requireNonNull(alertVehicleQuery, "alertVehicleQuery must not be null");
         this.alertTelemetryMapper =
             Objects.requireNonNull(alertTelemetryMapper, "alertTelemetryMapper must not be null");
-        this.alertEvaluator = Objects.requireNonNull(alertEvaluator, "alertEvaluator must not be null");
+        this.alertEvaluator = Objects.requireNonNull(alertEvaluator,
+            "alertEvaluator must not be null");
     }
 
     @Override
@@ -96,16 +98,33 @@ public final class TelemetryEventProcessingService implements TelemetryEventHand
                 throw failure;
             }
 
-            log.info(
-                    "Duplicate telemetry aggregate ignored: messageId={}, vehicleId={}, sequenceNumber={}",
-                    event.messageId(), event.vehicleId(), event.sequenceNumber());
+            log.atInfo().addKeyValue("event.action", "duplicate.telemetry.aggregate.ignored")
+                .addKeyValue("messageId", event.messageId())
+                .addKeyValue("vehicleId", event.vehicleId())
+                .addKeyValue("sequenceNumber", event.sequenceNumber())
+                .log("Duplicate telemetry aggregate ignored: messageId={}, vehicleId={}," +
+                    " sequenceNumber={}",
+
+                event.messageId(),
+                event.vehicleId(),
+                event.sequenceNumber());
 
             return;
         }
 
-        log.info(
-                "Telemetry event persisted: sampleId={}, messageId={}, vehicleId={}, sequenceNumber={}",
-                saved.getId(), saved.getMessageId(), saved.getVehicleId(), saved.getSequenceNumber());
+        log.atInfo().addKeyValue("event.action", "telemetry.event.persisted")
+            .addKeyValue("sampleId", saved.getId())
+            .addKeyValue("alertCandidates", candidates.size())
+            .addKeyValue("messageId", saved.getMessageId())
+            .addKeyValue("vehicleId", saved.getVehicleId())
+            .addKeyValue("sequenceNumber", saved.getSequenceNumber())
+            .log("Telemetry event persisted: sampleId={}, messageId={}, vehicleId={}," +
+                " sequenceNumber={}",
+
+                saved.getId(),
+                saved.getMessageId(),
+                saved.getVehicleId(),
+                saved.getSequenceNumber());
         // The writer's transactional proxy has committed before returning to this orchestrator.
         updateLatestState(saved);
     }
