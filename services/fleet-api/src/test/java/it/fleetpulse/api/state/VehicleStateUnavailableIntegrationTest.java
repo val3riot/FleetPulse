@@ -67,6 +67,9 @@ class VehicleStateUnavailableIntegrationTest {
             Timestamp.from(observed));
         String path = "/api/v1/vehicles/" + id + "/state";
         REDIS.stop();
+        mvc.perform(get("/api/v1/dashboard")).andExpect(status().isOk())
+            .andExpect(jsonPath("$.totalVehicles").value(1))
+            .andExpect(jsonPath("$.vehiclesByStatus.ACTIVE").value(1));
         mvc.perform(get(path)).andExpect(status().isOk())
             .andExpect(jsonPath("$.lastSequenceNumber").value(42))
             .andExpect(jsonPath("$.lastSeenAt").value(observed.toString()))

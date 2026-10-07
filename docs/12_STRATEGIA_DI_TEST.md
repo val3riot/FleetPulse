@@ -326,3 +326,75 @@ BUILD SUCCESS; 641 test, zero failure/errori/skipped. Superati anche
 `git diff --check`, la validazione Hibernate dello schema Flyway V4 e il
 controllo di assenza di dichiarazioni locali con `var` nel codice e nei test
 FP-036.
+
+## Dashboard aggregation API — verifiche FP-037
+
+| Requisito | Evidenza nel modulo fleet-api |
+|---|---|
+| Clock letto una sola volta, cutoff e conteggi long | `DashboardServiceTest` |
+| Finestra e limite non default applicati ai repository (5 minuti, 7 alert) | `DashboardServiceTest.usesConfiguredReportingWindowAndAlertLimitInsteadOfDefaults` |
+| Configurazione validate, inclusi limiti e valori mancanti | `DashboardPropertiesTest` |
+| Database vuoto, entrambi gli stati, risposta completa | `DashboardApiIntegrationTest`, `DashboardControllerTest` |
+| Conteggio distinto, cutoff/now inclusivi, futuro escluso, DISABLED incluso | `DashboardApiIntegrationTest` |
+| Tutte le severità, OPEN/ACKNOWLEDGED, esclusione CLOSED, tie-breaker | `DashboardApiIntegrationTest` |
+| Limite DB e soli sette campi sintetici | `DashboardApiIntegrationTest`, `OpenApiIntegrationTest` |
+| Projection senza caricamento di entity gestite | `DashboardApiIntegrationTest.projectionsDoNotLoadManagedEntities` |
+| Quattro SELECT reali anche crescendo da 1 a 101 veicoli/alert | `DashboardApiIntegrationTest.queryCountStaysFourWhenFleetAndAlertVolumeGrow` |
+| Snapshot unico con commit concorrente fra le query | `DashboardApiIntegrationTest.allFourQueriesShareSnapshotDuringConcurrentCommit` |
+| V5 da schema vuoto e upgrade V4 con conservazione dati | `DashboardApiIntegrationTest` |
+| Piano del SQL generato da JPA su 10.000 sample, finestra selettiva | `DashboardApiIntegrationTest.inspectsReportingPlanOnRepresentativeHistory` |
+| PostgreSQL fermo: 503, senza vista parziale | `VehicleDatabaseUnavailableIntegrationTest`, `DashboardControllerTest` |
+| Redis fermo: dashboard ancora disponibile | `VehicleStateUnavailableIntegrationTest` |
+| Unexpected error: 500; response ed errori OpenAPI | `DashboardControllerTest`, `OpenApiIntegrationTest` |
+
+Il conteggio delle query intercetta l'esecuzione SQL sul datasource condiviso
+da JDBC e JPA, dopo il setup. La prova concorrente committa nuovi veicoli,
+sample e alert da una connessione separata mentre la dashboard sta leggendo:
+la richiesta in corso mantiene il primo snapshot; quella successiva vede il
+nuovo commit. Non usa sleep per coordinare la concorrenza.
+
+Il laboratorio cattura il SQL effettivamente eseguito da Hibernate e lo passa
+a `EXPLAIN (ANALYZE, BUFFERS)`. Non vincola i
+test a un piano specifico del planner. Prima di V5, la query globale esaminava
+10.000 righe e scartava 9.970 sample fuori finestra, leggendo 184 buffer.
+V5 aggiunge un indice che inizia con `observed_at`, mantenendo gli indici scoped
+preesistenti. Queste misure su fixture sono diagnostiche e non costituiscono
+il report di carico FP-047.
+
+Con V5, lo stesso laboratorio seleziona le 30 righe tramite Index Only Scan,
+legge 4 buffer e mostra circa 0,031 ms di execution time, contro circa
+0,374 ms della scansione precedente. I tempi dipendono da fixture/cache/host;
+la riduzione delle righe esaminate motiva l'indice, senza promettere un SLA.
+
+Verifica finale FP-037 del 2026-10-07: `./mvnw --batch-mode
+--no-transfer-progress clean verify` dalla root con Docker, BUILD SUCCESS;
+670 test, zero failure/errori/skipped. Superati Compose config con `.env` e
+`.env.example`, `git diff --check` e i controlli di stile sui nuovi file Java
+(indentazione a quattro spazi, linee entro 100 caratteri, import espliciti e
+nessuna dichiarazione locale `var`). Nessun commit eseguito, come richiesto.
+
+FP-037 usa ora Spring Data JPA: aggregazioni nei repository vehicle/telemetry,
+conteggio alert derivato e projection `MaintenanceAlertSummary` tramite query
+JPQL/HQL. `DashboardService` mappa la projection nel DTO HTTP. La lista usa
+`List` con `Pageable` e mantiene il limite nel SQL generato, senza count di
+pagina. `projectionsDoNotLoadManagedEntities` verifica quattro query Hibernate
+e zero entity caricate. JDBC nei test resta per fixture, conteggio delle
+esecuzioni e EXPLAIN; gli adapter JDBC di altre feature restano invariati.
+
+Verifica finale della conversione JPA del 2026-10-07: `./mvnw --batch-mode
+--no-transfer-progress clean verify` dalla root, BUILD SUCCESS; 671 test,
+zero failure/errori/skipped. Confermati quattro SELECT reali, zero entity
+caricate, snapshot concorrente, OpenAPI, guasti PostgreSQL/Redis e upgrade V5.
+Il SQL reporting generato da Hibernate usa l'indice V5 con Index Only Scan,
+30 righe e 4 buffer nella fixture. Superati Compose config con entrambi i file
+env, diff check e stile Java. Nessun commit o modifica dello staging preesistente.
+
+
+Verifica di chiusura FP-037 del 2026-10-07: nuovo `clean verify` completo,
+BUILD SUCCESS; 672 test, zero failure/errori/skipped (117 report Surefire).
+Aggiunta la prova dell'uso effettivo della configurazione non default nei
+repository: finestra di 5 minuti e limite di 7 alert. Tutti i criteri della
+matrice sono soddisfatti sul working tree JPA; FP-037 è tecnicamente chiudibile.
+Confermati Compose con entrambi i file env, stile Java e diff check.
+La validazione precede il commit FP-037; durante i test lo staging
+preesistente è rimasto invariato.

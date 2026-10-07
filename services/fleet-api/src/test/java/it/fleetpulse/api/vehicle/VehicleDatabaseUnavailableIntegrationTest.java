@@ -72,6 +72,13 @@ class VehicleDatabaseUnavailableIntegrationTest {
         assertThat(repository.count()).isZero();
         POSTGRESQL.stop();
 
+        mockMvc.perform(get("/api/v1/dashboard"))
+            .andExpect(status().isServiceUnavailable())
+            .andExpect(jsonPath("$.code").value("SERVICE_UNAVAILABLE"))
+            .andExpect(jsonPath("$.path").value("/api/v1/dashboard"))
+            .andExpect(jsonPath("$.details").isEmpty())
+            .andExpect(jsonPath("$.totalVehicles").doesNotExist());
+
         UUID vehicleId = UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0");
 
         mockMvc.perform(get("/api/v1/vehicles/{vehicleId}",

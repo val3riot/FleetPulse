@@ -58,6 +58,9 @@ valida esistenza o stato operativo del veicolo.
 - espone stato corrente;
 - espone storico;
 - espone alert e ne protegge le transizioni concorrenti tramite optimistic locking;
+- aggrega la dashboard da PostgreSQL tramite query JPA e projection bounded,
+  con snapshot coerente,
+  senza dipendenza Redis;
 - pubblica OpenAPI;
 - applica fallback PostgreSQL.
 

@@ -333,9 +333,39 @@ Restituisce la panoramica funzionale della flotta.
 }
 ```
 
-La finestra usata per identificare i veicoli che hanno trasmesso recentemente è
-configurata dal servizio. `relevantAlerts` è limitato e ordinato per rilevanza e
-`createdAt` decrescente.
+L'endpoint è implementato da FP-037 e non accetta filtri o parametri di paginazione.
+Un database vuoto restituisce `200`, conteggi zero, entrambe le chiavi `ACTIVE`
+e `DISABLED` e `relevantAlerts: []`. Tutti i conteggi sono interi a 64 bit.
+
+- `totalVehicles` include tutti i veicoli ed è la somma di `vehiclesByStatus`.
+- `recentlyReportingVehicles` conta una sola volta ogni veicolo con almeno un
+  sample persistito il cui `observedAt` è nell'intervallo inclusivo
+  `[now - reportingWindow, now]`, inclusi i veicoli `DISABLED`. `now` viene letto
+  una volta dal `Clock` UTC. I timestamp futuri sono esclusi da questo KPI;
+  questo filtro non modifica la semantica del flag `stale` della State API,
+  che continua a seguire ADR-008/010. La finestra ha default `1m`, minimo `1ms`
+  e massimo `1d`.
+- `openAlerts` conta soltanto `OPEN`, escludendo `ACKNOWLEDGED` e `CLOSED`.
+- `relevantAlerts` include `OPEN` e `ACKNOWLEDGED`, esclude `CLOSED` e usa
+  severità `CRITICAL > HIGH > MEDIUM > LOW`, poi `createdAt DESC`, infine
+  `id ASC`. Il limite configurabile ha default `10` e intervallo `1–100`.
+  Ogni elemento espone solo i sette campi dell'esempio, senza campi del dettaglio.
+
+La vista usa quattro SELECT aggregate/projection tramite i repository Spring Data
+JPA di veicoli, telemetria e alert, in una transazione
+read-only `REPEATABLE READ`: conteggi e lista vedono lo stesso snapshot anche se
+un aggiornamento concorrente viene committato tra due query. Non carica entity
+per singolo veicolo e non accede a Redis. Le projection tipizzate sono separate
+dai DTO HTTP; la lista rilevante usa `List` con `Pageable`, senza il conteggio
+aggiuntivo di una `Page`. La migration V5 aggiunge l'indice
+`(observed_at, vehicle_id)` per il filtro temporale globale. Una failure di una
+query impedisce la risposta completa; non vengono restituiti zeri sostitutivi
+né viste parziali.
+
+Configurazione: `fleetpulse.api.dashboard.reporting-window`
+(`API_DASHBOARD_REPORTING_WINDOW`) e
+`fleetpulse.api.dashboard.relevant-alerts-limit`
+(`API_DASHBOARD_RELEVANT_ALERTS_LIMIT`), validate all'avvio.
 
 Errori:
 

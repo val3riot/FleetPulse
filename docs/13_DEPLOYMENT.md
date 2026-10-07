@@ -266,3 +266,19 @@ blocco `environment` della Fleet API. La migration V2 aggiunge l'indice del late
 sample e deve essere applicata dal servizio Flyway prima dell'avvio.
 
 Contratto: [ADR-010](adr/ADR-010-STATE-API-FALLBACK.md).
+
+## Dashboard API — configurazione FP-037
+
+| Property | Variabile ambiente | Default | Limiti |
+|---|---|---|---|
+| `fleetpulse.api.dashboard.reporting-window` | `API_DASHBOARD_REPORTING_WINDOW` | `1m` | `1ms–1d` |
+| `fleetpulse.api.dashboard.relevant-alerts-limit` | `API_DASHBOARD_RELEVANT_ALERTS_LIMIT` | `10` | `1–100` |
+
+Entrambe le variabili sono inoltrate al servizio Fleet API da Compose e presenti
+in `.env.example`. Configurazioni mancanti nelle properties o fuori limite
+impediscono l'avvio; l'application YAML fornisce i default. Flyway deve applicare
+V5 prima dell'avvio. Non modificare le migration già pubblicate.
+La dashboard richiede PostgreSQL e non usa Redis. La dipendenza Redis nel
+Compose rimane quella condivisa dal servizio Fleet API per gli altri endpoint.
+
+Contratto: [Dashboard REST](09_SPECIFICA_API.md#4-dashboard).

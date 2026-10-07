@@ -260,3 +260,11 @@ e seleziona una sola riga del veicolo. La migration V2 aggiunge
 `(vehicle_id, observed_at DESC, sequence_number DESC, id DESC)` senza cambiare V1.
 Il tie-breaker `id` non entra nella recency Redis. Contratto di lettura e repair:
 [ADR-010](adr/ADR-010-STATE-API-FALLBACK.md).
+
+## Indice dashboard — FP-037
+
+La migration `V5__dashboard_reporting_index.sql` aggiunge
+`ix_telemetry_samples_observed_at_vehicle` su `(observed_at, vehicle_id)`.
+Supporta la finestra temporale globale della dashboard e il conteggio dei
+veicoli distinti; gli indici precedenti, con `vehicle_id` iniziale, restano
+necessari per stato e storico del singolo veicolo.

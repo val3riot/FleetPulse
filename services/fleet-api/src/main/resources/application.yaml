@@ -47,6 +47,9 @@ springdoc:
 
 fleetpulse:
   api:
+    dashboard:
+      reporting-window: ${API_DASHBOARD_REPORTING_WINDOW:1m}
+      relevant-alerts-limit: ${API_DASHBOARD_RELEVANT_ALERTS_LIMIT:10}
     state:
       stale-after: ${API_STATE_STALE_AFTER:1m}
       cache:
