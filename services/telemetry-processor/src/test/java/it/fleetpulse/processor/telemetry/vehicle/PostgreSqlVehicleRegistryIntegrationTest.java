@@ -3,6 +3,9 @@ package it.fleetpulse.processor.telemetry.vehicle;
 import it.fleetpulse.processor.telemetry.alert.AlertVehicle;
 import it.fleetpulse.processor.telemetry.alert.PostgreSqlAlertVehicleQuery;
 import it.fleetpulse.processor.telemetry.persistence.PostgreSqlIntegrationSupport;
+import jakarta.persistence.EntityManagerFactory;
+import org.hibernate.SessionFactory;
+import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,10 +20,10 @@ import java.time.ZoneOffset;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase.Replace.NONE;
+import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase.Replace;
 
 @DataJpaTest
-@AutoConfigureTestDatabase(replace = NONE)
+@AutoConfigureTestDatabase(replace = Replace.NONE)
 @Import({PostgreSqlVehicleRegistry.class, PostgreSqlAlertVehicleQuery.class})
 @ActiveProfiles("test")
 class PostgreSqlVehicleRegistryIntegrationTest extends PostgreSqlIntegrationSupport {
@@ -39,6 +42,9 @@ class PostgreSqlVehicleRegistryIntegrationTest extends PostgreSqlIntegrationSupp
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private EntityManagerFactory entityManagerFactory;
 
     @BeforeEach
     void insertVehicles() {
@@ -70,6 +76,42 @@ class PostgreSqlVehicleRegistryIntegrationTest extends PostgreSqlIntegrationSupp
     @Test
     void returnsNoAlertVehicleForUnknownVehicle() {
         assertThat(alertVehicleQuery.findById(UUID.randomUUID())).isEmpty();
+    }
+
+    @Test
+    void readsScalarAndProjectionWithoutLoadingManagedVehicleEntities() {
+        Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+        boolean previouslyEnabled = statistics.isStatisticsEnabled();
+        statistics.setStatisticsEnabled(true);
+        statistics.clear();
+        try {
+            assertThat(registry.findStatus(ACTIVE_VEHICLE_ID)).contains(VehicleStatus.ACTIVE);
+            assertThat(alertVehicleQuery.findById(ACTIVE_VEHICLE_ID))
+                .contains(new AlertVehicle(ACTIVE_VEHICLE_ID, 90_000));
+            assertThat(statistics.getQueryExecutionCount()).isEqualTo(2);
+            assertThat(statistics.getEntityLoadCount()).isZero();
+        } finally {
+            statistics.setStatisticsEnabled(previouslyEnabled);
+        }
+    }
+
+    @Test
+    void observesChangedStatusAndMaintenanceThresholdOnFollowingLookup() {
+        registry.findStatus(ACTIVE_VEHICLE_ID);
+        alertVehicleQuery.findById(ACTIVE_VEHICLE_ID);
+        jdbcTemplate.update("""
+            UPDATE vehicles SET status = 'DISABLED', next_service_at_km = 105000 WHERE id = ?
+            """, ACTIVE_VEHICLE_ID);
+
+        assertThat(registry.findStatus(ACTIVE_VEHICLE_ID)).contains(VehicleStatus.DISABLED);
+        assertThat(alertVehicleQuery.findById(ACTIVE_VEHICLE_ID))
+            .contains(new AlertVehicle(ACTIVE_VEHICLE_ID, 105_000));
+    }
+
+    @Test
+    void loadsMaintenanceThresholdForDisabledVehicleWithoutFilteringStatus() {
+        assertThat(alertVehicleQuery.findById(DISABLED_VEHICLE_ID))
+            .contains(new AlertVehicle(DISABLED_VEHICLE_ID, 90_000));
     }
 
     private void insertVehicle(UUID id, String externalCode, String plate, String status) {

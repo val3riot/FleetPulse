@@ -173,3 +173,27 @@ I virtual threads non eliminano la necessità di timeout, limiti e backpressure.
 - [ADR-005 — Redis come cache ricostruibile](adr/ADR-005-REDIS-CACHE-RICOSTRUIBILE.md)
 - [ADR-006 — At-least-once con application idempotency](adr/ADR-006-AT-LEAST-ONCE-E-IDEMPOTENCY.md)
 - [ADR-007 — Validazione del veicolo nel telemetry processor](adr/ADR-007-VALIDAZIONE-VEICOLO.md)
+
+
+## Accesso PostgreSQL tramite JPA
+
+Fleet API e telemetry-processor usano Spring Data JPA anche per gli adapter
+latest-state, registry veicoli e soglia manutenzione (FP-031, FP-018, FP-033).
+Le porte applicative restano separate dai repository. I nomi PostgreSql degli
+adapter identificano il database, mentre l'implementazione delega a JPA.
+
+Il fallback latest-state seleziona una projection di LatestVehicleState dal
+TelemetrySampleEntity esistente, ordinata per observedAt DESC,
+sequenceNumber DESC e id DESC, con limite di una riga applicato nel database.
+La transazione read-only termina prima del repair Redis; un cache hit evita
+ancora ogni query PostgreSQL.
+
+Il processor usa VehicleReadEntity, mapping locale @Immutable di id, status
+e nextServiceAtKm. VehicleReadRepository espone soltanto due letture: stato
+scalare e projection AlertVehicle, senza metodi di scrittura o associazioni
+JPA. Le due letture restano distinte e precedono TelemetryAggregateWriter;
+la transazione atomica sample/alert e l'aggiornamento Redis dopo il commit
+conservano i confini già definiti. Le entity non sono condivise fra servizi.
+
+JDBC resta nei test per fixture e ispezione dei piani SQL; Flyway gestisce lo
+schema. Nessuna migration è necessaria per questa uniformazione.

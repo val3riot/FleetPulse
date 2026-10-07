@@ -398,3 +398,28 @@ matrice sono soddisfatti sul working tree JPA; FP-037 è tecnicamente chiudibile
 Confermati Compose con entrambi i file env, stile Java e diff check.
 La validazione precede il commit FP-037; durante i test lo staging
 preesistente è rimasto invariato.
+
+
+## Uniformazione degli adapter PostgreSQL a JPA — FP-018/031/033
+
+| Requisito | Evidenza |
+|---|---|
+| Latest-state: filtro veicolo e ordine observedAt/sequenceNumber/id, limite DB di una riga | VehicleStateApiIntegrationTest |
+| Latest-state: una sola query e zero entity gestite caricate | VehicleStateApiIntegrationTest.latestSampleUsesSingleProjectionQueryWithoutLoadingManagedEntities |
+| Cache hit senza PostgreSQL, fallback/repair e Redis indisponibile | VehicleStateApiIntegrationTest, VehicleStateCacheHitDatabaseUnavailableIntegrationTest, VehicleStateUnavailableIntegrationTest |
+| Registry: ACTIVE, DISABLED, veicolo assente | PostgreSqlVehicleRegistryIntegrationTest |
+| Soglia manutenzione per ACTIVE/DISABLED e veicolo assente | PostgreSqlVehicleRegistryIntegrationTest |
+| Lookup scalari/projection: due query e zero entity caricate | PostgreSqlVehicleRegistryIntegrationTest.readsScalarAndProjectionWithoutLoadingManagedVehicleEntities |
+| Rilettura stato e soglia dopo modifica, senza dati da entity in cache | PostgreSqlVehicleRegistryIntegrationTest.observesChangedStatusAndMaintenanceThresholdOnFollowingLookup |
+| Validazione schema e confini commit/offset/Redis invariati | TelemetrySamplePersistenceIntegrationTest, TelemetryAggregateWriterIntegrationTest, TelemetryOffsetSemanticsIntegrationTest, TelemetryPipelineIntegrationTest |
+
+Le fixture continuano a usare JDBC; il codice di produzione dei tre adapter
+usa repository JPA. Il read model veicoli del processor è locale e @Immutable;
+il repository espone soltanto letture scalari/projection.
+
+
+Esito finale uniformazione JPA: suite completa da 673 test e suite mirata
+PostgreSqlVehicleRegistryIntegrationTest da 8 test entrambe verdi, zero
+failure/errori/skipped. La suite mirata comprende i 3 nuovi casi processor:
+676 casi complessivi distinti verificati fra le due esecuzioni. Diff check e
+stile delle nuove righe Java validi. Nessun commit aggiuntivo.

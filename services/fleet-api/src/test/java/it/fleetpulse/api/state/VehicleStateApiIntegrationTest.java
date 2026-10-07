@@ -10,6 +10,9 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.UUID;
+import jakarta.persistence.EntityManagerFactory;
+import org.hibernate.SessionFactory;
+import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -65,6 +68,7 @@ class VehicleStateApiIntegrationTest extends PostgreSqlIntegrationSupport {
     @Autowired RedisLatestStateCodec codec;
     @Autowired MeterRegistry metrics;
     @MockitoSpyBean PostgreSqlLatestSampleQuery samples;
+    @Autowired EntityManagerFactory entityManagerFactory;
 
     @BeforeEach
     void setup() {
@@ -106,6 +110,26 @@ class VehicleStateApiIntegrationTest extends PostgreSqlIntegrationSupport {
         mvc.perform(get(PATH)).andExpect(status().isOk()).andExpect(content().json(first));
         verifyNoInteractions(samples);
         assertThat(count("hits")).isEqualTo(hits + 1);
+    }
+
+    @Test
+    void latestSampleUsesSingleProjectionQueryWithoutLoadingManagedEntities() {
+        insert(ID, NOW.minusSeconds(20), 1, 50);
+        insert(ID, NOW.minusSeconds(10), 2, 60);
+        Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+        boolean previouslyEnabled = statistics.isStatisticsEnabled();
+        statistics.setStatisticsEnabled(true);
+        statistics.clear();
+        try {
+            assertThat(samples.findByVehicleId(ID)).hasValueSatisfying(state -> {
+                assertThat(state.lastSequenceNumber()).isEqualTo(2);
+                assertThat(state.speedKmh()).isEqualTo(60);
+            });
+            assertThat(statistics.getQueryExecutionCount()).isEqualTo(1);
+            assertThat(statistics.getEntityLoadCount()).isZero();
+        } finally {
+            statistics.setStatisticsEnabled(previouslyEnabled);
+        }
     }
 
     @Test
