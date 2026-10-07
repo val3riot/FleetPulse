@@ -112,6 +112,12 @@ I codici seguono il formato:
 Un enum non riconosciuto nel JSON, un numero non convertibile o un body
 obbligatorio assente ricadono in `REQUEST_MALFORMED_JSON`.
 
+Per le query history e collection alert, i parametri scalari presenti con
+valore vuoto o soltanto spazi, oppure ripetuti anche con valori identici,
+producono `REQUEST_INVALID`. La verifica avviene prima del binding dei
+criteri: un valore vuoto non viene trasformato in un filtro assente o in
+un default di paginazione. Gli errori di questa verifica usano details vuoto.
+
 ### 5.2 Unicità dei veicoli
 
 I controlli `existsByExternalCode` e `existsByPlate` sono opzionali e servono

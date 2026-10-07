@@ -124,6 +124,31 @@ class TelemetryHistoryApiIntegrationTest extends PostgreSqlIntegrationSupport {
     }
 
     @Test
+    void acceptsEqualRangeEndpoints() throws Exception {
+        long selected = insertSample(VEHICLE_ID, FROM, 1, 20);
+        insertSample(VEHICLE_ID, FROM.plusSeconds(1), 2, 30);
+        mockMvc.perform(get(PATH).param("from", FROM.toString()).param("to", FROM.toString()))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(1))
+            .andExpect(jsonPath("$.content[0].id").value(selected));
+    }
+
+    @Test
+    void keepsTotalsAndFlagsOnLastAndBeyondLastPage() throws Exception {
+        for (int sequence = 1; sequence <= 3; sequence++) {
+            insertSample(VEHICLE_ID, FROM.plusSeconds(sequence), sequence, 20);
+        }
+        historyPage(1).andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.totalElements").value(3))
+            .andExpect(jsonPath("$.totalPages").value(2))
+            .andExpect(jsonPath("$.first").value(false)).andExpect(jsonPath("$.last").value(true));
+        historyPage(2).andExpect(jsonPath("$.content").isEmpty())
+            .andExpect(jsonPath("$.page").value(2)).andExpect(jsonPath("$.size").value(2))
+            .andExpect(jsonPath("$.totalElements").value(3))
+            .andExpect(jsonPath("$.totalPages").value(2))
+            .andExpect(jsonPath("$.first").value(false)).andExpect(jsonPath("$.last").value(true));
+    }
+
+    @Test
     void queryPlanCanUseTheHistoryIndex() {
         insertSample(VEHICLE_ID, FROM.plusSeconds(10), 1, 10);
 
@@ -162,6 +187,32 @@ class TelemetryHistoryApiIntegrationTest extends PostgreSqlIntegrationSupport {
     private org.springframework.test.web.servlet.ResultActions validGet() throws Exception {
         return mockMvc.perform(
             get(PATH).param("from", FROM.toString()).param("to", TO.toString()));
+    }
+
+    @Test
+    void rejectsEmptyAndRepeatedParametersBeforeDefaultsAreApplied() throws Exception {
+        for (String name : new String[]{"from", "to", "page", "size", "sort"}) {
+            for (String blank : new String[]{"", "   "}) {
+                mockMvc.perform(get(PATH).param("from", FROM.toString()).param("to", TO.toString())
+                        .param(name, blank))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value("REQUEST_INVALID"));
+            }
+        }
+        for (String[] parameter : new String[][]{{"from", FROM.toString()}, {"to", TO.toString()},
+            {"page", "0"}, {"size", "50"}, {"sort", "observedAt,desc"}}) {
+            mockMvc.perform(get(PATH).param("from", FROM.toString()).param("to", TO.toString())
+                    .param(parameter[0], parameter[1], parameter[1]))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("REQUEST_INVALID"));
+        }
+    }
+
+    private org.springframework.test.web.servlet.ResultActions historyPage(int page)
+        throws Exception {
+        return mockMvc.perform(get(PATH).param("from", FROM.toString()).param("to", TO.toString())
+                .param("page", Integer.toString(page)).param("size", "2")
+                .param("sort", "observedAt,asc")).andExpect(status().isOk());
     }
 
     private MvcResult getPage(int page, int size, String sort) throws Exception {

@@ -316,6 +316,79 @@ class OpenApiIntegrationTest extends PostgreSqlIntegrationSupport {
                 endsWith("/ApiErrorResponse")));
     }
 
+    @Test
+    void documentsStateFieldsAndErrors() throws Exception {
+        String operation = "$.paths['/api/v1/vehicles/{vehicleId}/state'].get";
+        mockMvc.perform(get(OPEN_API_PATH)).andExpect(status().isOk())
+            .andExpect(jsonPath("$.components.schemas.VehicleStateResponse.required")
+                .value(hasItems("vehicleId", "lastSequenceNumber", "lastSeenAt", "stale",
+                    "speedKmh", "engineTemperatureC", "batteryVoltage", "odometerKm",
+                    "latitude", "longitude")))
+            .andExpect(jsonPath("$.components.schemas.VehicleStateResponse.properties" +
+                ".vehicleId.format").value("uuid"))
+            .andExpect(jsonPath("$.components.schemas.VehicleStateResponse.properties" +
+                ".lastSeenAt.format").value("date-time"))
+            .andExpect(jsonPath("$.components.schemas.VehicleStateResponse.properties" +
+                ".lastSequenceNumber.format").value("int64"))
+            .andExpect(jsonPath(operation + ".parameters[?(@.name == 'vehicleId')].required")
+                .value(true));
+        assertReadErrors(operation, new int[]{400, 404, 500, 503});
+    }
+
+    @Test
+    void documentsCollectionMetadataAndScopedAlertConstraints() throws Exception {
+        for (String schema : new String[]{"TelemetryHistoryResponse",
+            "PagedResponseMaintenanceAlertResponse"}) {
+            String path = "$.components.schemas." + schema;
+            mockMvc.perform(get(OPEN_API_PATH)).andExpect(status().isOk())
+                .andExpect(jsonPath(path + ".required").value(hasItems("content", "page", "size",
+                    "totalElements", "totalPages", "first", "last")))
+                .andExpect(jsonPath(path + ".properties.totalElements.format").value("int64"))
+                .andExpect(jsonPath(path + ".properties.first.type").value("boolean"))
+                .andExpect(jsonPath(path + ".properties.last.type").value("boolean"));
+        }
+        String operation = "$.paths['/api/v1/vehicles/{vehicleId}/alerts'].get";
+        mockMvc.perform(get(OPEN_API_PATH)).andExpect(status().isOk())
+            .andExpect(jsonPath(operation + ".parameters[?(@.name == 'size')].schema.default")
+                .value(50))
+            .andExpect(jsonPath(operation + ".parameters[?(@.name == 'size')].schema.minimum")
+                .value(1))
+            .andExpect(jsonPath(operation + ".parameters[?(@.name == 'size')].schema.maximum")
+                .value(100))
+            .andExpect(jsonPath(operation + ".parameters[?(@.name == 'page')].schema.minimum")
+                .value(0))
+            .andExpect(jsonPath(operation + ".parameters[?(@.name == 'vehicleId')].required")
+                .value(true))
+            .andExpect(jsonPath(operation + ".parameters[?(@.name == 'from')].required")
+                .value(false));
+        assertReadErrors(operation, new int[]{400, 404, 500, 503});
+        assertReadErrors("$.paths['/api/v1/alerts'].get", new int[]{400, 500, 503});
+        assertReadErrors("$.paths['/api/v1/alerts/{alertId}'].get", new int[]{400, 404, 500, 503});
+    }
+
+    @Test
+    void documentsNullableAlertTransitionTimesAndRequiredIdentity() throws Exception {
+        String schema = "$.components.schemas.MaintenanceAlertResponse";
+        mockMvc.perform(get(OPEN_API_PATH)).andExpect(status().isOk())
+            .andExpect(jsonPath(schema + ".required").value(hasItems("id", "vehicleId",
+                "sourceMessageId", "type", "severity", "description", "status", "createdAt")))
+            .andExpect(jsonPath(schema + ".properties.id.format").value("uuid"))
+            .andExpect(jsonPath(schema + ".properties.createdAt.format").value("date-time"))
+            .andExpect(jsonPath(schema + ".properties.acknowledgedAt.type")
+                .value(hasItems("string", "null")))
+            .andExpect(jsonPath(schema + ".properties.closedAt.type")
+                .value(hasItems("string", "null")));
+    }
+
+    private void assertReadErrors(String operation, int[] statuses) throws Exception {
+        for (int statusCode : statuses) {
+            mockMvc.perform(get(OPEN_API_PATH)).andExpect(status().isOk())
+                .andExpect(jsonPath(operation + ".responses['" + statusCode + "']" +
+                    ".content['application/json'].schema.$ref")
+                    .value(endsWith("/ApiErrorResponse")));
+        }
+    }
+
     /**
      * Verifica la disponibilità dell'entry point e degli asset della Swagger UI.
      */

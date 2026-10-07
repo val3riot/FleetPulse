@@ -8,11 +8,14 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import it.fleetpulse.api.common.ApiErrorResponse;
+import it.fleetpulse.api.common.QueryParameterValidator;
+import jakarta.servlet.http.HttpServletRequest;
 import it.fleetpulse.api.common.PagedResponse;
 import jakarta.validation.Valid;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.InitBinder;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -119,4 +122,10 @@ public class MaintenanceAlertController {
         @Valid @RequestBody ChangeAlertStatusRequest request) {
         return commandService.changeStatus(alertId, request);
     }
+    @InitBinder("maintenanceAlertSearchRequest")
+    void validateQueryParameters(HttpServletRequest request) {
+        QueryParameterValidator.validate(request,
+            "vehicleId", "status", "type", "severity", "from", "to", "page", "size", "sort");
+    }
+
 }

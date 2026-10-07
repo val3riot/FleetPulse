@@ -423,3 +423,86 @@ PostgreSqlVehicleRegistryIntegrationTest da 8 test entrambe verdi, zero
 failure/errori/skipped. La suite mirata comprende i 3 nuovi casi processor:
 676 casi complessivi distinti verificati fra le due esecuzioni. Diff check e
 stile delle nuove righe Java validi. Nessun commit aggiuntivo.
+
+
+## Contract test query API — piano FP-038
+
+FP-038 verifica i contratti di state, history e collection/dettaglio alert.
+Riutilizza le evidenze FP-031/032/035 e mantiene la dashboard FP-037 come
+regressione. Questa matrice è un piano: i casi da completare non sono ancora
+una prova di chiusura. Resilienza cache completa e carico restano FP-039/047.
+
+| Criterio | Evidenza esistente | Completamento previsto |
+|---|---|---|
+| State: hit/fallback, timestamp, dato assente | VehicleStateApiIntegrationTest e test guasti | Audit schema JSON/OpenAPI, UUID e response errori della route |
+| History: intervallo incluso, isolamento, ordering stabile, pagina vuota | TelemetryHistoryApiIntegrationTest | from=to, pagina oltre ultima, totali e flags |
+| Alert: filtri individuali/AND, confini e ordering DESC | MaintenanceAlertRepositoryIntegrationTest | REST con PostgreSQL: tutti i filtri insieme, solo from/to, nessuna corrispondenza e ASC |
+| Global/scoped: default e differenza veicolo assente | MaintenanceAlertControllerTest, MaintenanceAlertServiceTest | Conferma route → repository → PostgreSQL senza mock del service |
+| Paginazione: minimo/massimo, ultima pagina e pagina oltre ultima | Test factory e controller | Schema/metadati e totali filtrati con dati reali |
+| Schema response | Mapping e assert JSON/OpenAPI esistenti | required, nullabilità, UUID/date-time/int64, content e metadati |
+| Parametri OpenAPI | OpenApiIntegrationTest | Audit min/max/default/required e response error schema di ogni route |
+| Binding/errori | Controller test e docs/15 | Consolidare casi esistenti e completare soltanto invalidità mancanti |
+
+Prima di aggiungere test per parametri vuoti o ripetuti, verificare il binding
+HTTP effettivo e concordare/documentare la semantica se non già definita.
+L'omissione di un filtro opzionale non implica che ogni stringa vuota debba
+essere accettata. Non introdurre limiti massimi di finestra history o nuovi
+limiti page senza una decisione di contratto.
+
+Preferire assert mirati a snapshot dell'intero documento OpenAPI; non fissare
+il testo localizzato di message. Validare codice/status, details, path e
+formato timestamp degli errori. Verificare paginazione senza buchi su dati
+invariati; non promettere snapshot fra richieste. Con Page, non imporre un
+numero fisso di COUNT perché Spring Data può evitarlo in alcuni casi.
+
+Scelta delle query: [ADR-012](adr/ADR-012-STRATEGIA-ACCESSO-DATI-JPA.md).
+La chiusura richiede matrice completata, docs/09 e OpenAPI coerenti, suite
+fleet-api e clean verify verdi; nessuna riscrittura preventiva delle query.
+
+
+### Evidenze implementative FP-038 — 2026-10-07
+
+Clean verify dalla root: BUILD SUCCESS, 687 test, zero failure/errori/skipped.
+Aggiunti 11 test, senza riscrittura delle query:
+
+- MaintenanceAlertApiIntegrationTest: 6 test con route REST e PostgreSQL reale
+  per filtri completi AND, confini inclusivi/aperti, ASC con tie-breaker,
+  metadati ultima/fuori pagina, global vuoto vs scoped 404, dettaglio e timestamp
+  null, validazione e struttura errori con timestamp decodificabile.
+- TelemetryHistoryApiIntegrationTest: 2 test aggiunti per from=to e metadati
+  ultima pagina/pagina oltre ultima con totali filtrati.
+- OpenApiIntegrationTest: 3 test aggiunti per required/formati dello stato,
+  metadati collection, vincoli scoped alert, error schema delle letture e
+  nullabilità timestamp di transizione. Annotazioni Schema allineate su
+  VehicleStateResponse e MaintenanceAlertResponse; JSON e logica invariati.
+
+I test delle nuove classi sono verdi (6 alert REST, 7 history integration,
+14 OpenAPI inclusi i casi preesistenti). Diff check e stile delle righe Java
+aggiunte validi. FP-038 resta in corso: la semantica dei parametri opzionali
+vuoti e dei parametri ripetuti è stata sottoposta all'utente e non viene
+fissata implicitamente dai nuovi test. Questa verifica non chiude FP-039.
+
+
+### Parametri query rigorosi — completamento FP-038
+
+Su indicazione dell'utente, history e collection alert rifiutano valori
+vuoti/blank e parametri ripetuti, inclusi duplicati identici, con
+400 REQUEST_INVALID. Il controllo raw avviene negli InitBinder dei request
+model prima che Spring possa convertire blank in null/applicare i default.
+QueryParameterValidator è condiviso, senza estendere la regola a request body
+oppure alla ricerca testuale veicoli, che ha un contratto distinto.
+
+MaintenanceAlertApiIntegrationTest copre i parametri delle due collection e
+vehicleId globale; TelemetryHistoryApiIntegrationTest copre from/to/page/size/sort.
+I precedenti test continuano a verificare l'omissione lecita e i default.
+Questa decisione sostituisce il punto aperto sui parametri vuoti/ripetuti
+riportato nel piano e nella precedente evidenza FP-038.
+
+
+Verifica finale FP-038 del 2026-10-07: clean verify, BUILD SUCCESS, 689 test,
+zero failure/errori/skipped. I due ulteriori test rigorosi esercitano tutti i
+parametri scalari previsti, valori vuoti/blank e duplicati identici sulle
+collection alert e sullo storico; sono verdi anche le route global/scoped,
+i metadati di paginazione e gli schemi OpenAPI. Il punto decisionale è risolto:
+FP-038 è tecnicamente chiudibile sul working tree. Diff check, stile delle
+righe Java aggiunte e link documentali validi. Nessun commit eseguito.

@@ -14,7 +14,7 @@ public record MaintenanceAlertResponse(
     @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String description,
     @Schema(requiredMode = Schema.RequiredMode.REQUIRED) AlertStatus status,
     @Schema(requiredMode = Schema.RequiredMode.REQUIRED) Instant createdAt,
-    Instant acknowledgedAt,
-    Instant closedAt
+    @Schema(nullable = true) Instant acknowledgedAt,
+    @Schema(nullable = true) Instant closedAt
 ) {
 }

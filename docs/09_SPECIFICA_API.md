@@ -26,10 +26,11 @@ L'MVP non implementa autenticazione o autorizzazione. Fleet API è destinata al
 solo deployment locale isolato; l'esposizione pubblica richiede una successiva
 integrazione di security.
 
-La specifica OpenAPI pubblicata descrive esclusivamente gli endpoint operativi
-del modulo veicoli elencati nella sezione 2. Gli endpoint delle sezioni
-successive rappresentano il contratto pianificato e non devono essere
-considerati disponibili finché le relative ticket non risultano completate.
+La specifica OpenAPI pubblicata descrive gli endpoint operativi di veicoli,
+stato corrente, dashboard, storico telemetrico e alert, incluse le transizioni
+di stato degli alert. I contratti delle sezioni seguenti sono implementati da
+FP-004–FP-008 e FP-031–FP-037. FP-038 completa la verifica dei contratti delle
+API di lettura; non introduce nuovi endpoint.
 
 ### 1.1 Error response
 
@@ -71,7 +72,8 @@ regole di conversione FE/BE sono definiti in
 Le collection paginate usano:
 
 - `page`: indice zero-based, default `0`;
-- `size`: default `20`, massimo `100`;
+- `size`: minimo `1`, massimo `100`; default `20` per veicoli e `50` per
+  storico telemetrico e collection alert;
 - `sort`: un solo criterio nel formato `<field>,<asc|desc>`.
 
 Struttura comune:
@@ -88,8 +90,23 @@ Struttura comune:
 }
 ```
 
-Una pagina vuota è una risposta valida. Valori di paginazione, filtro o sort
-non supportati producono `400 REQUEST_INVALID`.
+I default specifici di ciascun endpoint prevalgono sulle convenzioni comuni.
+Tutti i sette campi della pagina sono presenti: `content` è un array,
+`page`, `size` e `totalPages` sono interi a 32 bit, `totalElements` è un intero
+a 64 bit, `first` e `last` sono booleani. `totalElements` conta tutti i risultati
+che soddisfano i filtri, non soltanto gli elementi della pagina.
+
+Una pagina vuota è una risposta valida. Anche una pagina oltre l'ultima
+restituisce `200`, con `content: []`, `page` e `size` richiesti e i totali
+relativi alla ricerca. `first` indica `page == 0`; `last` indica l'assenza di
+una pagina successiva. Senza risultati, `totalElements` e `totalPages` sono
+zero. Il veicolo assente sulle collection scoped resta un `404 VEHICLE_NOT_FOUND`.
+Valori di paginazione, filtro o sort non supportati producono
+`400 REQUEST_INVALID`.
+
+Il tie-breaker rende l'ordinamento deterministico a dati invariati. Richieste
+di pagine diverse possono osservare modifiche concorrenti: non è garantito
+uno snapshot unico fra richieste.
 
 ## 2. Vehicles
 
@@ -372,6 +389,17 @@ Errori:
 - `503 SERVICE_UNAVAILABLE` se PostgreSQL non consente la costruzione della vista;
 - `500 INTERNAL_ERROR`.
 
+### Parametri scalari delle query history e alert
+
+Per lo storico e le collection alert, ogni parametro dichiarato può comparire
+una sola volta. Parametri ripetuti, anche con valori identici, oppure presenti
+con valore vuoto o composto soltanto da spazi producono
+`400 REQUEST_INVALID`. I filtri opzionali non desiderati si omettono;
+l'omissione dei parametri di paginazione applica i default dell'endpoint.
+La regola si applica a from/to/page/size/sort dello storico e a
+vehicleId/status/type/severity/from/to/page/size/sort delle collection alert
+(vehicleId è un filtro query della sola collection globale).
+
 ## 5. Storico telemetrico
 
 ### `GET /api/v1/vehicles/{vehicleId}/telemetry`
@@ -385,6 +413,12 @@ Parametri:
 | `page` | no | Default `0` |
 | `size` | no | Default `50`, massimo `100` |
 | `sort` | no | `observedAt,asc` oppure `observedAt,desc`; default `observedAt,desc` |
+
+L'intervallo si applica a `observedAt` in UTC; `from == to` è valido e seleziona
+le misure esattamente a quell'istante. Entrambi i limiti sono obbligatori.
+L'ordinamento aggiunge `id` nella stessa direzione di `observedAt` come
+tie-breaker deterministico. `sequenceNumber` non è un criterio di ordinamento
+dello storico; appartiene alla selezione del latest-state descritta nella sezione 3.
 
 `200 OK`:
 
@@ -452,6 +486,16 @@ Filtri opzionali:
 - `from` e `to` su `createdAt`;
 - `page`, `size`, `sort`.
 
+Le collection alert usano `page=0`, `size=50`, minimo `size=1` e massimo
+`size=100`. I filtri valorizzati si combinano con AND; la collection scoped
+aggiunge sempre il vincolo del veicolo indicato nel path.
+
+`from` e `to` sono limiti UTC inclusivi su `createdAt`. Se è presente soltanto
+`from`, non si applica un limite superiore; se è presente soltanto `to`, non
+si applica un limite inferiore. Se entrambi sono assenti non si filtra per
+intervallo temporale. `from == to` è valido; `from > to` produce
+`400 REQUEST_INVALID_TIME_RANGE`.
+
 Il sort predefinito è `createdAt,desc`; sono ammessi `createdAt,asc` e
 `createdAt,desc`. L'ordinamento aggiunge sempre `id` nella stessa direzione come
 tie-breaker deterministico. La response usa la struttura paginata e contiene
@@ -471,7 +515,10 @@ Filtri opzionali:
 - `size`;
 - `sort`.
 
-Il sort e il tie-breaker sono gli stessi della collection scoped al veicolo.
+Default, limiti di paginazione, semantica AND, intervallo temporale, sort e
+tie-breaker sono gli stessi della collection scoped al veicolo. Un filtro
+`vehicleId` valido senza corrispondenze restituisce una pagina vuota; non
+richiede la verifica di esistenza prevista per il path scoped.
 
 `MaintenanceAlertResponse`:
 
@@ -489,6 +536,13 @@ Il sort e il tie-breaker sono gli stessi della collection scoped al veicolo.
   "closedAt": null
 }
 ```
+
+Gli identificativi sono stringhe UUID e gli istanti sono timestamp UTC
+(formato OpenAPI `date-time`). `acknowledgedAt` e `closedAt` possono essere
+null: OPEN non ha timestamp di transizione; ACKNOWLEDGED ha acknowledgedAt;
+CLOSED ha closedAt e conserva acknowledgedAt se la chiusura segue un acknowledge.
+La nullabilità di questi timestamp va distinta dall'obbligatorietà degli
+altri campi e verificata nel contratto OpenAPI da FP-038.
 
 Errori delle collection alert:
 

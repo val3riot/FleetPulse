@@ -7,10 +7,13 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import it.fleetpulse.api.common.ApiErrorResponse;
+import it.fleetpulse.api.common.QueryParameterValidator;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.InitBinder;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -53,4 +56,10 @@ public class TelemetryHistoryController {
         @Valid @ParameterObject @ModelAttribute TelemetryHistoryRequest request) {
         return telemetryHistoryService.findByVehicleId(vehicleId, request);
     }
+    @InitBinder("telemetryHistoryRequest")
+    void validateQueryParameters(HttpServletRequest request) {
+        QueryParameterValidator.validate(request,
+            "from", "to", "page", "size", "sort");
+    }
+
 }

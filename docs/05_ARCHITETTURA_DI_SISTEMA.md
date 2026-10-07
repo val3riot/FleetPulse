@@ -197,3 +197,6 @@ conservano i confini già definiti. Le entity non sono condivise fra servizi.
 
 JDBC resta nei test per fixture e ispezione dei piani SQL; Flyway gestisce lo
 schema. Nessuna migration è necessaria per questa uniformazione.
+
+La scelta delle API di query e i criteri per eventuali eccezioni sono registrati
+in [ADR-012 — Strategia di accesso dati JPA](adr/ADR-012-STRATEGIA-ACCESSO-DATI-JPA.md).
