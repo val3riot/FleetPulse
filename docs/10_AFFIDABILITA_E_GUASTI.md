@@ -175,3 +175,20 @@ La degradazione deve essere visibile tramite log e metriche.
 - [ADR-006 — At-least-once con application idempotency](adr/ADR-006-AT-LEAST-ONCE-E-IDEMPOTENCY.md)
 - [ADR-007 — Validazione del veicolo nel telemetry processor](adr/ADR-007-VALIDAZIONE-VEICOLO.md)
 - [ADR-008 — Significato di lastSeenAt e freshness dello stato](adr/ADR-008-LAST-SEEN-AT-E-FRESHNESS.md)
+
+
+## Ripristino della cache State API — FP-039
+
+Un guasto Redis attiva il fallback PostgreSQL; il repair fallito non modifica
+la risposta riuscita. Alla rimozione del guasto, la stessa istanza Fleet API
+può ripopolare una chiave assente sulla richiesta successiva; un hit successivo
+non consulta PostgreSQL. Il recovery non ricostruisce automaticamente tutte le
+chiavi e non richiede un restart dell'API.
+
+La prova isolata usa un proxy di rete per interrompere connessioni o bloccare
+risposte lasciando stabile l'endpoint. Le metriche distinguono miss, failure
+lettura, fallback e failure repair; i warning restano limitati secondo ADR-010.
+La verifica riguarda la State API e non decide readiness/health durante il
+guasto Redis (FP-048). Nessun circuit breaker o repair asincrono è introdotto.
+
+Evidenze: [Strategia di test — FP-039](12_STRATEGIA_DI_TEST.md#cache-resilience--verifiche-fp-039).

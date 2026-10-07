@@ -506,3 +506,40 @@ collection alert e sullo storico; sono verdi anche le route global/scoped,
 i metadati di paginazione e gli schemi OpenAPI. Il punto decisionale è risolto:
 FP-038 è tecnicamente chiudibile sul working tree. Diff check, stile delle
 righe Java aggiunte e link documentali validi. Nessun commit eseguito.
+
+
+## Cache resilience — verifiche FP-039
+
+VehicleStateRecoveryIntegrationTest usa PostgreSQL/Redis reali e Toxiproxy,
+con la stessa ApplicationContext e connection factory durante guasto e recovery.
+La dipendenza Toxiproxy è soltanto test e segue il BOM Spring Boot.
+
+| Requisito | Evidenza |
+|---|---|
+| Connessione interrotta: fallback 200, failure read/repair distinte | reconnectsRepairsAndServesCacheHitAfterConnectionOutage |
+| TCP aperto, risposte bloccate: vero timeout di comando e fallback 200 | realCommandTimeoutFallsBackAndRecoversAfterNetworkFaultIsRemoved |
+| Miss riuscito, guasto solo durante repair: risposta PostgreSQL preservata | repairConnectionFailureAfterSuccessfulMissDoesNotChangePostgresResponse |
+| Recovery senza restart API, repair JSON/TTL, hit senza query veicolo/sample | Tutti i tre scenari di VehicleStateRecoveryIntegrationTest |
+| Redis fermo e guasto simultaneo DB, hit con PostgreSQL fermo | VehicleStateUnavailableIntegrationTest, VehicleStateCacheHitDatabaseUnavailableIntegrationTest |
+| Warning limitati, nessun payload/stacktrace/tag ad alta cardinalità | VehicleStateObservabilityTest |
+| Protezione da repair concorrente più vecchio, JSON invalido e TTL | VehicleStateApiIntegrationTest, RedisLatestStateProjectionIntegrationTest |
+
+Il proxy mantiene l'endpoint e i guasti vengono rimossi in finally. La
+riconnessione usa polling con limite massimo di 10 secondi, senza sleep fissi.
+La verifica di disponibilità chiama l'adapter direttamente, fuori dai contatori
+REST; ogni fase confronta delta metriche della singola richiesta.
+La chiave è ispezionata dal canale di controllo Redis indipendente dal proxy.
+Nel caso timeout, dopo il ripristino si elimina la chiave di fixture per
+provare esplicitamente il repair della richiesta successiva: il timeout client
+non è assunto come prova di mancata esecuzione di un comando lato server.
+I timeout Redis sono 200 ms nei test, senza imporre un SLA alla response REST.
+
+
+Verifica finale FP-039 del 2026-10-07: `./mvnw --batch-mode
+--no-transfer-progress clean verify`, BUILD SUCCESS; 692 test, zero
+failure/errori/skipped. VehicleStateRecoveryIntegrationTest: tre scenari verdi
+con fault TCP reali, recovery e repair sulla stessa API. Riutilizzate le prove
+esistenti di warning limitati, concorrenza e guasto simultaneo PostgreSQL/Redis.
+Nessuna modifica al codice di produzione, nessuna migration e nessun nuovo ADR.
+Stile delle nuove righe Java, link documentali e diff check validi.
+Nessun commit eseguito.
