@@ -290,3 +290,19 @@ profilo `local`. Compose inoltra `FLEETPULSE_LOG_FORMAT` a ciascuna applicazione
 Per testo locale impostare esplicitamente `FLEETPULSE_LOG_FORMAT=`; rimuovere
 l'override per tornare a ECS. La variabile può essere impostata anche avviando
 il JAR direttamente. Non serve configurare un file Logback custom.
+
+## Distribuzione delle latenze — FP-041
+
+Fleet API, gateway e processor espongono gli histogram selezionati dal catalogo
+in docs/11. Compose inoltra queste proprietà, impostabili anche avviando il JAR:
+
+| Variabile | Default | Uso |
+|---|---|---|
+| METRICS_TIMER_MIN | 1ms | Minimo atteso per la distribuzione |
+| METRICS_TIMER_MAX | 30s | Massimo atteso per la distribuzione |
+| METRICS_TIMER_BUCKETS | 50ms,100ms,250ms,500ms,1s,2s,5s,10s,30s | Bucket espliciti aggiunti all'histogram |
+
+Riavviare il servizio dopo una modifica. Tenere min < max e soglie coerenti;
+non confondere queste proprietà con timeout, retry o gate prestazionali.
+Modifiche ai bucket aumentano/riducono le serie e richiedono verifica delle
+query Grafana/Prometheus. Nessun nuovo exporter o tracing è richiesto.

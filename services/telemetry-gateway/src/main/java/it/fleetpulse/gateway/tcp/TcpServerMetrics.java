@@ -1,12 +1,24 @@
 package it.fleetpulse.gateway.tcp;
 
+import java.io.IOException;
+import java.net.Socket;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 
-import java.net.Socket;
-import java.util.Objects;
-import java.util.Set;
+import it.fleetpulse.gateway.tcp.exception.InvalidTelemetryException;
+import it.fleetpulse.gateway.tcp.exception.MalformedTelemetryException;
+import it.fleetpulse.gateway.tcp.exception.UnsupportedProtocolVersionException;
+import it.fleetpulse.protocol.frame.FrameTooLargeException;
+import it.fleetpulse.protocol.frame.InvalidFrameLengthException;
+import it.fleetpulse.protocol.frame.TruncatedFrameHeaderException;
+import it.fleetpulse.protocol.frame.TruncatedFramePayloadException;
 
 final class TcpServerMetrics {
 
@@ -14,6 +26,7 @@ final class TcpServerMetrics {
     private final Counter rejectedConnections;
     private final Counter capacityRejectedConnections;
     private final Counter receivedFrames;
+    private final Map<String, Counter> rejectedFrames;
     private final Counter connectionFailures;
     private final Counter connectionTimeouts;
 
@@ -29,6 +42,13 @@ final class TcpServerMetrics {
             Counter.builder("fleetpulse.gateway.tcp.connections.capacity.rejected")
                 .description("Total TCP connections rejected because maxConnections was reached")
                 .register(registry);
+        rejectedFrames = Stream.of(
+                "invalid_length", "too_large", "truncated", "malformed", "invalid",
+                "unsupported_version")
+            .collect(Collectors.toUnmodifiableMap(reason -> reason,
+                reason -> Counter.builder("fleetpulse.gateway.frames.rejected")
+                    .description("Protocol or telemetry validation failures")
+                    .tag("reason", reason).register(registry)));
         receivedFrames = Counter.builder("fleetpulse.gateway.frames.received")
             .description("Total telemetry frames received by the gateway").register(registry);
         connectionFailures = Counter.builder("fleetpulse.gateway.connections.failures")
@@ -53,6 +73,27 @@ final class TcpServerMetrics {
 
     void frameReceived() {
         receivedFrames.increment();
+    }
+
+    void recordFrameRejectionIfApplicable(IOException failure) {
+        String reason = null;
+        if (failure instanceof FrameTooLargeException) {
+            reason = "too_large";
+        } else if (failure instanceof InvalidFrameLengthException) {
+            reason = "invalid_length";
+        } else if (failure instanceof TruncatedFrameHeaderException
+                || failure instanceof TruncatedFramePayloadException) {
+            reason = "truncated";
+        } else if (failure instanceof MalformedTelemetryException) {
+            reason = "malformed";
+        } else if (failure instanceof InvalidTelemetryException) {
+            reason = "invalid";
+        } else if (failure instanceof UnsupportedProtocolVersionException) {
+            reason = "unsupported_version";
+        }
+        if (reason != null) {
+            rejectedFrames.get(reason).increment();
+        }
     }
 
     void connectionFailed() {

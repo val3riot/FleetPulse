@@ -552,3 +552,28 @@ header su errori e ripristino del contesto in caso di failure. La suite completa
 verifica inoltre privacy e rate limiting cache/projection, esiti gateway,
 retry/dead-letter Kafka e simulator. I log di integrazione devono identificare
 le applicazioni con `service.name` e rimanere JSON valido.
+
+## FP-041 — Metriche custom
+
+Verificare tentativo fallito → retry persistito → replay duplicato: tre tentativi,
+una persistenza, un duplicato e un solo timer per esito. Con MockClock simulare
+100 ms fino al commit e 900 ms per Redis, verificando misure separate. Rifiuti
+dominio non devono produrre persistenze; failure Redis resta un successo DB.
+
+Nel gateway verificare publish confirmed/failed, ACK/NACK, timeout e interruzione,
+framing invalido/malformed/truncated e EOF normale escluso dai rifiuti. Controllare
+reason finite e nessun ID come tag. Con l'applicazione reale, verificare export
+count/sum/bucket in secondi, bucket +Inf e 2 s, HTTP route normalizzata per UUID
+diversi e contatori cache con Redis fermo/riavviato. La verifica dello scrape
+Prometheus e dei target UP resta FP-042, non è sostituita da una GET all'endpoint.
+
+La suite automatica comprende `PrometheusHistogramConfigurationTest` nei tre
+servizi: carica l'effettivo `application.yaml` e l'autoconfigurazione Micrometer,
+registra durate deterministiche ed esamina l'export del registry Prometheus reale.
+Verifica count/sum in secondi, bucket cumulativi e +Inf, limiti min/max e override
+di `METRICS_TIMER_MIN/MAX/BUCKETS`, senza duplicare la configurazione nel test.
+`HttpRequestMetricsIntegrationTest` usa il controller veicoli e il filtro di
+osservazione MVC reali, con il servizio applicativo simulato: UUID diversi e
+risposte 200/404 condividono la route normalizzata. UUID, request ID, query e
+dati della risposta non devono comparire nell'export. Questi test sono parte
+di `clean verify`; le prove Compose restano complementari per deployment e Redis.

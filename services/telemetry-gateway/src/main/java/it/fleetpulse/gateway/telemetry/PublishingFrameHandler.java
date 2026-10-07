@@ -40,9 +40,16 @@ public final class PublishingFrameHandler implements FrameHandler {
         Objects.requireNonNull(message, "message must not be null");
         TelemetryEvent event = mapper.map(message);
         Timer.Sample acknowledgement = metrics.startAcknowledgement();
+        Timer.Sample publication = metrics.startPublication();
+        boolean confirmed = false;
         try {
-            publisher.publish(event).toCompletableFuture()
-                .get(properties.confirmationTimeout().toMillis(), TimeUnit.MILLISECONDS);
+            try {
+                publisher.publish(event).toCompletableFuture()
+                    .get(properties.confirmationTimeout().toMillis(), TimeUnit.MILLISECONDS);
+                confirmed = true;
+            } finally {
+                metrics.completePublication(publication, confirmed);
+            }
             log.atInfo().addKeyValue("event.action", "telemetry.publication.confirmed")
                 .addKeyValue("messageId", event.messageId())
                 .addKeyValue("vehicleId", event.vehicleId())

@@ -244,6 +244,7 @@ public final class TcpServer implements AutoCloseable {
                 client.getRemoteSocketAddress(),
                 clients.size());
             } else {
+                metrics.recordFrameRejectionIfApplicable(exception);
                 metrics.connectionFailed();
 
                 log.atWarn().addKeyValue("event.action", "tcp.client.connection.failed")

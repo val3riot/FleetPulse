@@ -64,6 +64,20 @@ server:
   port: 8080
 
 management:
+  metrics:
+    distribution:
+      percentiles-histogram:
+        "fleetpulse.processing.latency": true
+        "fleetpulse.processor.projection.latency": true
+      minimum-expected-value:
+        "fleetpulse.processing.latency": "${METRICS_TIMER_MIN:1ms}"
+        "fleetpulse.processor.projection.latency": "${METRICS_TIMER_MIN:1ms}"
+      maximum-expected-value:
+        "fleetpulse.processing.latency": "${METRICS_TIMER_MAX:30s}"
+        "fleetpulse.processor.projection.latency": "${METRICS_TIMER_MAX:30s}"
+      slo:
+        "fleetpulse.processing.latency": "${METRICS_TIMER_BUCKETS:50ms,100ms,250ms,500ms,1s,2s,5s,10s,30s}"
+        "fleetpulse.processor.projection.latency": "${METRICS_TIMER_BUCKETS:50ms,100ms,250ms,500ms,1s,2s,5s,10s,30s}"
   endpoints:
     web:
       exposure:

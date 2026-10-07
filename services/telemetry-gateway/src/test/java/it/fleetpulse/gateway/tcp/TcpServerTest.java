@@ -123,6 +123,30 @@ class TcpServerTest {
     }
 
 
+    @Test
+    void countsMalformedFrameOnceAndDoesNotCountCleanDisconnectAsRejection() throws Exception {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        SimpleMeterRegistry registry = new SimpleMeterRegistry();
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        LengthPrefixedFrameCodec.write(new byte[] {'{'}, bytes);
+        TestSocket malformed = new TestSocket(new ByteArrayInputStream(bytes.toByteArray()));
+        TestSocket disconnected = new TestSocket();
+        TcpServer server = new TcpServer(TestAcknowledgements::accepted,
+            new TcpServerProperties(true, 0, 2, Duration.ofSeconds(10), Duration.ofSeconds(5)),
+            new FrameDecoder(new ObjectMapper()), new TelemetryAckEncoder(new ObjectMapper()),
+            executor, registry);
+        server.dispatchClient(malformed);
+        server.dispatchClient(disconnected);
+        executor.shutdown();
+        assertTrue(executor.awaitTermination(2, TimeUnit.SECONDS));
+        assertEquals(1, registry.get("fleetpulse.gateway.frames.rejected")
+            .tag("reason", "malformed").counter().count());
+        assertEquals(1, registry.find("fleetpulse.gateway.frames.rejected").counters()
+            .stream().mapToDouble(counter -> counter.count()).sum());
+        assertEquals(0, registry.get("fleetpulse.gateway.frames.received").counter().count());
+        assertEquals(0, server.activeClients());
+    }
+
     private static InputStream frame(ObjectMapper objectMapper,
         TelemetryMessage message) throws IOException {
         byte[] payload = objectMapper.writeValueAsBytes(message);

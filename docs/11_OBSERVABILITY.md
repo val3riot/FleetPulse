@@ -80,72 +80,131 @@ Per sviluppo locale è disponibile un override esplicito al testo:
 `FLEETPULSE_LOG_FORMAT=''`. Il profilo `local` mantiene ECS per default.
 Vedi [ADR-013](adr/ADR-013-STRUCTURED-LOGGING.md).
 
-## 3. Metriche
+## 3. Metriche — contratto FP-041
+
+Questo catalogo è normativo. I nomi Micrometer usano punti; Prometheus converte
+in underscore, aggiunge `_total` ai Counter e `_seconds` ai Timer. I Counter
+contano eventi/tentativi; le Gauge descrivono lo stato corrente; i Timer usano
+un clock monotono locale. Non ricavare durate da `processedAt - receivedAt`.
 
 ### Gateway
 
-```text
-fleetpulse_gateway_connections_active
-fleetpulse_gateway_connections_accepted_total
-fleetpulse_gateway_connections_rejected_total
-fleetpulse_gateway_tcp_connections_capacity_rejected_total
-fleetpulse_gateway_connections_timeouts_total
-fleetpulse_gateway_connections_failures_total
-fleetpulse_gateway_frames_received_total
-fleetpulse_gateway_frames_rejected_total
-fleetpulse_gateway_publish_failures_total
-fleetpulse_gateway_ack_latency
-```
+| Nome Micrometer | Tipo | Trigger / significato | Label |
+|---|---|---|---|
+| `fleetpulse.gateway.connections.active` | Gauge | Socket attualmente nel set dei client | Nessuna |
+| `fleetpulse.gateway.connections.accepted` | Counter | Dispatch accettato dall'executor | Nessuna |
+| `fleetpulse.gateway.connections.rejected` | Counter | Dispatch rifiutato dall'executor | Nessuna |
+| `fleetpulse.gateway.tcp.connections.capacity.rejected` | Counter | Connessione oltre maxConnections | Nessuna |
+| `fleetpulse.gateway.connections.timeouts` | Counter | Read timeout del client | Nessuna |
+| `fleetpulse.gateway.connections.failures` | Counter | Configurazione/trasporto/handler fallito | Nessuna |
+| `fleetpulse.gateway.frames.received` | Counter | Frame decodificato e validato | Nessuna |
+| `fleetpulse.gateway.frames.rejected` | Counter | Errore framing/decodifica/validazione, una volta | `reason` finita |
+| `fleetpulse.gateway.publish.failures` | Counter | Pubblicazione Kafka non confermata | Nessuna |
+| `fleetpulse.gateway.publish.latency` | Timer | Chiamata publish → conferma, errore, interruzione o timeout | `outcome=confirmed,failed` |
+| `fleetpulse.gateway.ack.latency` | Timer | Preparazione ACK/NACK nel handler | Nessuna |
 
-`fleetpulse_gateway_connections_rejected_total` conta le connessioni rifiutate
-durante il dispatch, mentre
-`fleetpulse_gateway_tcp_connections_capacity_rejected_total` conta le
-connessioni rifiutate perché è stato raggiunto il limite configurato dal
-gateway.
+`reason` ammette soltanto `invalid_length`, `too_large`, `truncated`, `malformed`,
+`invalid`, `unsupported_version`. Un frame oltre il limite conta `too_large`,
+non anche `invalid_length`. EOF prima di un nuovo frame, read timeout, errore di
+trasporto e failure Kafka non sono rifiuti di validazione. Header/payload
+troncato conta `truncated`; durante shutdown non si attribuiscono rifiuti a
+socket chiusi dal server. Un rifiuto protocollo può contare anche una connection
+failure: le due metriche descrivono fenomeni diversi e non vanno sommate.
+
+Il timer ACK conserva il nome esistente, ma esclude lettura/decodifica del frame
+e scrittura dell'ACK sul socket. Non misura il round trip visto dal simulatore.
+Il timer publish esclude log e costruzione dell'ACK dopo la conferma.
 
 ### Processor
 
-```text
-fleetpulse_processor_events_total
-fleetpulse_processor_duplicates_total
-fleetpulse_processor_failures_total
-fleetpulse_processor_failures_terminal_total
-fleetpulse_processor_rejections_total{reason="UNKNOWN_VEHICLE"}
-fleetpulse_processor_rejections_total{reason="VEHICLE_DISABLED"}
-fleetpulse_processor_dead_letter_total
-fleetpulse_processing_latency
-fleetpulse_redis_update_failures_total
-```
+| Nome Micrometer | Tipo | Trigger / significato | Label |
+|---|---|---|---|
+| `fleetpulse.processor.events` | Counter | Tentativo di gestione di un TelemetryEvent decodificato | Nessuna |
+| `fleetpulse.processor.persisted` | Counter | Ritorno riuscito del writer dopo commit aggregato | Nessuna |
+| `fleetpulse.processor.duplicates` | Counter | Replay ignorato secondo classifier idempotenza | Nessuna |
+| `fleetpulse.processor.failures` | Counter | failedDelivery Kafka, include retry | Nessuna |
+| `fleetpulse.processor.failures.terminal` | Counter | Recovery terminale completato | Nessuna |
+| `fleetpulse.processor.dead.letter` | Counter | Recovery con pubblicazione dead-letter riuscita | Nessuna |
+| `fleetpulse.processor.rejections` | Counter | Veicolo rifiutato e pubblicazione rejected riuscita | `reason=UNKNOWN_VEHICLE,VEHICLE_DISABLED` |
+| `fleetpulse.processing.latency` | Timer | Ingresso handler → esito aggregato, prima di Redis | `outcome=persisted,duplicate,rejected,failed` |
+| `fleetpulse.processor.projection.latency` | Timer | Tentativo update Redis post-commit | `outcome=completed,failed` |
+| `fleetpulse.telemetry.latest_state.updates` | Counter | Esito update Redis | `outcome=updated,skipped,failed` |
+| `fleetpulse.redis.update.failures` | Counter | Ogni update Redis fallito | Nessuna |
 
-Per la latest-state projection, il contatore applicativo
-`fleetpulse.telemetry.latest_state.updates` usa solo il tag `outcome`, con valori
-`updated`, `skipped`, `failed`. Ogni tentativo incrementa un solo esito.
-`fleetpulse_redis_update_failures_total` resta nel catalogo e viene incrementato
-anche per ciascun esito `failed`, senza tag dinamici.
+Ogni tentativo decodificato incrementa events e un solo outcome del timer. Il
+successo viene misurato dopo il ritorno del proxy transazionale del writer;
+il lavoro della projection è escluso. Il timer comprende validazione veicolo,
+valutazione alert, persistenza e log del percorso aggregato. Duplicate/rejected
+hanno durate proprie. I fallimenti Redis non annullano una persistenza riuscita.
+`completed` sulla projection include sia aggiornamento sia skip; il contatore
+updates distingue i due esiti. I warning limitati non limitano le metriche.
 
-Gli esiti `UPDATED` e `SKIPPED` producono log `DEBUG`; `FAILED` produce `WARN`
-con frequenza limitata durante guasti prolungati. Il limite dei log non riduce
-il conteggio delle metriche. Identificativi di veicolo, messaggio e sequenza
-possono comparire nei log, mai nei tag. Contratto e verifiche in
-[ADR-009 — Contratto e aggiornamento della latest-state projection](adr/ADR-009-LATEST-STATE-PROJECTION.md).
+Esempio: tentativo DB fallito, retry riuscito, replay duplicato → events=3,
+persisted=1, duplicates=1; timer failed/persisted/duplicate ciascuno count=1.
+Un payload Kafka non decodificabile non entra nell'handler: è osservato da
+failure/recovery Kafka, non dal contatore events. Non dedurre nuovi eventi
+persistiti dal numero di record consegnati al listener o dagli offset.
+
+Questa latenza è lavoro locale del processor, non gateway→commit end-to-end:
+l'attesa in Kafka e il requisito RNF-003/FP-047 richiedono una misura distinta.
+Contratti domain/projection: [ADR-006](adr/ADR-006-AT-LEAST-ONCE-E-IDEMPOTENCY.md),
+[ADR-007](adr/ADR-007-VALIDAZIONE-VEICOLO.md),
+[ADR-009](adr/ADR-009-LATEST-STATE-PROJECTION.md).
 
 ### Fleet API
 
-```text
-fleetpulse_api_cache_hits_total
-fleetpulse_api_cache_misses_total
-fleetpulse_api_cache_fallback_total
-fleetpulse_api_cache_failures_total
-fleetpulse_api_cache_repair_failures_total
-fleetpulse_api_request_latency
+| Nome Micrometer | Tipo | Trigger / significato | Label |
+|---|---|---|---|
+| `http.server.requests` | Timer standard Spring Boot | Durata request HTTP gestita dal server | Tag standard framework con route normalizzata |
+| `fleetpulse.api.cache.hits` | Counter | Lettura cache riuscita con stato valido | Nessuna |
+| `fleetpulse.api.cache.misses` | Counter | Chiave assente | Nessuna |
+| `fleetpulse.api.cache.fallback` | Counter | Accesso al percorso PostgreSQL, anche senza sample/in errore | Nessuna |
+| `fleetpulse.api.cache.failures` | Counter | Errore lettura o decodifica cache | Nessuna |
+| `fleetpulse.api.cache.repair.failures` | Counter | Repair cache fallito | Nessuna |
+
+Non introdurre `fleetpulse.api.request.latency`: duplicherebbe
+`http.server.requests`. Conservare i contatori FP-031 senza tag dinamici e il
+warning condiviso limitato a uno ogni 30 secondi. Contratto:
+[ADR-010](adr/ADR-010-STATE-API-FALLBACK.md).
+
+### Histogram e cardinalità
+
+I cinque Timer del catalogo pubblicano histogram Prometheus con:
+
+- minimo atteso 1 ms e massimo atteso 30 s, configurabili;
+- bucket Micrometer nel range più soglie esplicite
+  50/100/250/500 ms, 1/2/5/10/30 s;
+- nessun percentile calcolato nel client, non aggregabile fra istanze.
+
+Min/max controllano la distribuzione, non sono timeout né gate prestazionali.
+Le soglie aggiunte sono bucket osservativi, non nuovi SLO approvati. Valori oltre
+il range restano nel count/sum e nel bucket +Inf. Le proprietà sono
+`METRICS_TIMER_MIN`, `METRICS_TIMER_MAX`, `METRICS_TIMER_BUCKETS` (docs/13).
+
+Per un Counter come `fleetpulse.processor.events`, l'export è
+`fleetpulse_processor_events_total`; per la Gauge connections.active è
+`fleetpulse_gateway_connections_active`. Ogni Timer esporta almeno
+`<nome>_seconds_count`, `_seconds_sum`, `_seconds_bucket` con la label `le`;
+`max` può essere disponibile secondo registry. FP-042 verificherà lo scrape
+Prometheus; FP-041 verifica il formato esportato dall'endpoint reale.
+
+Esempio p95 di elaborazione riuscita, aggregato sulle istanze:
+
+```promql
+histogram_quantile(0.95,
+  sum by (le) (rate(fleetpulse_processing_latency_seconds_bucket{outcome="persisted"}[5m])))
 ```
 
-FP-031 implementa i cinque contatori cache senza tag dinamici. `misses` conta
-solo chiavi assenti, `failures` errori di lettura/decodifica; `fallback` conta ogni
-accesso al percorso PostgreSQL, anche senza sample o in errore. Il repair fallito
-incrementa `repair_failures`. I warning applicativi sono limitati a uno ogni
-30 secondi per istanza senza payload o stacktrace; i contatori restano completi.
-Si veda [ADR-010](adr/ADR-010-STATE-API-FALLBACK.md).
+Non mediare p95 fra istanze. Con poco traffico il percentile può essere instabile;
+nessun campione è no-data, non zero. I bucket moltiplicano le serie per ogni
+combinazione di tag: abilitarli solo sui Timer del catalogo. Nessuna label
+messageId/vehicleId/requestId/connectionId/offset, payload, error.message, codice
+veicolo o URI con UUID/query. I nomi route HTTP provengono dal framework; gli
+outcome/reason applicativi sono enumerati. Non aggiungere tag per topic o
+partition in FP-041. I campi ad alta cardinalità rimangono nei log FP-040.
+
+Fonti: [Spring Boot metrics](https://docs.spring.io/spring-boot/reference/actuator/metrics.html),
+[Micrometer histogram](https://docs.micrometer.io/micrometer/reference/concepts/histogram-quantiles.html).
 
 ## 4. Health
 

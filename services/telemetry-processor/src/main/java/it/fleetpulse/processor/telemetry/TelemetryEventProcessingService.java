@@ -5,11 +5,13 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 
+import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
+import it.fleetpulse.processor.telemetry.TelemetryProcessingMetrics.Outcome;
 import it.fleetpulse.contracts.telemetry.TelemetryEvent;
 import it.fleetpulse.contracts.telemetry.TelemetryEventVersions;
 import it.fleetpulse.processor.telemetry.alert.AlertEvaluator;
@@ -43,6 +45,7 @@ public final class TelemetryEventProcessingService implements TelemetryEventHand
     private final AlertVehicleQuery alertVehicleQuery;
     private final AlertTelemetryMapper alertTelemetryMapper;
     private final AlertEvaluator alertEvaluator;
+    private final TelemetryProcessingMetrics metrics;
 
     public TelemetryEventProcessingService(TelemetryAggregateWriter writer,
             TelemetrySampleMapper mapper, Clock clock,
@@ -52,7 +55,8 @@ public final class TelemetryEventProcessingService implements TelemetryEventHand
             LatestStateProjectionObservability projectionObservability,
             AlertVehicleQuery alertVehicleQuery,
             AlertTelemetryMapper alertTelemetryMapper,
-            AlertEvaluator alertEvaluator) {
+            AlertEvaluator alertEvaluator, TelemetryProcessingMetrics metrics) {
+        this.metrics = Objects.requireNonNull(metrics);
         this.writer = Objects.requireNonNull(writer);
         this.mapper = Objects.requireNonNull(mapper);
         this.clock = Objects.requireNonNull(clock);
@@ -74,12 +78,37 @@ public final class TelemetryEventProcessingService implements TelemetryEventHand
     public void handle(TelemetryEvent event, TelemetrySource source) {
         Objects.requireNonNull(event, "event must not be null");
         Objects.requireNonNull(source, "source must not be null");
+        Timer.Sample attempt = metrics.startAttempt();
+        ProcessingResult result;
+        Outcome outcome = Outcome.FAILED;
+        try {
+            result = persistAggregate(event, source);
+            outcome = result.outcome();
+        } finally {
+            metrics.completeAttempt(attempt, outcome);
+        }
+        if (result.sample() != null) {
+            updateLatestState(result.sample());
+        }
+    }
+
+    private record ProcessingResult(Outcome outcome, TelemetrySampleEntity sample) {
+        private ProcessingResult {
+            Objects.requireNonNull(outcome, "outcome must not be null");
+            if ((outcome == Outcome.PERSISTED) != (sample != null)) {
+                throw new IllegalArgumentException(
+                    "A sample is required exactly when the outcome is persisted");
+            }
+        }
+    }
+
+    private ProcessingResult persistAggregate(TelemetryEvent event, TelemetrySource source) {
         if (event.eventVersion() != TelemetryEventVersions.V1) {
             throw new UnsupportedTelemetryEventVersionException(event.eventVersion());
         }
 
         if (eligibilityGuard.rejectIfIneligible(event, source)) {
-            return;
+            return new ProcessingResult(Outcome.REJECTED, null);
         }
         Instant processedAt = clock.instant();
         TelemetrySampleEntity entity = mapper.toEntity(event, processedAt);
@@ -109,9 +138,10 @@ public final class TelemetryEventProcessingService implements TelemetryEventHand
                 event.vehicleId(),
                 event.sequenceNumber());
 
-            return;
+            return new ProcessingResult(Outcome.DUPLICATE, null);
         }
 
+        ProcessingResult result = new ProcessingResult(Outcome.PERSISTED, saved);
         log.atInfo().addKeyValue("event.action", "telemetry.event.persisted")
             .addKeyValue("sampleId", saved.getId())
             .addKeyValue("alertCandidates", candidates.size())
@@ -126,7 +156,7 @@ public final class TelemetryEventProcessingService implements TelemetryEventHand
                 saved.getVehicleId(),
                 saved.getSequenceNumber());
         // The writer's transactional proxy has committed before returning to this orchestrator.
-        updateLatestState(saved);
+        return result;
     }
 
     private void updateLatestState(TelemetrySampleEntity saved) {
@@ -141,12 +171,17 @@ public final class TelemetryEventProcessingService implements TelemetryEventHand
                 saved.getLatitude(),
                 saved.getLongitude());
 
+        Timer.Sample update = metrics.startProjection();
+        boolean failed = true;
         try {
             ProjectionUpdateResult result = latestStateProjection.updateIfNewer(candidate);
 
+            failed = false;
             projectionObservability.completed(saved.getMessageId(), candidate, result);
         } catch (LatestStateProjectionException failure) {
             projectionObservability.failed(saved.getMessageId(), candidate, failure);
+        } finally {
+            metrics.completeProjection(update, failed);
         }
     }
 }

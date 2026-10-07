@@ -4,6 +4,7 @@ import it.fleetpulse.contracts.telemetry.TelemetryData;
 import it.fleetpulse.contracts.telemetry.TelemetryEvent;
 import it.fleetpulse.contracts.telemetry.TelemetryEventVersions;
 import it.fleetpulse.processor.telemetry.TelemetryEventProcessingService;
+import it.fleetpulse.processor.telemetry.TelemetryProcessingMetrics;
 import it.fleetpulse.processor.telemetry.TelemetrySource;
 import it.fleetpulse.processor.telemetry.alert.AlertEvaluator;
 import it.fleetpulse.processor.telemetry.alert.AlertTelemetryMapper;
@@ -303,7 +304,9 @@ class TelemetrySamplePersistenceIntegrationTest extends PostgreSqlIntegrationSup
                     writer, mapper, clock,
                     failureClassifier, eligibilityGuard, adapter,
                     new LatestStateProjectionObservability(registry), alertVehicleQuery,
-                    alertTelemetryMapper, alertEvaluator);
+                    alertTelemetryMapper, alertEvaluator,
+                    new TelemetryProcessingMetrics(
+                        new SimpleMeterRegistry()));
 
                 assertDoesNotThrow(() -> processor.handle(event, SOURCE));
                 assertThat(repository.findAll()).singleElement()
@@ -396,7 +399,9 @@ class TelemetrySamplePersistenceIntegrationTest extends PostgreSqlIntegrationSup
         TelemetryEventProcessingService restartedService =
             new TelemetryEventProcessingService(writer, mapper, clock, failureClassifier,
                 eligibilityGuard, latestStateProjection, projectionObservability,
-                alertVehicleQuery, alertTelemetryMapper, alertEvaluator);
+                alertVehicleQuery, alertTelemetryMapper, alertEvaluator,
+                    new TelemetryProcessingMetrics(
+                        new SimpleMeterRegistry()));
 
         try {
             service.handle(event, SOURCE);
@@ -421,6 +426,12 @@ class TelemetrySamplePersistenceIntegrationTest extends PostgreSqlIntegrationSup
 
     @TestConfiguration
     static class TestClockConfiguration {
+
+        @Bean
+        TelemetryProcessingMetrics telemetryProcessingMetrics() {
+            return new TelemetryProcessingMetrics(new SimpleMeterRegistry());
+        }
+
 
         @Bean
         LatestStateProjectionObservability projectionObservability() {

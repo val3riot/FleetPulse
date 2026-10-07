@@ -23,6 +23,20 @@ gateway:
     read-timeout: ${GATEWAY_TCP_READ_TIMEOUT:30s}
     shutdown-grace-period: ${GATEWAY_TCP_GRACE_PERIOD:5s}
 management:
+  metrics:
+    distribution:
+      percentiles-histogram:
+        "fleetpulse.gateway.publish.latency": true
+        "fleetpulse.gateway.ack.latency": true
+      minimum-expected-value:
+        "fleetpulse.gateway.publish.latency": "${METRICS_TIMER_MIN:1ms}"
+        "fleetpulse.gateway.ack.latency": "${METRICS_TIMER_MIN:1ms}"
+      maximum-expected-value:
+        "fleetpulse.gateway.publish.latency": "${METRICS_TIMER_MAX:30s}"
+        "fleetpulse.gateway.ack.latency": "${METRICS_TIMER_MAX:30s}"
+      slo:
+        "fleetpulse.gateway.publish.latency": "${METRICS_TIMER_BUCKETS:50ms,100ms,250ms,500ms,1s,2s,5s,10s,30s}"
+        "fleetpulse.gateway.ack.latency": "${METRICS_TIMER_BUCKETS:50ms,100ms,250ms,500ms,1s,2s,5s,10s,30s}"
   endpoints:
     web:
       exposure:
