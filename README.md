@@ -137,6 +137,11 @@ comandi operativi sono descritti nel
 
 ## Documentazione
 
+`docs/` contiene la documentazione del progetto: requisiti, dominio,
+architettura, contratti, criteri di qualità e ADR. Guide di studio, laboratori,
+report di esecuzione e note di lavorazione sono conservati in `tmp/learn/`,
+esclusa da Git.
+
 | Documento | Contenuto |
 |---|---|
 | [Visione e scope](docs/01_VISIONE_E_SCOPE.md) | Scopo e obiettivi di qualità |

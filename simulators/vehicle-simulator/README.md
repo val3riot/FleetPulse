@@ -78,12 +78,12 @@ docker compose up --build -d vehicle-simulator
 docker compose logs -f vehicle-simulator
 ```
 
-Lo stack Compose corrente non configura il listener TCP del Telemetry Gateway:
-nel gateway non e ancora presente un `FrameHandler` di produzione. Il comando
-verifica quindi provisioning, avvio e comportamento di reconnect del simulator,
-ma il flusso telemetrico end-to-end verso Kafka restera in attesa del relativo
-step di integrazione del gateway. Non forzare `GATEWAY_TCP_ENABLED=true` finche
-quel componente non e disponibile, perche il gateway fallirebbe il bootstrap.
+Lo stack Compose corrente abilita il listener TCP del Telemetry Gateway,
+che include il `PublishingFrameHandler` di produzione. Il simulator può quindi
+alimentare il flusso verso Kafka, processor, PostgreSQL e Redis. La dashboard
+Grafana provisionata permette di osservare le metriche di questa attività;
+il relativo contratto è descritto in
+[Observability](../../docs/11_OBSERVABILITY.md#5-dashboard-grafana--fp-043).
 
 ## Test
 

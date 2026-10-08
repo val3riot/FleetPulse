@@ -71,9 +71,9 @@ vantaggio di throughput rispetto a JDBC.
 
 Preservare Optional per dati assenti, enum/UUID/Instant, filtri e tie-breaker,
 limite SQL, mapping degli errori e confini commit/Redis. Per projection mirate
-verificare query effettive e assenza di entity caricate. Le verifiche già
-eseguite sono registrate in docs/12; FP-038 completa i contract test e non
-richiede una nuova conversione delle query.
+verificare query effettive e assenza di entity caricate. I criteri di verifica
+sono definiti nella strategia di test; i contract test non richiedono una
+nuova conversione delle query.
 
 ## Riferimenti
 

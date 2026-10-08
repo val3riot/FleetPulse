@@ -119,13 +119,13 @@ Testcontainers fornisce istanze reali di:
 | Limite connessioni | Integration | saturazione concorrente, rifiuto e riuso del permit |
 | Graceful shutdown | Integration | completamento in-flight e chiusura forzata dopo il grace period |
 | Simulator su TCP reale | Smoke integration | provisioning Spring e frame compatibile inviato su loopback |
-| ACK/NACK applicativo | Contract/Integration | contratto JSON e decoder coperti; emissione gateway rinviata al `FrameHandler` Kafka |
+| ACK/NACK applicativo | Contract/Integration | contratto JSON e decoder coperti; emissione verificata con conferma Kafka tramite `PublishingFrameHandler` |
 
 I test TCP usano porte effimere, risorse racchiuse in `try-with-resources` e
 attese con deadline. Non richiedono Docker né porte locali prestabilite. L'ACK
 end-to-end non può essere simulato come accettazione definitiva: per contratto
 `ACCEPTED` richiede la conferma di pubblicazione Kafka, responsabilità del
-`FrameHandler` di produzione non ancora implementato da FP-021.
+`PublishingFrameHandler` di produzione.
 
 ### Vehicle Simulator
 
@@ -250,12 +250,6 @@ arresta container isolati, senza modificare l'infrastruttura di sviluppo.
 La riconciliazione degli hit e gli ulteriori scenari di recovery restano fuori
 FP-031; si vedano ADR-010 e la ticket di resilienza FP-039.
 
-Verifica finale FP-031 del 2026-09-08: `clean verify` dalla root con Docker
-rootless, BUILD SUCCESS; 496 test, zero failure/errori/skipped. Fleet API:
-189 test, di cui 78 nel package dello stato. Superati anche Compose config e
-`git diff --check`. Il percorso finale è Redis prima di PostgreSQL, inclusi
-hit durante guasto DB e cache orfana fresh/stale fino alla scadenza.
-
 ## Regole alert — verifiche FP-033
 
 | Requisito | Evidenza nel modulo telemetry-processor |
@@ -269,10 +263,6 @@ hit durante guasto DB e cache orfana fresh/stale fino alla scadenza.
 | V3 su database vuoto e upgrade da V1 con dati | `AlertEnumMigrationIntegrationTest` |
 | Enforcement PostgreSQL di type e severity | `AlertEnumMigrationIntegrationTest` |
 
-Verifica finale FP-033 del 2026-09-13: `./mvnw verify` dalla root con Docker,
-BUILD SUCCESS; 561 test, zero failure/errori/skipped. La persistenza degli alert
-e il transaction boundary con il sample appartengono a FP-034.
-
 ## Persistenza alert transazionale — verifiche FP-034
 
 | Requisito | Evidenza nel modulo telemetry-processor |
@@ -284,10 +274,6 @@ e il transaction boundary con il sample appartengono a FP-034.
 | Foreign key composita e unique source/type applicate da PostgreSQL | `TelemetryAggregateWriterIntegrationTest` |
 | Replay, restart e consegne concorrenti producono un solo aggregate | `TelemetrySamplePersistenceIntegrationTest` |
 | Riconoscimento dei soli constraint idempotenti previsti | `TelemetryPersistenceFailureClassifierTest`, `TelemetryEventProcessingServiceTest` |
-
-Verifica finale FP-034 del 2026-09-13: `./mvnw verify` dalla root con Docker,
-BUILD SUCCESS; 575 test, zero failure/errori/skipped. Superati anche
-`git diff --check` e la validazione Hibernate dello schema Flyway.
 
 ## Query e dettaglio alert — verifiche FP-035
 
@@ -303,11 +289,6 @@ BUILD SUCCESS; 575 test, zero failure/errori/skipped. Superati anche
 | Errori infrastrutturali senza leakage | `MaintenanceAlertControllerTest` |
 | Endpoint e schemi OpenAPI | `OpenApiIntegrationTest` |
 
-Verifica finale FP-035 del 2026-09-13: `./mvnw verify` dalla root con Docker,
-BUILD SUCCESS; 614 test, zero failure/errori/skipped. Superati anche
-`git diff --check`, la validazione Hibernate dello schema Flyway e il controllo
-di assenza di dichiarazioni locali con `var` nel codice e nei test FP-035.
-
 ## Transizioni alert — verifiche FP-036
 
 | Requisito | Evidenza nel modulo fleet-api |
@@ -320,12 +301,6 @@ di assenza di dichiarazioni locali con `var` nel codice e nei test FP-035.
 | Aggiornamenti concorrenti senza stati impossibili | `MaintenanceAlertTransitionIntegrationTest` |
 | Successo, body invalido, not found, conflict e database down | `MaintenanceAlertControllerTest` |
 | Endpoint PATCH, request, enum, response ed errori OpenAPI | `OpenApiIntegrationTest` |
-
-Verifica finale FP-036 del 2026-09-14: `./mvnw verify` dalla root con Docker,
-BUILD SUCCESS; 641 test, zero failure/errori/skipped. Superati anche
-`git diff --check`, la validazione Hibernate dello schema Flyway V4 e il
-controllo di assenza di dichiarazioni locali con `var` nel codice e nei test
-FP-036.
 
 ## Dashboard aggregation API — verifiche FP-037
 
@@ -353,52 +328,12 @@ sample e alert da una connessione separata mentre la dashboard sta leggendo:
 la richiesta in corso mantiene il primo snapshot; quella successiva vede il
 nuovo commit. Non usa sleep per coordinare la concorrenza.
 
-Il laboratorio cattura il SQL effettivamente eseguito da Hibernate e lo passa
-a `EXPLAIN (ANALYZE, BUFFERS)`. Non vincola i
-test a un piano specifico del planner. Prima di V5, la query globale esaminava
-10.000 righe e scartava 9.970 sample fuori finestra, leggendo 184 buffer.
-V5 aggiunge un indice che inizia con `observed_at`, mantenendo gli indici scoped
-preesistenti. Queste misure su fixture sono diagnostiche e non costituiscono
-il report di carico FP-047.
-
-Con V5, lo stesso laboratorio seleziona le 30 righe tramite Index Only Scan,
-legge 4 buffer e mostra circa 0,031 ms di execution time, contro circa
-0,374 ms della scansione precedente. I tempi dipendono da fixture/cache/host;
-la riduzione delle righe esaminate motiva l'indice, senza promettere un SLA.
-
-Verifica finale FP-037 del 2026-10-07: `./mvnw --batch-mode
---no-transfer-progress clean verify` dalla root con Docker, BUILD SUCCESS;
-670 test, zero failure/errori/skipped. Superati Compose config con `.env` e
-`.env.example`, `git diff --check` e i controlli di stile sui nuovi file Java
-(indentazione a quattro spazi, linee entro 100 caratteri, import espliciti e
-nessuna dichiarazione locale `var`). Nessun commit eseguito, come richiesto.
-
-FP-037 usa ora Spring Data JPA: aggregazioni nei repository vehicle/telemetry,
-conteggio alert derivato e projection `MaintenanceAlertSummary` tramite query
-JPQL/HQL. `DashboardService` mappa la projection nel DTO HTTP. La lista usa
-`List` con `Pageable` e mantiene il limite nel SQL generato, senza count di
-pagina. `projectionsDoNotLoadManagedEntities` verifica quattro query Hibernate
-e zero entity caricate. JDBC nei test resta per fixture, conteggio delle
-esecuzioni e EXPLAIN; gli adapter JDBC di altre feature restano invariati.
-
-Verifica finale della conversione JPA del 2026-10-07: `./mvnw --batch-mode
---no-transfer-progress clean verify` dalla root, BUILD SUCCESS; 671 test,
-zero failure/errori/skipped. Confermati quattro SELECT reali, zero entity
-caricate, snapshot concorrente, OpenAPI, guasti PostgreSQL/Redis e upgrade V5.
-Il SQL reporting generato da Hibernate usa l'indice V5 con Index Only Scan,
-30 righe e 4 buffer nella fixture. Superati Compose config con entrambi i file
-env, diff check e stile Java. Nessun commit o modifica dello staging preesistente.
-
-
-Verifica di chiusura FP-037 del 2026-10-07: nuovo `clean verify` completo,
-BUILD SUCCESS; 672 test, zero failure/errori/skipped (117 report Surefire).
-Aggiunta la prova dell'uso effettivo della configurazione non default nei
-repository: finestra di 5 minuti e limite di 7 alert. Tutti i criteri della
-matrice sono soddisfatti sul working tree JPA; FP-037 è tecnicamente chiudibile.
-Confermati Compose con entrambi i file env, stile Java e diff check.
-La validazione precede il commit FP-037; durante i test lo staging
-preesistente è rimasto invariato.
-
+Le verifiche delle query devono usare SQL effettivamente generato da JPA,
+fixture rappresentative e piani `EXPLAIN (ANALYZE, BUFFERS)`. Non vincolare
+il test a un piano specifico del planner o a tempi dipendenti dalla macchina.
+L'indice V5 deve supportare la selezione globale per `observed_at`, conservando
+gli indici per le query scoped. Le misure sulle fixture non costituiscono
+un criterio di carico o uno SLA.
 
 ## Uniformazione degli adapter PostgreSQL a JPA — FP-018/031/033
 
@@ -417,96 +352,34 @@ Le fixture continuano a usare JDBC; il codice di produzione dei tre adapter
 usa repository JPA. Il read model veicoli del processor è locale e @Immutable;
 il repository espone soltanto letture scalari/projection.
 
+## Contratti delle API di lettura
 
-Esito finale uniformazione JPA: suite completa da 673 test e suite mirata
-PostgreSqlVehicleRegistryIntegrationTest da 8 test entrambe verdi, zero
-failure/errori/skipped. La suite mirata comprende i 3 nuovi casi processor:
-676 casi complessivi distinti verificati fra le due esecuzioni. Diff check e
-stile delle nuove righe Java validi. Nessun commit aggiuntivo.
+Le verifiche di state, history e collection/dettaglio alert devono coprire
+il contratto REST e la corrispondenza con OpenAPI usando route e database reali.
 
+| Criterio | Copertura richiesta |
+|---|---|
+| State | Hit/fallback, freshness, timestamp, dato assente, UUID e struttura degli errori |
+| History | Range inclusivo, from=to, isolamento veicolo, ordering stabile, ultima pagina e pagina oltre ultima |
+| Alert | Filtri individuali e combinati AND, confini inclusivi/aperti, ASC/DESC e tie-breaker |
+| Global/scoped | Collection globale vuota distinta dal 404 per veicolo assente |
+| Paginazione | Limiti, default, totali filtrati e metadati su dati invariati |
+| Schema response | Campi required, nullabilità, UUID/date-time/int64 e content type |
+| Parametri OpenAPI | Min/max/default/required e schema degli errori di ogni route |
+| Binding | Omissione lecita e default, valori invalidi, valori vuoti/blank e duplicati identici |
 
-## Contract test query API — piano FP-038
+History e collection alert rifiutano parametri scalari vuoti/blank e ripetuti
+con `400 REQUEST_INVALID`, prima della conversione Spring e dell'applicazione
+dei default. Il contratto della ricerca testuale veicoli è distinto.
+Non estendere questa regola ai body HTTP.
 
-FP-038 verifica i contratti di state, history e collection/dettaglio alert.
-Riutilizza le evidenze FP-031/032/035 e mantiene la dashboard FP-037 come
-regressione. Questa matrice è un piano: i casi da completare non sono ancora
-una prova di chiusura. Resilienza cache completa e carico restano FP-039/047.
-
-| Criterio | Evidenza esistente | Completamento previsto |
-|---|---|---|
-| State: hit/fallback, timestamp, dato assente | VehicleStateApiIntegrationTest e test guasti | Audit schema JSON/OpenAPI, UUID e response errori della route |
-| History: intervallo incluso, isolamento, ordering stabile, pagina vuota | TelemetryHistoryApiIntegrationTest | from=to, pagina oltre ultima, totali e flags |
-| Alert: filtri individuali/AND, confini e ordering DESC | MaintenanceAlertRepositoryIntegrationTest | REST con PostgreSQL: tutti i filtri insieme, solo from/to, nessuna corrispondenza e ASC |
-| Global/scoped: default e differenza veicolo assente | MaintenanceAlertControllerTest, MaintenanceAlertServiceTest | Conferma route → repository → PostgreSQL senza mock del service |
-| Paginazione: minimo/massimo, ultima pagina e pagina oltre ultima | Test factory e controller | Schema/metadati e totali filtrati con dati reali |
-| Schema response | Mapping e assert JSON/OpenAPI esistenti | required, nullabilità, UUID/date-time/int64, content e metadati |
-| Parametri OpenAPI | OpenApiIntegrationTest | Audit min/max/default/required e response error schema di ogni route |
-| Binding/errori | Controller test e docs/15 | Consolidare casi esistenti e completare soltanto invalidità mancanti |
-
-Prima di aggiungere test per parametri vuoti o ripetuti, verificare il binding
-HTTP effettivo e concordare/documentare la semantica se non già definita.
-L'omissione di un filtro opzionale non implica che ogni stringa vuota debba
-essere accettata. Non introdurre limiti massimi di finestra history o nuovi
-limiti page senza una decisione di contratto.
-
-Preferire assert mirati a snapshot dell'intero documento OpenAPI; non fissare
-il testo localizzato di message. Validare codice/status, details, path e
-formato timestamp degli errori. Verificare paginazione senza buchi su dati
-invariati; non promettere snapshot fra richieste. Con Page, non imporre un
-numero fisso di COUNT perché Spring Data può evitarlo in alcuni casi.
+Preferire assert mirati sugli schemi ai confronti dell'intero documento OpenAPI.
+Validare codice/status, details, path e timestamp senza fissare il testo
+localizzato degli errori. Verificare paginazione senza buchi su dati invariati;
+non promettere snapshot fra richieste. Con `Page`, non imporre un numero fisso
+di COUNT, che Spring Data può evitare in alcuni casi.
 
 Scelta delle query: [ADR-012](adr/ADR-012-STRATEGIA-ACCESSO-DATI-JPA.md).
-La chiusura richiede matrice completata, docs/09 e OpenAPI coerenti, suite
-fleet-api e clean verify verdi; nessuna riscrittura preventiva delle query.
-
-
-### Evidenze implementative FP-038 — 2026-10-07
-
-Clean verify dalla root: BUILD SUCCESS, 687 test, zero failure/errori/skipped.
-Aggiunti 11 test, senza riscrittura delle query:
-
-- MaintenanceAlertApiIntegrationTest: 6 test con route REST e PostgreSQL reale
-  per filtri completi AND, confini inclusivi/aperti, ASC con tie-breaker,
-  metadati ultima/fuori pagina, global vuoto vs scoped 404, dettaglio e timestamp
-  null, validazione e struttura errori con timestamp decodificabile.
-- TelemetryHistoryApiIntegrationTest: 2 test aggiunti per from=to e metadati
-  ultima pagina/pagina oltre ultima con totali filtrati.
-- OpenApiIntegrationTest: 3 test aggiunti per required/formati dello stato,
-  metadati collection, vincoli scoped alert, error schema delle letture e
-  nullabilità timestamp di transizione. Annotazioni Schema allineate su
-  VehicleStateResponse e MaintenanceAlertResponse; JSON e logica invariati.
-
-I test delle nuove classi sono verdi (6 alert REST, 7 history integration,
-14 OpenAPI inclusi i casi preesistenti). Diff check e stile delle righe Java
-aggiunte validi. FP-038 resta in corso: la semantica dei parametri opzionali
-vuoti e dei parametri ripetuti è stata sottoposta all'utente e non viene
-fissata implicitamente dai nuovi test. Questa verifica non chiude FP-039.
-
-
-### Parametri query rigorosi — completamento FP-038
-
-Su indicazione dell'utente, history e collection alert rifiutano valori
-vuoti/blank e parametri ripetuti, inclusi duplicati identici, con
-400 REQUEST_INVALID. Il controllo raw avviene negli InitBinder dei request
-model prima che Spring possa convertire blank in null/applicare i default.
-QueryParameterValidator è condiviso, senza estendere la regola a request body
-oppure alla ricerca testuale veicoli, che ha un contratto distinto.
-
-MaintenanceAlertApiIntegrationTest copre i parametri delle due collection e
-vehicleId globale; TelemetryHistoryApiIntegrationTest copre from/to/page/size/sort.
-I precedenti test continuano a verificare l'omissione lecita e i default.
-Questa decisione sostituisce il punto aperto sui parametri vuoti/ripetuti
-riportato nel piano e nella precedente evidenza FP-038.
-
-
-Verifica finale FP-038 del 2026-10-07: clean verify, BUILD SUCCESS, 689 test,
-zero failure/errori/skipped. I due ulteriori test rigorosi esercitano tutti i
-parametri scalari previsti, valori vuoti/blank e duplicati identici sulle
-collection alert e sullo storico; sono verdi anche le route global/scoped,
-i metadati di paginazione e gli schemi OpenAPI. Il punto decisionale è risolto:
-FP-038 è tecnicamente chiudibile sul working tree. Diff check, stile delle
-righe Java aggiunte e link documentali validi. Nessun commit eseguito.
-
 
 ## Cache resilience — verifiche FP-039
 
@@ -533,16 +406,6 @@ Nel caso timeout, dopo il ripristino si elimina la chiave di fixture per
 provare esplicitamente il repair della richiesta successiva: il timeout client
 non è assunto come prova di mancata esecuzione di un comando lato server.
 I timeout Redis sono 200 ms nei test, senza imporre un SLA alla response REST.
-
-
-Verifica finale FP-039 del 2026-10-07: `./mvnw --batch-mode
---no-transfer-progress clean verify`, BUILD SUCCESS; 692 test, zero
-failure/errori/skipped. VehicleStateRecoveryIntegrationTest: tre scenari verdi
-con fault TCP reali, recovery e repair sulla stessa API. Riutilizzate le prove
-esistenti di warning limitati, concorrenza e guasto simultaneo PostgreSQL/Redis.
-Nessuna modifica al codice di produzione, nessuna migration e nessun nuovo ADR.
-Stile delle nuove righe Java, link documentali e diff check validi.
-Nessun commit eseguito.
 
 ## FP-040 — Logging e correlazione
 
@@ -577,3 +440,22 @@ osservazione MVC reali, con il servizio applicativo simulato: UUID diversi e
 risposte 200/404 condividono la route normalizzata. UUID, request ID, query e
 dati della risposta non devono comparire nell'export. Questi test sono parte
 di `clean verify`; le prove Compose restano complementari per deployment e Redis.
+
+## Raccolta metriche e dashboard tecnica
+
+Le verifiche di osservabilità devono distinguere l'export applicativo dalla
+raccolta sul server Prometheus e dall'esecuzione delle query tramite Grafana.
+
+- Target, URL, intervallo e timeout coerenti con la configurazione del progetto.
+- Metriche JVM e custom interrogabili tramite il server di raccolta.
+- Target down e ripresa dello scrape dopo il ripristino.
+- Datasource/dashboard/folder con UID stabili e provisioning su storage vuoto.
+- Aggiornamento del datasource precedente e riavvio senza duplicati.
+- Query dei pannelli eseguibili, unità e legende coerenti col catalogo metriche.
+- Traffico TCP/REST, replay e rifiuti con esiti osservabili nei pannelli pertinenti.
+- Assenza di traffico o campioni distinta da zero e da un target DOWN.
+- Verifica visiva e assenza di errori del client Grafana.
+
+Le serie di failure presenti a zero sono valide; non dimostrano l'esecuzione
+dei percorsi di guasto. L'esito dello scrape non sostituisce readiness o salute
+delle dipendenze. L'assenza di dati non deve essere mascherata da valori fittizi.

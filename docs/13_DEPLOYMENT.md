@@ -177,11 +177,11 @@ ritarda l'avvio fino alla readiness di Fleet API e all'avvio del gateway. Il
 simulator applica comunque timeout e reconnect propri: l'ordine Compose non è
 considerato una garanzia di disponibilità continua.
 
-Nel gateway non è ancora disponibile un `FrameHandler` di produzione, quindi
-il listener TCP resta intenzionalmente disabilitato nello stack corrente.
-Abilitare il simulator consente di verificare provisioning e reconnect, ma il
-flusso telemetrico end-to-end verso Kafka richiede prima tale integrazione del
-gateway. Forzare il listener senza un handler impedisce l'avvio del gateway.
+Il gateway include il `PublishingFrameHandler` di produzione e Compose abilita
+il listener TCP con `GATEWAY_TCP_ENABLED=true`. Abilitando il simulator si può
+esercitare il flusso TCP → Kafka → processor → PostgreSQL/Redis. La pubblicazione
+confermata dal gateway non garantisce che il processor abbia già completato
+la persistenza asincrona.
 
 All'arresto, `SIGTERM` chiude le socket dei veicoli, interrompe i virtual thread
 e attende fino a `SIMULATOR_SHUTDOWN_GRACE_PERIOD` prima di completare il
@@ -234,8 +234,30 @@ intervallo 15s, timeout 5s. Dopo una modifica riavviare Prometheus:
 Compose non monta un volume TSDB: la storia non è garantita dopo la
 ricreazione del container. La retention usa il default Prometheus di 15 giorni;
 questa configurazione serve alla verifica locale, non all'archiviazione.
-Procedura, query e prova down/recovery in
-[Observability — FP-042](11_OBSERVABILITY.md#verifica-dello-scrape--fp-042).
+Il contratto di raccolta è descritto in
+[Observability](11_OBSERVABILITY.md#raccolta-delle-metriche).
+
+### Grafana locale — FP-043
+
+Compose monta provisioning e dashboard JSON in sola lettura e conserva il DB
+Grafana nel volume `grafana-data`. Il provider carica **FleetPulse Overview**
+senza import manuale, nella cartella **FleetPulse**:
+`http://localhost:3000/d/fleetpulse-overview/` con le porte predefinite.
+
+```bash
+docker compose up -d fleet-api telemetry-gateway telemetry-processor prometheus grafana
+```
+
+`GRAFANA_ADMIN_USER` e `GRAFANA_ADMIN_PASSWORD` inizializzano l'admin su storage
+vuoto; un volume esistente conserva l'utente già creato. Non cancellare il
+volume per aggiornare le dashboard. File JSON aggiornati vengono riletti ogni
+30s; dopo modifiche a datasource/provider riavviare Grafana. Dopo modifiche
+ai mount/env Compose usare `docker compose up -d grafana`.
+UID datasource `fleetpulse-prometheus`, dashboard `fleetpulse-overview`,
+folder `fleetpulse`; nessuna dipendenza da ID numerici assegnati dal DB.
+
+Il contratto della dashboard è descritto in
+[Observability](11_OBSERVABILITY.md#5-dashboard-grafana--fp-043).
 
 ## 9. Produzione
 

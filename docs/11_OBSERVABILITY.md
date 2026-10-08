@@ -185,8 +185,8 @@ Per un Counter come `fleetpulse.processor.events`, l'export è
 `fleetpulse_processor_events_total`; per la Gauge connections.active è
 `fleetpulse_gateway_connections_active`. Ogni Timer esporta almeno
 `<nome>_seconds_count`, `_seconds_sum`, `_seconds_bucket` con la label `le`;
-`max` può essere disponibile secondo registry. FP-042 verificherà lo scrape
-Prometheus; FP-041 verifica il formato esportato dall'endpoint reale.
+`max` può essere disponibile secondo registry. FP-042 verifica la raccolta
+server e i target; FP-041 verifica il formato esportato dall'endpoint reale.
 
 Esempio p95 di elaborazione riuscita, aggregato sulle istanze:
 
@@ -206,72 +206,21 @@ partition in FP-041. I campi ad alta cardinalità rimangono nei log FP-040.
 Fonti: [Spring Boot metrics](https://docs.spring.io/spring-boot/reference/actuator/metrics.html),
 [Micrometer histogram](https://docs.micrometer.io/micrometer/reference/concepts/histogram-quantiles.html).
 
-### Verifica dello scrape — FP-042
+### Raccolta delle metriche
 
-Prometheus raccoglie i tre servizi ogni **15 secondi**, con timeout **5 secondi**,
-su `/actuator/prometheus` nella rete Compose. `up=1` indica uno scrape riuscito:
-non dimostra readiness né disponibilità di PostgreSQL, Kafka o Redis.
-La pagina `/targets` e l'API `/api/v1/targets` mostrano stato e ultimo errore.
+Prometheus raccoglie `fleet-api`, `telemetry-gateway` e `telemetry-processor`
+ogni **15 secondi**, con timeout **5 secondi**, tramite `/actuator/prometheus`
+nella rete Compose. I target usano il nome DNS del servizio e la porta 8080.
+La configurazione è in `infrastructure/prometheus/prometheus.yml`.
 
-La verifica ripetibile richiede Python 3, senza pacchetti aggiuntivi:
+La metrica `up` indica il successo dello scrape: 1 per una raccolta riuscita,
+0 per una raccolta fallita. Non dimostra readiness né disponibilità di
+PostgreSQL, Kafka o Redis. Una serie assente deve restare distinguibile
+da una misura valida a zero.
 
-```bash
-docker compose up -d fleet-api telemetry-gateway telemetry-processor prometheus
-docker compose exec -T prometheus promtool check config /etc/prometheus/prometheus.yml
-python3 infrastructure/prometheus/verify.py --report tmp/fp042-prometheus-results.json
-```
-
-Il comando verifica via API del server, non direttamente via Actuator: target
-attesi, URL, intervallo/timeout, `up`, memoria/thread JVM e una metrica custom
-per servizio. Accetta metriche presenti a zero: non simula traffico e non prova
-throughput o latenza end-to-end. Serie assenti o non finite non passano.
-
-Per verificare anche l'interruzione reale dei tre target:
-
-```bash
-python3 infrastructure/prometheus/verify.py --exercise-recovery \
-  --report tmp/fp042-prometheus-recovery.json
-```
-
-L'opzione arresta e riavvia ogni applicazione in sequenza, attende `up=0` e
-target down con errore, poi `up=1` e metriche nuovamente disponibili. Tutti
-i target devono essere up prima di qualsiasi arresto; il servizio viene
-riavviato in `finally` anche se la verifica down fallisce o viene interrotta.
-Non terminare forzatamente il processo: in tal caso il cleanup non è garantito.
-Il report JSON contiene esiti, timestamp dei campioni e tempi osservati, anche
-su failure; exit code 0 significa successo, 1 failure.
-
-Ogni controllo ha una deadline di 90 secondi (`--timeout`), con polling ogni
-2 secondi e timeout HTTP 5 secondi. La finestra include almeno due intervalli
-di scrape più margine di avvio; non è un SLO applicativo. `--url` supporta
-una porta Prometheus locale diversa da quella predefinita.
-
-Query manuali utili:
-
-```promql
-up{job=~"fleet-api|telemetry-gateway|telemetry-processor"}
-jvm_memory_used_bytes{job="telemetry-processor"}
-fleetpulse_gateway_connections_active{job="telemetry-gateway"}
-fleetpulse_processor_events_total{job="telemetry-processor"}
-fleetpulse_api_cache_hits_total{job="fleet-api"}
-```
-
-Contratti del server: [Prometheus HTTP API](https://prometheus.io/docs/prometheus/latest/querying/api/)
-e [configurazione scrape](https://prometheus.io/docs/prometheus/latest/configuration/configuration/).
-
-#### Criteri di chiusura FP-042
-
-| Requisito del backlog | Verifica ripetibile |
-|---|---|
-| Target applicativi up | Tre target attesi healthy, senza errore, e query `up=1` |
-| Scrape interval documentato | 15s in configurazione e documentazione, verificato tramite targets API |
-| Metriche JVM e custom interrogabili | Query memoria/thread JVM e una metrica custom per ciascun servizio |
-| Target down visibile | Arresto reale dei tre servizi in sequenza, target down con errore e `up=0`, poi recovery |
-
-Validazione locale del 2026-10-08: `promtool` riuscito e 27 controlli del
-verificatore finale passati con `--exercise-recovery`. Verificato anche il
-caso endpoint irraggiungibile: exit 1 e report failure. Stack fermato al termine,
-volumi conservati. Nessuna modifica Java: suite Maven non rieseguita.
+Il contratto di osservabilità richiede metriche JVM e applicative interrogabili,
+rilevamento del target indisponibile e ripresa della raccolta dopo il ripristino.
+Le verifiche di raccolta sono distinte dai test dell'export Actuator.
 
 ## 4. Health
 
@@ -289,18 +238,39 @@ Esempi:
 - il processor non è ready a persistere se PostgreSQL è down;
 - il gateway dipende dalla disponibilità del listener e dalla capacità di pubblicare.
 
-## 5. Dashboard
+## 5. Dashboard Grafana — FP-043
 
-Sezioni consigliate:
+La dashboard **FleetPulse Overview**, UID `fleetpulse-overview`, è provisionata
+automaticamente nella cartella **FleetPulse**. Contiene 18 pannelli e 25 query
+Prometheus reali, suddivisi in target/JVM, gateway, processor e API/cache.
+Definizione versionata in `infrastructure/grafana/dashboards/fleetpulse-overview.json`.
 
-1. active connections;
-2. frame ricevuti e rifiutati;
-3. processing rate;
-4. duplicati e failure;
-5. processing latency percentiles;
-6. cache hit/fallback rate;
-7. JVM memory e thread;
-8. dependency health.
+Il datasource ha UID `fleetpulse-prometheus`, URL interno
+`http://prometheus:9090` e scrape interval dichiarato 15s. Dashboard Classic
+JSON, refresh 15s, range iniziale 30m. Le query rate usano `$__rate_interval`:
+almeno 1m con questo scrape interval, più ampio secondo passo/range Grafana.
+Gauge visualizzate come valori, Counter come rate/s e p95 da bucket aggregati
+con `le`, non da percentili client. L'HTTP include solo URI `/api/v1/.*`.
+
+| Sezione | Contenuto |
+|---|---|
+| Target/JVM | Scrape UP/DOWN per servizio, memoria utilizzata e thread JVM |
+| Gateway | Connessioni, frame/s, rifiuti per reason, failure publish/s, p95 publish confirmed |
+| Processor | Tentativi/persistenze/duplicati, rifiuti dominio, failure/recovery Kafka distinte, esiti Redis, p95 persisted |
+| API/cache | Richieste ed errori REST/s, hits/misses/fallback, failure lettura/repair, p95 REST |
+
+UP indica successo dello scrape, non dependency health/readiness. Metriche
+assenti rimangono NO DATA, percentili senza campioni non diventano zero.
+Le curve storiche possono restare visibili durante un outage; il pannello
+scrape mostra lo stato corrente. Non sommare contatori con semantiche
+sovrapposte (tentativi/persistenze, retry/terminal/DLT, miss/fallback).
+Nessun consumer lag o health di dipendenza senza una fonte verificata.
+
+Il provider rilegge i JSON ogni 30s. La definizione versionata è la fonte
+della configurazione: la dashboard provisionata non consente salvataggi dalla
+UI. Datasource e provider vengono caricati all'avvio. Il datasource mantiene
+l'UID stabile anche sulle installazioni precedenti, tramite ricreazione della
+configurazione della connessione prima del provisioning.
 
 ## 6. Correlazione
 

@@ -158,9 +158,10 @@ condiviso e simulator.
 
 Un test end-to-end di `ACCEPTED` deve invece includere la pubblicazione Kafka:
 un handler fittizio che rispondesse positivamente senza attendere il broker
-violerebbe la semantica definita nella sezione 7. Fino all'introduzione del
-`FrameHandler` di produzione previsto da FP-021, il listener resta disabilitato
-nell'avvio Compose e l'emissione ACK/NACK non è considerata coperta end-to-end.
+violerebbe la semantica definita nella sezione 7. Il `PublishingFrameHandler`
+di produzione attende la conferma Kafka prima di preparare `ACCEPTED`;
+il listener è abilitato nell'avvio Compose. La verifica end-to-end deve
+includere il broker e distinguere l'ACK dal successivo commit del processor.
 
 ## ADR di riferimento
 
