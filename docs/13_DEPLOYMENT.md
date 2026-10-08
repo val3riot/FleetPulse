@@ -223,6 +223,20 @@ non espone connessioni dirette verso database, broker, cache o servizi interni.
 La pubblicazione su loopback evita l'esposizione dei servizi sulle altre
 interfacce di rete della macchina di sviluppo.
 
+### Prometheus locale — FP-042
+
+La porta Prometheus è pubblicata soltanto su loopback (`PROMETHEUS_PORT`,
+default 9090); lo scrape usa i nomi DNS interni dei tre servizi, porta 8080.
+Configurazione versionata: `infrastructure/prometheus/prometheus.yml`;
+intervallo 15s, timeout 5s. Dopo una modifica riavviare Prometheus:
+`docker compose restart prometheus`.
+
+Compose non monta un volume TSDB: la storia non è garantita dopo la
+ricreazione del container. La retention usa il default Prometheus di 15 giorni;
+questa configurazione serve alla verifica locale, non all'archiviazione.
+Procedura, query e prova down/recovery in
+[Observability — FP-042](11_OBSERVABILITY.md#verifica-dello-scrape--fp-042).
+
 ## 9. Produzione
 
 Il deployment locale non è production-grade.
