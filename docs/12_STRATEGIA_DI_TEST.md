@@ -194,11 +194,30 @@ confine distinto e non dimostra la recovery automatica della cache.
 
 ### E2E-004 — Redis non disponibile
 
-1. persisti telemetria;
-2. rendi Redis indisponibile;
-3. interroga lo stato;
-4. verifica fallback;
-5. verifica metrica.
+1. Persistire telemetria in PostgreSQL, popolare Redis e verificare una lettura
+   dello stato servita dalla cache; misurarne la latenza di riferimento.
+2. Fermare realmente Redis, mantenendo PostgreSQL e API attivi. Il guasto
+   tramite proxy è una prova complementare, non sostituisce stop/start.
+3. Verificare HTTP 200 e stato completo coerente con PostgreSQL, senza
+   modifiche ai sample. I contatori devono distinguere fallback, failure di
+   lettura Redis e failure del tentativo di repair; un errore non è un miss.
+4. Riavviare lo stesso Redis, senza ricreare ApplicationContext o connection
+   factory. Dopo la riconnessione verificare cache vuota, read repair con
+   JSON e TTL validi, quindi cache hit senza query PostgreSQL.
+5. Verificare separatamente che il processor possa persistere un evento
+   durante il guasto e aggiornare Redis con un evento successivo dopo il
+   ripristino, usando lo stesso servizio e la stessa connection factory.
+
+La risposta durante il guasto può costare un timeout di lettura e uno di
+repair oltre alle query DB. Un rifiuto immediato della connessione può invece
+fallire rapidamente: non imporre che ogni outage sia più lento di ogni hit.
+Misurare entrambe le latenze; un blackhole controllato deve dimostrare
+l'attesa del timeout e una conclusione entro il budget generoso del test,
+senza trasformare tale budget in SLA di produzione.
+
+FP-045 verifica il restart con endpoint stabile. Ricreare Redis con un nuovo
+IP, cambiare endpoint o forzare refresh DNS è un caso distinto: la recovery
+del client in tali condizioni non è dimostrata dal solo stop/start.
 
 ### E2E-005 — Input TCP invalido
 
@@ -411,7 +430,7 @@ di COUNT, che Spring Data può evitare in alcuni casi.
 
 Scelta delle query: [ADR-012](adr/ADR-012-STRATEGIA-ACCESSO-DATI-JPA.md).
 
-## Cache resilience — verifiche FP-039
+## Cache resilience — verifiche FP-039 e FP-045
 
 VehicleStateRecoveryIntegrationTest usa PostgreSQL/Redis reali e Toxiproxy,
 con la stessa ApplicationContext e connection factory durante guasto e recovery.
@@ -422,7 +441,9 @@ La dipendenza Toxiproxy è soltanto test e segue il BOM Spring Boot.
 | Connessione interrotta: fallback 200, failure read/repair distinte | reconnectsRepairsAndServesCacheHitAfterConnectionOutage |
 | TCP aperto, risposte bloccate: vero timeout di comando e fallback 200 | realCommandTimeoutFallsBackAndRecoversAfterNetworkFaultIsRemoved |
 | Miss riuscito, guasto solo durante repair: risposta PostgreSQL preservata | repairConnectionFailureAfterSuccessfulMissDoesNotChangePostgresResponse |
-| Recovery senza restart API, repair JSON/TTL, hit senza query veicolo/sample | Tutti i tre scenari di VehicleStateRecoveryIntegrationTest |
+| Stop/start reale Redis, stato coerente, nessun restart API, repair e hit senza DB | realRedisStopAndRestartFallsBackThenRepairsWithoutRestartingApi |
+| Recovery senza restart API, repair JSON/TTL, hit senza query veicolo/sample | Tutti i quattro scenari di VehicleStateRecoveryIntegrationTest |
+| Persistenza durante outage e nuovo evento proiettato dopo restart Redis, factory invariata | TelemetrySamplePersistenceIntegrationTest.persistsDuringRedisOutageAndProjectsNewEventAfterRedisRestart |
 | Redis fermo e guasto simultaneo DB, hit con PostgreSQL fermo | VehicleStateUnavailableIntegrationTest, VehicleStateCacheHitDatabaseUnavailableIntegrationTest |
 | Warning limitati, nessun payload/stacktrace/tag ad alta cardinalità | VehicleStateObservabilityTest |
 | Protezione da repair concorrente più vecchio, JSON invalido e TTL | VehicleStateApiIntegrationTest, RedisLatestStateProjectionIntegrationTest |
@@ -436,6 +457,10 @@ Nel caso timeout, dopo il ripristino si elimina la chiave di fixture per
 provare esplicitamente il repair della richiesta successiva: il timeout client
 non è assunto come prova di mancata esecuzione di un comando lato server.
 I timeout Redis sono 200 ms nei test, senza imporre un SLA alla response REST.
+La prova blackhole misura anche una baseline cache hit e verifica una durata
+REST fra 150 ms e 5 s: margine rispetto al timeout di comando di 200 ms e
+budget di test, non garanzia operativa. La prova stop/start misura la durata
+senza imporre un confronto relativo soggetto a rumore di esecuzione.
 
 ## FP-040 — Logging e correlazione
 

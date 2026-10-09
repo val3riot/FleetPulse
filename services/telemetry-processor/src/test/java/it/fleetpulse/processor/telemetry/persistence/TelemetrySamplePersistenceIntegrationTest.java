@@ -279,12 +279,18 @@ class TelemetrySamplePersistenceIntegrationTest extends PostgreSqlIntegrationSup
 
     @Test
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    void stoppedRedisDoesNotPreventPostgresCommitOrProcessingCompletion() {
+    void persistsDuringRedisOutageAndProjectsNewEventAfterRedisRestart() throws Exception {
         TelemetryEvent event = new TelemetryEvent(TelemetryEventVersions.V1, MESSAGE_ID, VEHICLE_ID, 42,
             OBSERVED_AT, RECEIVED_AT, new TelemetryData(72.4, 91.8, 12.6, 85312, 41.9028, 12.4964));
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         try (GenericContainer<?> container =
-            new GenericContainer<>("redis:8.2.8-alpine").withExposedPorts(6379)) {
+            new GenericContainer<>("redis:8.2.8-alpine").withExposedPorts(6379)
+                .withCommand("redis-server", "--save", "", "--appendonly", "no")) {
+            // Docker can reassign an ephemeral published port on start; pin a dynamically
+            // selected free port so this test exercises recovery at an unchanged endpoint.
+            try (var reservation = new java.net.ServerSocket(0)) {
+                container.setPortBindings(List.of(reservation.getLocalPort() + ":6379"));
+            }
             container.start();
             LettuceClientConfiguration client = LettuceClientConfiguration.builder()
                 .commandTimeout(Duration.ofMillis(500))
@@ -298,15 +304,15 @@ class TelemetrySamplePersistenceIntegrationTest extends PostgreSqlIntegrationSup
                     template, new RedisLatestStateCodec(),
                     new LatestStateProjectionProperties(Duration.ofMinutes(5), 1));
                 assertThat(adapter.findByVehicleId(VEHICLE_ID)).isEmpty();
-                container.stop();
+                String containerId = container.getContainerId();
+                container.getDockerClient().stopContainerCmd(containerId).withTimeout(2).exec();
 
                 TelemetryEventProcessingService processor = new TelemetryEventProcessingService(
                     writer, mapper, clock,
                     failureClassifier, eligibilityGuard, adapter,
                     new LatestStateProjectionObservability(registry), alertVehicleQuery,
                     alertTelemetryMapper, alertEvaluator,
-                    new TelemetryProcessingMetrics(
-                        new SimpleMeterRegistry()));
+                    new TelemetryProcessingMetrics(registry));
 
                 assertDoesNotThrow(() -> processor.handle(event, SOURCE));
                 assertThat(repository.findAll()).singleElement()
@@ -314,12 +320,33 @@ class TelemetrySamplePersistenceIntegrationTest extends PostgreSqlIntegrationSup
                 assertThat(registry.get("fleetpulse.redis.update.failures").counter().count()).isEqualTo(1);
                 assertThat(registry.get("fleetpulse.telemetry.latest_state.updates")
                     .tag("outcome", "failed").counter().count()).isEqualTo(1);
+                container.getDockerClient().startContainerCmd(containerId).exec();
+                assertThat(container.getDockerClient().inspectContainerCmd(containerId).exec()
+                    .getNetworkSettings().getPorts().getBindings()
+                    .get(new com.github.dockerjava.api.model.ExposedPort(6379))[0].getHostPortSpec())
+                    .isEqualTo(Integer.toString(container.getMappedPort(6379)));
+                org.awaitility.Awaitility.await().atMost(Duration.ofSeconds(10))
+                    .ignoreExceptions().until(() -> adapter.findByVehicleId(VEHICLE_ID).isEmpty());
+                TelemetryEvent next = new TelemetryEvent(TelemetryEventVersions.V1, UUID.randomUUID(),
+                    VEHICLE_ID, 43, OBSERVED_AT.plusSeconds(1), RECEIVED_AT.plusSeconds(1),
+                    new TelemetryData(75, 92, 12.6, 85313, 41.9028, 12.4964));
+                processor.handle(next, new TelemetrySource(SOURCE.topic(), SOURCE.partition(), 43));
+                assertThat(repository.count()).isEqualTo(2);
+                assertThat(adapter.findByVehicleId(VEHICLE_ID)).get()
+                    .extracting(it.fleetpulse.processor.telemetry.projection.LatestVehicleState::lastSequenceNumber)
+                    .isEqualTo(43L);
+                assertThat(template.getExpire("vehicle:last:" + VEHICLE_ID, TimeUnit.MILLISECONDS))
+                    .isBetween(1L, 300_000L);
+                assertThat(registry.get("fleetpulse.processor.persisted").counter().count()).isEqualTo(2);
+                assertThat(registry.get("fleetpulse.telemetry.latest_state.updates")
+                    .tag("outcome", "updated").counter().count()).isEqualTo(1);
+                assertThat(registry.get("fleetpulse.redis.update.failures").counter().count()).isEqualTo(1);
             } finally {
                 factory.destroy();
             }
         } finally {
             registry.close();
-            jdbcTemplate.update("delete from telemetry_samples where message_id = ?", MESSAGE_ID);
+            jdbcTemplate.update("delete from telemetry_samples where vehicle_id = ?", VEHICLE_ID);
             jdbcTemplate.update("delete from vehicles where id = ?", VEHICLE_ID);
         }
     }

@@ -91,6 +91,19 @@ dell'ACK applicativo e non appartiene a FP-016.
 
 Un errore Redis non annulla la transaction PostgreSQL.
 
+La Fleet API restituisce lo stato dal database anche quando la lettura Redis
+e il successivo tentativo di repair falliscono. Dopo il restart di Redis sullo
+stesso endpoint, i client devono riconnettersi senza restart dell'API: la
+prima lettura utile ripara la cache, le successive possono tornare cache hit.
+Il processor riprende la projection con un nuovo evento; non recupera
+automaticamente ogni update Redis fallito tramite replay del duplicato.
+
+La latenza degradata dipende dal tipo di guasto: i timeout di lettura/repair
+aggiungono attesa, mentre un rifiuto immediato può essere rapido. Il successo
+del fallback non richiede che ogni risposta sia più lenta del cache hit.
+Il restart con endpoint stabile non dimostra recovery dopo ricreazione del
+container con indirizzo IP diverso o invalidazione della cache DNS.
+
 La cache viene riparata tramite:
 
 1. cache-aside durante una lettura;

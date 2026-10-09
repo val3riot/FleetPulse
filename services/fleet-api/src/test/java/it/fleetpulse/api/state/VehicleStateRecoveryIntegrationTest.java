@@ -47,6 +47,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -68,7 +69,8 @@ class VehicleStateRecoveryIntegrationTest extends PostgreSqlIntegrationSupport {
 
     @Container
     static final GenericContainer<?> REDIS = new GenericContainer<>("redis:8.2.8-alpine")
-        .withNetwork(NETWORK).withNetworkAliases("redis").withExposedPorts(6379);
+        .withNetwork(NETWORK).withNetworkAliases("redis").withExposedPorts(6379)
+        .withCommand("redis-server", "--save", "", "--appendonly", "no");
 
     @Container
     static final ToxiproxyContainer TOXIPROXY =
@@ -146,7 +148,52 @@ class VehicleStateRecoveryIntegrationTest extends PostgreSqlIntegrationSupport {
     }
 
     @Test
+    void realRedisStopAndRestartFallsBackThenRepairsWithoutRestartingApi() throws Exception {
+        String response = state();
+        assertThat(redisValue()).contains("lastSequenceNumber");
+        long baselineStart = System.nanoTime();
+        mvc.perform(get(PATH)).andExpect(status().isOk()).andExpect(content().json(response));
+        long baselineNanos = System.nanoTime() - baselineStart;
+        var originalSamples = jdbc.queryForList("SELECT * FROM telemetry_samples ORDER BY id");
+        double failures = count("failures");
+        double repairs = count("repair.failures");
+        double fallbacks = count("fallback");
+        double misses = count("misses");
+        String containerId = REDIS.getContainerId();
+        clearInvocations(samples, vehicles);
+        // GenericContainer.stop() removes the container; keep it and the proxy endpoint intact.
+        REDIS.getDockerClient().stopContainerCmd(containerId).withTimeout(2).exec();
+        long outageNanos;
+        try {
+            assertThat(REDIS.getDockerClient().inspectContainerCmd(containerId).exec()
+                .getState().getRunning()).isFalse();
+            long started = System.nanoTime();
+            mvc.perform(get(PATH)).andExpect(status().isOk()).andExpect(content().json(response));
+            outageNanos = System.nanoTime() - started;
+            assertThat(count("failures")).isEqualTo(failures + 1);
+            assertThat(count("repair.failures")).isEqualTo(repairs + 1);
+            assertThat(count("fallback")).isEqualTo(fallbacks + 1);
+            assertThat(count("misses")).isEqualTo(misses);
+            verify(samples).findByVehicleId(ID);
+            assertThat(jdbc.queryForList("SELECT * FROM telemetry_samples ORDER BY id"))
+                .isEqualTo(originalSamples);
+        } finally {
+            REDIS.getDockerClient().startContainerCmd(containerId).exec();
+        }
+        awaitConnection();
+        assertThat(redisValue()).isEmpty();
+        assertRecovered(response);
+        assertThat(REDIS.getContainerId()).isEqualTo(containerId);
+        System.out.printf("FP-045 real Redis restart: cache hit %.1f ms; outage fallback %.1f ms%n",
+            baselineNanos / 1_000_000.0, outageNanos / 1_000_000.0);
+    }
+
+    @Test
     void realCommandTimeoutFallsBackAndRecoversAfterNetworkFaultIsRemoved() throws Exception {
+        state();
+        long baselineStart = System.nanoTime();
+        state();
+        long baselineNanos = System.nanoTime() - baselineStart;
         proxy.toxics().timeout("blackhole", ToxicDirection.DOWNSTREAM, 0);
         double failures = count("failures");
         double repairs = count("repair.failures");
@@ -157,7 +204,14 @@ class VehicleStateRecoveryIntegrationTest extends PostgreSqlIntegrationSupport {
             assertThatThrownBy(() -> projection.findByVehicleId(ID))
                 .isInstanceOf(LatestStateProjectionException.class)
                 .hasCauseInstanceOf(QueryTimeoutException.class);
+            long started = System.nanoTime();
             response = state();
+            long elapsedNanos = System.nanoTime() - started;
+            // Generous test budget, not a production latency SLA or a noisy baseline comparison.
+            assertThat(Duration.ofNanos(elapsedNanos))
+                .isBetween(Duration.ofMillis(150), Duration.ofSeconds(5));
+            System.out.printf("FP-045 command timeout: cache hit %.1f ms; fallback %.1f ms%n",
+                baselineNanos / 1_000_000.0, elapsedNanos / 1_000_000.0);
             assertThat(count("failures")).isEqualTo(failures + 1);
             assertThat(count("repair.failures")).isEqualTo(repairs + 1);
             assertThat(count("fallback")).isEqualTo(fallbacks + 1);
