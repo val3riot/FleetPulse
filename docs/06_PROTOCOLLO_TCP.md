@@ -24,8 +24,9 @@ TCP fornisce uno stream ordinato di byte, ma non conserva i confini dei messaggi
 | Encoding | UTF-8 |
 | Byte order | Big-endian |
 | Connection model | Persistent |
-| Read timeout | Configurabile |
-| Maximum invalid frames | Configurabile |
+| Read timeout | `30s`, configurabile |
+| Maximum connections | `100`, configurabile |
+| Invalid frame policy | Chiusura al primo errore |
 
 ## 4. Requisiti del decoder
 
@@ -77,17 +78,23 @@ una socket read = un messaggio applicativo
 }
 ```
 
-### Rejected sincrono
+### Rejected sincrono per pubblicazione Kafka non confermata
 
 ```json
 {
   "protocolVersion": 1,
   "messageId": "dc0fc799-0913-4e72-bd2d-8ee8ccf52e22",
   "status": "REJECTED",
-  "errorCode": "UNSUPPORTED_PROTOCOL_VERSION",
+  "errorCode": "UPSTREAM_UNAVAILABLE",
   "receivedAt": "2026-08-01T10:15:30.083Z"
 }
 ```
+
+Le risposte ACK/NACK usano lo stesso framing length-prefixed del payload.
+Il gateway corrente invia `REJECTED` con `UPSTREAM_UNAVAILABLE` dopo aver
+decodificato un messaggio valido. Errori di framing, JSON, validazione o versione
+sono rilevati nel decoder: la connessione viene chiusa senza ACK/NACK. Anche
+il superamento del limite connessioni causa chiusura, senza risposta applicativa.
 
 ## 7. Semantica dell'ACK
 
@@ -115,15 +122,15 @@ sono NACK del protocollo TCP.
 ```plantuml
 @startuml
 [*] --> CONNECTED
-CONNECTED --> STREAMING : primo frame valido
-CONNECTED --> REJECTED : traffico iniziale invalido
-STREAMING --> STREAMING : frame accettato
-STREAMING --> DEGRADED : timeout o errore temporaneo
-DEGRADED --> STREAMING : traffico ripristinato
-STREAMING --> CLOSED : EOF o shutdown
-DEGRADED --> CLOSED : timeout policy raggiunta
-REJECTED --> CLOSED
+CONNECTED --> STREAMING : primo frame valido e ACK/NACK
+CONNECTED --> CLOSED : errore decoder, read timeout, EOF o shutdown
+STREAMING --> STREAMING : frame valido, ACCEPTED o UPSTREAM_UNAVAILABLE
+STREAMING --> CLOSED : errore decoder, read timeout, EOF o shutdown
 CLOSED --> [*]
+note right of CLOSED
+  Capacità esaurita: socket appena accettata
+  chiusa prima del task di lettura.
+end note
 @enduml
 ```
 
@@ -139,8 +146,9 @@ CLOSED --> [*]
 | `UPSTREAM_UNAVAILABLE` | Kafka non confermato |
 | `CAPACITY_LIMIT_REACHED` | Capacità del gateway esaurita |
 
-Questi codici descrivono esclusivamente condizioni tecniche o di capacità che
-il gateway può osservare. I rifiuti di dominio sono documentati nel modello
+L'enum condiviso riserva questi codici tecnici; la loro presenza non garantisce
+che siano trasmessi sul wire. Attualmente solo `UPSTREAM_UNAVAILABLE` viene
+emesso in un NACK; gli altri errori causano chiusura osservabile via log/metriche. I rifiuti di dominio sono documentati nel modello
 eventi.
 
 ## 10. Retry del client
@@ -148,6 +156,13 @@ eventi.
 Il client può ritentare quando non riceve un ACK positivo.
 
 Il retry deve riutilizzare lo stesso `messageId`.
+
+Il `confirmation-timeout` limita l’attesa della future dopo `publish()`, non
+l’intera risposta TCP: la chiamata sincrona del producer può attendere metadata
+o spazio nel buffer prima di restituire la future. Il budget complessivo
+durante outage Kafka rimane un limite operativo aperto, da risolvere in FP-056.
+Un NACK o timeout non prova l’assenza di una consegna tardiva: il retry mantiene
+lo stesso `messageId` per permettere la deduplicazione del processor.
 
 ## 11. Confine dei test di integrazione
 

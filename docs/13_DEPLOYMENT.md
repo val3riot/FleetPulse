@@ -52,7 +52,9 @@ La configurazione usa:
 - `.env.example`;
 - file montati per observability.
 
-Nessun secret reale nel repository.
+Nessun secret reale nel repository. Il frammento seguente è un estratto:
+[`.env.example`](../.env.example) definisce l’elenco completo delle variabili
+richieste dal Compose, incluse immagini Java, topic e monitoring.
 
 ```dotenv
 POSTGRES_VERSION=17.10-alpine3.23
@@ -118,8 +120,10 @@ impedisce l'avvio. La conversione deve rispettare la precisione Redis; il TTL
 si rinnova solo quando viene accettato un aggiornamento. Non rappresenta la
 soglia di freshness della State API.
 
-Le variabili d'ambiente del processor sono `TELEMETRY_LATEST_STATE_TTL` e
-`TELEMETRY_LATEST_STATE_MAX_ATTEMPTS`. Il limite dei tentativi include il primo:
+Le variabili d'ambiente Spring del processor sono `TELEMETRY_LATEST_STATE_TTL` e
+`TELEMETRY_LATEST_STATE_MAX_ATTEMPTS`; il Compose corrente non le inoltra da
+`.env`. Per sovrascriverle in Docker occorre dichiararle nell'environment del
+servizio, per esempio in un override Compose. Il limite dei tentativi include il primo:
 con `1`, un conflitto concorrente causa subito un fallimento osservabile della
 proiezione, senza rollback PostgreSQL o retry Kafka. I warning sono limitati
 a uno ogni 30 secondi per istanza; le metriche contano tutti i fallimenti.
@@ -139,15 +143,15 @@ veicolo ed è rappresentata da `nextServiceAtKm`.
 
 ## 4. Container design
 
-Le application image dovrebbero:
+Le quattro immagini applicative Java:
 
-- usare multi-stage build;
-- eseguire come non-root;
-- esporre soltanto le porte richieste;
-- supportare health probing;
-- usare artifact immutabili;
-- scrivere log su standard output;
-- non conservare stato durevole nel filesystem del container.
+- usano multi-stage build;
+- eseguono come non-root;
+- dichiarano soltanto le porte richieste;
+- i tre backend supportano health probing; il simulatore non espone HTTP;
+- copiano il JAR prodotto dal build stage;
+- scrivono log su standard output;
+- non conservano stato durevole nel filesystem del container.
 
 ## 5. Avvio locale
 

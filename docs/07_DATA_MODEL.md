@@ -2,9 +2,10 @@
 
 ## 1. Schema persistente
 
-Lo schema autorevole è creato da Flyway tramite
-`infrastructure/flyway/migrations/V1__initial_schema.sql`. I frammenti seguenti
-riassumono il contratto persistente e devono rimanere coerenti con la migration.
+Lo schema autorevole è il risultato delle migration Flyway versionate in
+`infrastructure/flyway/migrations/`, applicate in ordine da V1 a V5. V1 crea
+le tabelle; V2–V5 aggiungono indici, constraint e optimistic locking. I frammenti
+seguenti riassumono lo schema corrente, non il solo contenuto di V1.
 
 ### `vehicles`
 

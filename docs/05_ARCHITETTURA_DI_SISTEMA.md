@@ -20,9 +20,12 @@ La separazione crea failure domain indipendenti senza introdurre un servizio per
 - mantiene connessioni TCP;
 - codifica i frame;
 - gestisce sequence number;
-- riceve ACK/NACK;
-- applica reconnect con bounded backoff;
-- genera duplicati e disconnessioni controllate.
+- applica reconnect con bounded backoff.
+
+Il workload corrente scrive i frame senza leggere ACK/NACK; il decoder ACK
+esiste ed è testato separatamente. Duplicati, disconnessioni e retry con lo
+stesso `messageId` sono esercitati dagli harness di carico/E2E, non dal workload
+ordinario del simulatore.
 
 ### Telemetry Gateway
 
@@ -64,7 +67,7 @@ valida esistenza o stato operativo del veicolo.
 - pubblica OpenAPI;
 - applica fallback PostgreSQL.
 
-### Fleet Dashboard
+### Fleet Dashboard (previsto, non ancora implementato)
 
 - offre agli operatori la vista funzionale della flotta;
 - mostra dashboard, veicoli, telemetria e alert;
@@ -131,7 +134,7 @@ non NACK sincroni del gateway.
 
 ### Transazione PostgreSQL
 
-Sample e alert derivati dovrebbero essere persistiti nella stessa transaction.
+Sample e alert derivati sono persistiti nella stessa transazione PostgreSQL.
 
 Redis viene aggiornato dopo la transazione autorevole.
 

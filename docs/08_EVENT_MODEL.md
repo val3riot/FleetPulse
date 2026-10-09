@@ -6,7 +6,7 @@
 |---|---|---|---|---|
 | `telemetry.raw.v1` | `vehicleId` | Telemetry Gateway | Telemetry Processor | Telemetria pubblicata dal gateway |
 | `telemetry.rejected.v1` | `vehicleId` | Telemetry Processor | Operations tooling | Telemetria elaborata ma rifiutata dal dominio |
-| `telemetry.dead-letter.v1` | `vehicleId` | Telemetry Processor | Operations tooling | Messaggi non elaborabili o errori tecnici con retry esauriti |
+| `telemetry.dead-letter.v1` | key originale, anche null/non UUID | Telemetry Processor | Operations tooling | Messaggi non elaborabili o errori tecnici con retry esauriti |
 
 I tre topic sono creati idempotentemente dal servizio `kafka-init` di Docker
 Compose. I nomi sono configurabili tramite `KAFKA_TOPIC_RAW`,
@@ -146,13 +146,38 @@ che hanno esaurito la politica di retry.
   "sourceTopic": "telemetry.raw.v1",
   "sourcePartition": 1,
   "sourceOffset": 1254,
-  "attempts": 3,
+  "attempts": 1,
   "errorCode": "UNSUPPORTED_EVENT_VERSION",
-  "errorMessage": "Unsupported eventVersion: 99",
+  "errorMessage": "Unsupported telemetry event version: 99",
   "originalKey": "97e194a8-64b3-4885-b1e6-25fd482f58c0",
-  "originalPayload": {}
+  "originalPayload": {
+    "eventVersion": 99,
+    "messageId": "dc0fc799-0913-4e72-bd2d-8ee8ccf52e22",
+    "vehicleId": "97e194a8-64b3-4885-b1e6-25fd482f58c0",
+    "sequenceNumber": 42,
+    "observedAt": "2026-08-01T10:15:30Z",
+    "receivedAt": "2026-08-01T10:15:30.083Z",
+    "telemetry": {
+      "speedKmh": 72.4,
+      "engineTemperatureC": 91.8,
+      "batteryVoltage": 12.6,
+      "odometerKm": 85312,
+      "latitude": 41.9028,
+      "longitude": 12.4964
+    }
+  }
 }
 ```
+
+La key DLT conserva la key del record sorgente; per un record malformato
+non è necessariamente un `vehicleId` valido. `originalPayload` contiene
+l’oggetto deserializzato quando disponibile, altrimenti `{ "rawBase64": "..." }`
+con i byte originali; è vuoto quando non sono recuperabili. `messageId` non è
+un campo top-level garantito della DLT: la correlazione usa anche topic,
+partition e offset sorgenti. `attempts` conta i tentativi effettivi; gli errori
+non retryable possono terminare al primo tentativo. I codici attuali sono
+`UNSUPPORTED_EVENT_VERSION`, `DESERIALIZATION_FAILED` e
+`PROCESSING_RETRIES_EXHAUSTED`.
 
 ## 9. Schema evolution
 

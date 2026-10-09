@@ -21,7 +21,7 @@ public record TelemetryHistoryRequest(
 
         @Min(1) @Max(100) @Schema(minimum = "1", maximum = "100", defaultValue = "50") Integer size,
 
-        @NotBlank @Pattern(regexp = "observedAt,(asc|desc)") @Schema(description = "Ordinamento per istante di osservazione", allowableValues = {
+        @NotBlank @Pattern(regexp = "observedAt,(asc|desc)") @Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, description = "Ordinamento per istante di osservazione", allowableValues = {
                 "observedAt,asc",
                 "observedAt,desc"}, defaultValue = "observedAt,desc") String sort){
     public TelemetryHistoryRequest {

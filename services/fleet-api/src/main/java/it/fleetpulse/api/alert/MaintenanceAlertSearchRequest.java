@@ -16,7 +16,7 @@ public record MaintenanceAlertSearchRequest(
         @Schema(description = "Fine inclusa dell'intervallo su createdAt") Instant to,
         @Min(0) @Schema(minimum = "0", defaultValue = "0") Integer page,
         @Min(1) @Max(100) @Schema(minimum = "1", maximum = "100", defaultValue = "50") Integer size,
-        @NotBlank @Pattern(regexp = "createdAt,(asc|desc)") @Schema(allowableValues = {
+        @NotBlank @Pattern(regexp = "createdAt,(asc|desc)") @Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, allowableValues = {
                 "createdAt,asc", "createdAt,desc"}, defaultValue = "createdAt,desc") String sort){
     public MaintenanceAlertSearchRequest {
         page = page == null ? 0 : page;

@@ -1,12 +1,12 @@
 @startuml
 [*] --> CONNECTED
-CONNECTED --> STREAMING : primo frame valido
-CONNECTED --> REJECTED : traffico iniziale invalido
-STREAMING --> STREAMING : frame accettato
-STREAMING --> DEGRADED : timeout o errore temporaneo
-DEGRADED --> STREAMING : traffico ripristinato
-STREAMING --> CLOSED : EOF o shutdown
-DEGRADED --> CLOSED : timeout policy raggiunta
-REJECTED --> CLOSED
+CONNECTED --> STREAMING : primo frame valido e ACK/NACK
+CONNECTED --> CLOSED : errore decoder, read timeout, EOF o shutdown
+STREAMING --> STREAMING : frame valido, ACCEPTED o UPSTREAM_UNAVAILABLE
+STREAMING --> CLOSED : errore decoder, read timeout, EOF o shutdown
 CLOSED --> [*]
+note right of CLOSED
+  Capacità esaurita: socket appena accettata
+  chiusa prima del task di lettura.
+end note
 @enduml

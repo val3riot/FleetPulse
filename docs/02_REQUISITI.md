@@ -74,7 +74,9 @@ Fleet API deve esporre lo storico con filtri temporali e paginazione.
 
 ### RF-013 — Generazione degli alert
 
-Il processor deve valutare regole configurabili dopo la persistenza della telemetria.
+Il processor deve valutare regole configurabili sulla telemetria accettata e
+persistire sample e alert derivati nella stessa transazione PostgreSQL, secondo
+[ADR-012](adr/ADR-012-STRATEGIA-ACCESSO-DATI-JPA.md).
 
 ### RF-014 — Consultazione e aggiornamento degli alert
 
@@ -88,7 +90,9 @@ diagnostici.
 
 ### RF-016 — Endpoint operativi
 
-Ogni servizio applicativo deve esporre health endpoint e metriche.
+I tre servizi backend (Fleet API, Telemetry Gateway e Telemetry Processor)
+devono esporre health endpoint e metriche. Il Vehicle Simulator non espone un
+server HTTP: il suo lifecycle viene osservato tramite processo e log.
 
 ### RF-017 — Contratto degli errori REST
 

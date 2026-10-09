@@ -5,6 +5,7 @@ component "Vehicle Simulator" as Simulator
 component "Telemetry Gateway" as Gateway
 queue "Kafka\ntelemetry.raw.v1" as Kafka
 queue "Kafka\ntelemetry.rejected.v1" as Rejected
+queue "Kafka\ntelemetry.dead-letter.v1" as DLT
 component "Telemetry Processor" as Processor
 database "PostgreSQL" as PostgreSQL
 database "Redis" as Redis
@@ -19,6 +20,7 @@ Gateway --> Kafka : publish(key=vehicleId)
 Kafka --> Processor : consume
 Processor --> PostgreSQL : lookup vehicle, sample e alert
 Processor --> Rejected : domain rejection
+Processor --> DLT : errore non retryable o retry esauriti
 Processor --> Redis : stato più recente
 API --> PostgreSQL : query autorevoli
 API --> Redis : cache-aside

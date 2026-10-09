@@ -29,8 +29,7 @@ integrazione di security.
 La specifica OpenAPI pubblicata descrive gli endpoint operativi di veicoli,
 stato corrente, dashboard, storico telemetrico e alert, incluse le transizioni
 di stato degli alert. I contratti delle sezioni seguenti sono implementati da
-FP-004–FP-008 e FP-031–FP-037. FP-038 completa la verifica dei contratti delle
-API di lettura; non introduce nuovi endpoint.
+FP-004–FP-008 e FP-031–FP-037; FP-038 ne verifica i contratti di lettura.
 
 ### 1.1 Error response
 
@@ -191,7 +190,7 @@ Vincoli:
 `201 Created`:
 
 ```http
-Location: /api/v1/vehicles/97e194a8-64b3-4885-b1e6-25fd482f58c0
+Location: http://localhost:8080/api/v1/vehicles/97e194a8-64b3-4885-b1e6-25fd482f58c0
 ```
 
 ```json
@@ -215,6 +214,9 @@ Errori:
 - `415 REQUEST_UNSUPPORTED_MEDIA_TYPE` se il media type non è supportato;
 - `503 SERVICE_UNAVAILABLE` se PostgreSQL non è temporaneamente disponibile;
 - `500 INTERNAL_ERROR` per errori inattesi.
+
+L’header `Location` è un URI assoluto costruito dall’origine della richiesta e
+dal path della risorsa; l’esempio usa la porta locale predefinita.
 
 Il controllo preventivo con `existsBy...` è solamente un feedback anticipato.
 L'unicità autorevole è garantita dai constraint PostgreSQL
@@ -258,6 +260,7 @@ Errori:
 - `400 REQUEST_INVALID` per path o request non validi;
 - `400 REQUEST_MALFORMED_JSON` per JSON o enum non convertibili;
 - `404 VEHICLE_NOT_FOUND`;
+- `415 REQUEST_UNSUPPORTED_MEDIA_TYPE`;
 - `503 SERVICE_UNAVAILABLE`;
 - `500 INTERNAL_ERROR`.
 
@@ -541,8 +544,8 @@ Gli identificativi sono stringhe UUID e gli istanti sono timestamp UTC
 (formato OpenAPI `date-time`). `acknowledgedAt` e `closedAt` possono essere
 null: OPEN non ha timestamp di transizione; ACKNOWLEDGED ha acknowledgedAt;
 CLOSED ha closedAt e conserva acknowledgedAt se la chiusura segue un acknowledge.
-La nullabilità di questi timestamp va distinta dall'obbligatorietà degli
-altri campi e verificata nel contratto OpenAPI da FP-038.
+OpenAPI distingue questi timestamp nullable dagli otto campi obbligatori;
+la response serializzata contiene anche i due timestamp quando null.
 
 Errori delle collection alert:
 
@@ -601,6 +604,7 @@ Errori:
 - `400 REQUEST_MALFORMED_JSON`;
 - `404 ALERT_NOT_FOUND`;
 - `409 ALERT_STATUS_TRANSITION_CONFLICT`;
+- `415 REQUEST_UNSUPPORTED_MEDIA_TYPE`;
 - `503 SERVICE_UNAVAILABLE`;
 - `500 INTERNAL_ERROR`.
 

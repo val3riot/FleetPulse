@@ -4,12 +4,12 @@ participant "Telemetry Processor" as Processor
 database PostgreSQL
 
 Kafka -> Processor : evento A
-Processor -> PostgreSQL : insert messageId A
+Processor -> PostgreSQL : insert sample A e alert (transazione unica)
 PostgreSQL --> Processor : commit
 Processor -> Processor : crash prima dell'offset progress
 ...
-Kafka -> Processor : riconsegna evento A
-Processor -> PostgreSQL : insert messageId A
-PostgreSQL --> Processor : uniqueness conflict
-Processor -> Processor : già applicato
+Kafka -> Processor : riconsegna A
+Processor -> PostgreSQL : tentativo insert aggregato A
+PostgreSQL --> Processor : duplicate messageId
+Processor -> Processor : evento già applicato
 @enduml

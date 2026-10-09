@@ -87,6 +87,7 @@ public class MaintenanceAlertController {
             @ApiResponse(responseCode = "200", description = "Alert aggiornato", content = @Content(schema = @Schema(implementation = MaintenanceAlertResponse.class))),
             @ApiResponse(responseCode = "400", description = "Richiesta non valida", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
             @ApiResponse(responseCode = "404", description = "Alert non trovato", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "415", description = "Media type non supportato", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
             @ApiResponse(responseCode = "409", description = "Transizione non consentita", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
             @ApiResponse(responseCode = "500", description = "Errore interno", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
             @ApiResponse(responseCode = "503", description = "Servizio non disponibile", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))

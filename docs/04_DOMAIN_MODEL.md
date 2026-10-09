@@ -105,11 +105,16 @@ Rappresenta un'osservazione storica immutabile.
 
 - `messageId` univoco;
 - `sequenceNumber` non negativo;
-- timestamp entro la clock-skew policy;
+- `observedAt` presente e rappresentabile come istante UTC;
 - velocità non negativa;
 - latitudine tra `-90` e `90`;
 - longitudine tra `-180` e `180`;
-- valori di temperatura e tensione entro sanity bound configurati.
+- tutti i valori floating-point finiti; tensione e odometro non negativi.
+
+La validazione corrente non impone una finestra di clock-skew né limiti
+fisiologici configurabili alla temperatura. Le soglie alert classificano le
+misure e non sono limiti di accettazione. Un timestamp futuro può essere
+persistito: freshness e KPI dashboard seguono le rispettive regole documentate.
 
 ## 4. VehicleState
 
@@ -157,6 +162,8 @@ CLOSED --> [*]
 ## 7. Domain service
 
 ### AlertRule
+
+Firma concettuale del servizio di dominio:
 
 ```java
 interface AlertRule {

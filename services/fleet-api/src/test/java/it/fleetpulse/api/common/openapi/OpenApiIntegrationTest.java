@@ -436,6 +436,27 @@ class OpenApiIntegrationTest extends PostgreSqlIntegrationSupport {
                         .value(hasItems("string", "null")));
     }
 
+    @Test
+    @DisplayName("I sort con default sono opzionali nel contratto OpenAPI")
+    void documentsDefaultedSortParametersAsOptional() throws Exception {
+        for (String path : new String[]{"/api/v1/vehicles",
+                "/api/v1/vehicles/{vehicleId}/telemetry",
+                "/api/v1/alerts", "/api/v1/vehicles/{vehicleId}/alerts"}) {
+            mockMvc.perform(get(OPEN_API_PATH)).andExpect(status().isOk())
+                    .andExpect(jsonPath("$.paths['" + path
+                            + "'].get.parameters[?(@.name == 'sort')].required").value(false));
+        }
+    }
+
+    @Test
+    void documentsUnsupportedMediaTypeForAllWriteOperations() throws Exception {
+        for (String operation : new String[]{"$.paths['/api/v1/vehicles'].post",
+                "$.paths['/api/v1/vehicles/{vehicleId}/status'].patch",
+                "$.paths['/api/v1/alerts/{alertId}'].patch"}) {
+            assertReadErrors(operation, new int[]{415});
+        }
+    }
+
     private void assertReadErrors(String operation, int[] statuses) throws Exception {
         for (int statusCode : statuses) {
             mockMvc.perform(get(OPEN_API_PATH)).andExpect(status().isOk())
