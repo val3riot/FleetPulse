@@ -98,7 +98,7 @@ Maven non deve essere installato: il repository include Maven Wrapper.
 ### Avvio della piattaforma
 
 ```bash
-cp .env.example .env
+test -f .env || cp .env.example .env
 docker compose up --build -d
 ```
 
@@ -158,3 +158,8 @@ esclusa da Git.
 | [Strategia di test](docs/12_STRATEGIA_DI_TEST.md) | Unit, integration ed end-to-end test |
 | [Deployment](docs/13_DEPLOYMENT.md) | Topologia dei container e configurazione |
 | [ADR](docs/adr/) | Decisioni architetturali |
+
+## Operazioni
+
+Diagnosi per messageId, comandi di sola lettura, gestione guasti e aggiornamenti:
+[Operations runbook](infrastructure/operations/README.md).

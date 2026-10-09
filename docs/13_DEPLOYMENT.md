@@ -154,7 +154,7 @@ Le application image dovrebbero:
 Prerequisiti: JDK 21, Docker e Docker Compose.
 
 ```bash
-cp .env.example .env
+test -f .env || cp .env.example .env
 ./mvnw clean verify
 docker compose up --build -d
 docker compose ps
@@ -173,7 +173,7 @@ prima dell'avvio dei servizi che usano PostgreSQL; Hibernate è configurato per
 non generare o aggiornare automaticamente lo schema.
 
 Il Vehicle Simulator è disabilitato per default. Quando abilitato, Compose ne
-ritarda l'avvio fino alla readiness di Fleet API e all'avvio del gateway. Il
+ritarda l'avvio fino alla readiness di Fleet API e del gateway. Il
 simulator applica comunque timeout e reconnect propri: l'ordine Compose non è
 considerato una garanzia di disponibilità continua.
 
@@ -297,8 +297,9 @@ In produzione servirebbero:
 Freshness e TTL devono essere non nulli e almeno `1ms`; i tentativi almeno uno.
 Il repair applica il TTL soltanto a una scrittura accettata. Redis non rispondente
 può consumare il timeout sia in lettura sia nel repair best effort. I valori sono
-configurabili via Spring; per override in Compose aggiungere le variabili al
-blocco `environment` della Fleet API. La migration V2 aggiunge l'indice del latest
+configurabili via Spring. Compose inoltra già i due timeout Redis; per gli altri
+override aggiungere le variabili al blocco `environment` della Fleet API.
+La migration V2 aggiunge l'indice del latest
 sample e deve essere applicata dal servizio Flyway prima dell'avvio.
 
 Contratto: [ADR-010](adr/ADR-010-STATE-API-FALLBACK.md).
@@ -338,7 +339,9 @@ in docs/11. Compose inoltra queste proprietà, impostabili anche avviando il JAR
 | METRICS_TIMER_MAX | 30s | Massimo atteso per la distribuzione |
 | METRICS_TIMER_BUCKETS | 50ms,100ms,250ms,500ms,1s,2s,5s,10s,30s | Bucket espliciti aggiunti all'histogram |
 
-Riavviare il servizio dopo una modifica. Tenere min < max e soglie coerenti;
+Ricreare il servizio con `docker compose up -d <servizio>` dopo modifiche alle
+variabili Compose; `restart` conserva le variabili precedenti. Tenere min < max
+e soglie coerenti;
 non confondere queste proprietà con timeout, retry o gate prestazionali.
 Modifiche ai bucket aumentano/riducono le serie e richiedono verifica delle
 query Grafana/Prometheus. Nessun nuovo exporter o tracing è richiesto.

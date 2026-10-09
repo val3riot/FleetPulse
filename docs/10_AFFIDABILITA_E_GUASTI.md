@@ -107,8 +107,10 @@ container con indirizzo IP diverso o invalidazione della cache DNS.
 La cache viene riparata tramite:
 
 1. cache-aside durante una lettura;
-2. successivo evento di telemetria;
-3. procedura esplicita di rebuild.
+2. successivo evento di telemetria.
+
+Un rebuild batch esplicito è una possibilità architetturale, ma non è attualmente
+implementato. Il replay di un duplicato persistito non ripete la projection.
 
 ## 6. Crash del processor
 
