@@ -184,7 +184,7 @@ Esempio:
 ```text
 Redis non disponibile
 -> query PostgreSQL
--> risposta valida ma più lenta
+-> risposta valida, potenzialmente più lenta
 ```
 
 La degradazione deve essere visibile tramite log e metriche.
@@ -213,4 +213,4 @@ lettura, fallback e failure repair; i warning restano limitati secondo ADR-010.
 La verifica riguarda la State API e non decide readiness/health durante il
 guasto Redis (FP-048). Nessun circuit breaker o repair asincrono è introdotto.
 
-Evidenze: [Strategia di test — FP-039](12_STRATEGIA_DI_TEST.md#cache-resilience--verifiche-fp-039).
+Evidenze: [Strategia di test — resilienza della cache](12_STRATEGIA_DI_TEST.md#cache-resilience--verifiche-fp-039-fp-045-e-fp-046).

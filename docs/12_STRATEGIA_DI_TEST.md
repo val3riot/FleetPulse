@@ -234,12 +234,40 @@ del client in tali condizioni non è dimostrata dal solo stop/start.
 
 ## 5. Failure injection
 
-Toxiproxy può introdurre:
+FP-046 verifica il collegamento **Fleet API → Redis** tramite Toxiproxy
+2.5.0 e dipendenze Testcontainers isolate. I guasti sono applicati downstream
+(risposte Redis → API); API e connection factory restano attive durante
+iniezione e recovery. Non estendere questa copertura a Kafka, PostgreSQL,
+carico o cambio IP/DNS senza prove dedicate.
 
-- latency;
-- connection reset;
-- timeout;
-- bandwidth restriction.
+| Guasto | Parametri della fixture | Criterio |
+|---|---|---|
+| Latency | 50 ms, jitter zero; timeout client 200 ms | Cache hit HTTP 200 identico, ritardo osservato, nessun fallback/failure o query DB |
+| Timeout | Blackhole `timeout=0`, timeout client 200 ms | Vera eccezione timeout, HTTP 200 da DB, failure read/repair e fallback distinti |
+| Reset | `reset_peer`, timeout zero | Connessione attiva interrotta e reset confermato da sonda nella rete Docker; HTTP 200 via fallback e failure registrate |
+| Bandwidth | 32 KB/s, trasferimento di fixture 65.536 byte | Risposta bulk completa e rallentata, stato REST valido, nessuna corruzione |
+
+Ogni guasto viene rimosso in `finally`; la riconnessione usa polling con
+deadline. Dopo la rimozione si prova read repair con JSON/TTL validi e cache
+hit senza query DB, nella stessa API. Tutti i sette scenari di
+`VehicleStateRecoveryIntegrationTest` confrontano anche sample e alert prima
+e dopo: i guasti della cache non devono modificare i dati di dominio.
+
+Per bandwidth si usa una chiave di trasferimento separata, con TTL e cleanup,
+senza alterare il JSON dello stato. Il suo payload rende misurabile il limite:
+il piccolo JSON di dominio può ancora essere letto prima del timeout e non
+deve necessariamente causare fallback. La verifica REST accetta hit o
+fallback riuscito, poi dimostra recovery. La sonda bulk usa socket RESP con
+deadline e misura il trasferimento; non usa il timeout client dell'API.
+
+I budget temporali sono margini della fixture, non SLA: latency fra 40 ms e
+2 s, blackhole REST fra 150 ms e 5 s, bulk limitato fra 1 s e 8 s. I risultati
+per i quattro guasti sono registrati con parametri, direzione, durata ed esito
+in `target/fp046-evidence/faults.jsonl`; i report di esecuzione restano fuori
+da `docs`. Il timing REST tramite MockMvc non include la rete HTTP del client.
+Docker Desktop può tradurre un reset in EOF nel forwarding verso l'host:
+la prova reset verifica perciò sia l'interruzione della socket già attiva
+sia l'errore di reset osservato da `redis-cli` nella rete isolata Docker.
 
 ## 6. Carico di riferimento
 
@@ -430,7 +458,7 @@ di COUNT, che Spring Data può evitare in alcuni casi.
 
 Scelta delle query: [ADR-012](adr/ADR-012-STRATEGIA-ACCESSO-DATI-JPA.md).
 
-## Cache resilience — verifiche FP-039 e FP-045
+## Cache resilience — verifiche FP-039, FP-045 e FP-046
 
 VehicleStateRecoveryIntegrationTest usa PostgreSQL/Redis reali e Toxiproxy,
 con la stessa ApplicationContext e connection factory durante guasto e recovery.
@@ -442,7 +470,10 @@ La dipendenza Toxiproxy è soltanto test e segue il BOM Spring Boot.
 | TCP aperto, risposte bloccate: vero timeout di comando e fallback 200 | realCommandTimeoutFallsBackAndRecoversAfterNetworkFaultIsRemoved |
 | Miss riuscito, guasto solo durante repair: risposta PostgreSQL preservata | repairConnectionFailureAfterSuccessfulMissDoesNotChangePostgresResponse |
 | Stop/start reale Redis, stato coerente, nessun restart API, repair e hit senza DB | realRedisStopAndRestartFallsBackThenRepairsWithoutRestartingApi |
-| Recovery senza restart API, repair JSON/TTL, hit senza query veicolo/sample | Tutti i quattro scenari di VehicleStateRecoveryIntegrationTest |
+| Latenza controllata con cache hit valido e nessun accesso DB | controlledLatencyKeepsCacheHitAndRecoversWithoutRestart |
+| Reset TCP osservato, fallback e recovery | tcpResetIsObservedAndStateFallsBackThenRecovers |
+| Banda limitata misurabile, risposta integra e recovery | bandwidthLimitSlowsMeasuredTransferAndPreservesStateAndRecovery |
+| Recovery senza restart API, repair JSON/TTL, hit senza query veicolo/sample | Tutti i sette scenari di VehicleStateRecoveryIntegrationTest |
 | Persistenza durante outage e nuovo evento proiettato dopo restart Redis, factory invariata | TelemetrySamplePersistenceIntegrationTest.persistsDuringRedisOutageAndProjectsNewEventAfterRedisRestart |
 | Redis fermo e guasto simultaneo DB, hit con PostgreSQL fermo | VehicleStateUnavailableIntegrationTest, VehicleStateCacheHitDatabaseUnavailableIntegrationTest |
 | Warning limitati, nessun payload/stacktrace/tag ad alta cardinalità | VehicleStateObservabilityTest |

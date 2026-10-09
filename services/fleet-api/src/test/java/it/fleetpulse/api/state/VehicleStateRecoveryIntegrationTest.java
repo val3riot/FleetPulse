@@ -9,6 +9,8 @@ import it.fleetpulse.api.state.redis.RedisLatestStateProjection;
 import it.fleetpulse.api.vehicle.PostgreSqlIntegrationSupport;
 import it.fleetpulse.api.vehicle.VehicleRepository;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,12 +35,20 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.toxiproxy.ToxiproxyContainer;
 
 import java.io.IOException;
+import java.io.BufferedInputStream;
+import java.net.Socket;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.UUID;
+import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -75,7 +85,7 @@ class VehicleStateRecoveryIntegrationTest extends PostgreSqlIntegrationSupport {
     @Container
     static final ToxiproxyContainer TOXIPROXY =
         new ToxiproxyContainer("ghcr.io/shopify/toxiproxy:2.5.0")
-            .withNetwork(NETWORK).dependsOn(REDIS);
+            .withNetwork(NETWORK).withNetworkAliases("toxiproxy").dependsOn(REDIS);
 
     private static Proxy proxy;
 
@@ -93,8 +103,19 @@ class VehicleStateRecoveryIntegrationTest extends PostgreSqlIntegrationSupport {
     @Autowired private JdbcTemplate jdbc;
     @Autowired private MeterRegistry metrics;
     @Autowired private RedisLatestStateProjection projection;
+    @Autowired private org.springframework.data.redis.core.StringRedisTemplate redis;
+    @Autowired private tools.jackson.databind.ObjectMapper json;
     @MockitoSpyBean private PostgreSqlLatestSampleQuery samples;
     @MockitoSpyBean private VehicleRepository vehicles;
+    private List<Map<String, Object>> originalSamples;
+    private List<Map<String, Object>> originalAlerts;
+    private static final Path EVIDENCE = Path.of("target", "fp046-evidence", "faults.jsonl");
+
+    @BeforeAll
+    static void prepareEvidence() throws IOException {
+        Files.createDirectories(EVIDENCE.getParent());
+        Files.writeString(EVIDENCE, "");
+    }
 
     @BeforeEach
     void fixture() throws Exception {
@@ -117,6 +138,16 @@ class VehicleStateRecoveryIntegrationTest extends PostgreSqlIntegrationSupport {
             VALUES (?, ?, 42, ?, ?, ?, 72.4, 91.8, 12.6, 85312, 41.9, 12.4)
             """, UUID.randomUUID(), ID, Timestamp.from(OBSERVED), Timestamp.from(OBSERVED),
             Timestamp.from(OBSERVED));
+        originalSamples = jdbc.queryForList("SELECT * FROM telemetry_samples ORDER BY id");
+        originalAlerts = jdbc.queryForList("SELECT * FROM maintenance_alerts ORDER BY id");
+    }
+
+    @AfterEach
+    void cacheFaultsMustNotMutateDomainData() {
+        assertThat(jdbc.queryForList("SELECT * FROM telemetry_samples ORDER BY id"))
+            .isEqualTo(originalSamples);
+        assertThat(jdbc.queryForList("SELECT * FROM maintenance_alerts ORDER BY id"))
+            .isEqualTo(originalAlerts);
     }
 
     @AfterAll
@@ -124,6 +155,111 @@ class VehicleStateRecoveryIntegrationTest extends PostgreSqlIntegrationSupport {
         TOXIPROXY.stop();
         REDIS.stop();
         NETWORK.close();
+    }
+
+    @Test
+    void controlledLatencyKeepsCacheHitAndRecoversWithoutRestart() throws Exception {
+        String response = state();
+        double hits = count("hits");
+        double fallbacks = count("fallback");
+        double failures = count("failures");
+        double repairs = count("repair.failures");
+        clearInvocations(samples, vehicles);
+        var toxic = proxy.toxics().latency("latency", ToxicDirection.DOWNSTREAM, 50);
+        long elapsed;
+        try {
+            long started = System.nanoTime();
+            mvc.perform(get(PATH)).andExpect(status().isOk()).andExpect(content().json(response));
+            elapsed = System.nanoTime() - started;
+            assertThat(Duration.ofNanos(elapsed)).isBetween(Duration.ofMillis(40), Duration.ofSeconds(2));
+            assertThat(count("hits")).isEqualTo(hits + 1);
+            assertThat(count("fallback")).isEqualTo(fallbacks);
+            assertThat(count("failures")).isEqualTo(failures);
+            assertThat(count("repair.failures")).isEqualTo(repairs);
+            verifyNoInteractions(samples, vehicles);
+        } finally {
+            toxic.remove();
+        }
+        REDIS.execInContainer("redis-cli", "DEL", KEY);
+        assertRecovered(response);
+        recordFault("latency", Map.of("latencyMs", 50, "jitterMs", 0), elapsed,
+            "HTTP 200 cache hit, no fallback; repair and hit after removal");
+    }
+
+    @Test
+    void tcpResetIsObservedAndStateFallsBackThenRecovers() throws Exception {
+        String response = state();
+        double failures = count("failures");
+        double fallbacks = count("fallback");
+        double repairs = count("repair.failures");
+        long elapsed;
+        try (Socket socket = proxySocket()) {
+            var input = new BufferedInputStream(socket.getInputStream());
+            socket.getOutputStream().write("*1\r\n$4\r\nPING\r\n".getBytes(StandardCharsets.US_ASCII));
+            assertThat(readLine(input)).isEqualTo("+PONG");
+            var toxic = proxy.toxics().resetPeer("reset", ToxicDirection.DOWNSTREAM, 0);
+            try {
+                // Docker Desktop can translate RST to EOF at the host forwarding boundary.
+                assertThatThrownBy(() -> {
+                    socket.getOutputStream().write("*1\r\n$4\r\nPING\r\n".getBytes(StandardCharsets.US_ASCII));
+                    readLine(input);
+                }).isInstanceOf(IOException.class)
+                    .isNotInstanceOf(java.net.SocketTimeoutException.class);
+                // Verify the actual reset inside the Docker network, bypassing host forwarding.
+                var resetProbe = REDIS.execInContainer("redis-cli", "-h", "toxiproxy", "-p", "8666", "PING");
+                assertThat(resetProbe.getExitCode()).isNotZero();
+                assertThat(resetProbe.getStderr()).containsIgnoringCase("reset");
+                long started = System.nanoTime();
+                mvc.perform(get(PATH)).andExpect(status().isOk()).andExpect(content().json(response));
+                elapsed = System.nanoTime() - started;
+                assertThat(count("failures")).isEqualTo(failures + 1);
+                assertThat(count("fallback")).isEqualTo(fallbacks + 1);
+                assertThat(count("repair.failures")).isEqualTo(repairs + 1);
+            } finally {
+                toxic.remove();
+            }
+        }
+        awaitConnection();
+        REDIS.execInContainer("redis-cli", "DEL", KEY);
+        assertRecovered(response);
+        recordFault("reset_peer", Map.of("timeoutMs", 0), elapsed,
+            "Live host socket interrupted; in-network probe confirms reset; HTTP 200 fallback and recovery");
+    }
+
+    @Test
+    void bandwidthLimitSlowsMeasuredTransferAndPreservesStateAndRecovery() throws Exception {
+        String response = state();
+        String bulkKey = "fp046:bandwidth";
+        String payload = "x".repeat(65_536);
+        redis.opsForValue().set(bulkKey, payload, Duration.ofMinutes(1));
+        long elapsed;
+        var toxic = proxy.toxics().bandwidth("bandwidth", ToxicDirection.DOWNSTREAM, 32);
+        try {
+            // A separate fixture key makes throttling observable without changing domain JSON.
+            try (Socket socket = proxySocket()) {
+                var input = new BufferedInputStream(socket.getInputStream());
+                byte[] command = ("*2\r\n$3\r\nGET\r\n$" + bulkKey.length() + "\r\n" + bulkKey + "\r\n")
+                    .getBytes(StandardCharsets.US_ASCII);
+                long started = System.nanoTime();
+                socket.getOutputStream().write(command);
+                assertThat(readLine(input)).isEqualTo("$65536");
+                assertThat(new String(input.readNBytes(65_536), StandardCharsets.US_ASCII)).isEqualTo(payload);
+                assertThat(input.readNBytes(2)).containsExactly((byte) '\r', (byte) '\n');
+                elapsed = System.nanoTime() - started;
+                assertThat(Duration.ofNanos(elapsed)).isBetween(Duration.ofSeconds(1), Duration.ofSeconds(8));
+            }
+            double handled = count("hits") + count("fallback");
+            mvc.perform(get(PATH)).andExpect(status().isOk()).andExpect(content().json(response));
+            assertThat(count("hits") + count("fallback")).isEqualTo(handled + 1);
+        } finally {
+            toxic.remove();
+            REDIS.execInContainer("redis-cli", "DEL", bulkKey);
+        }
+        awaitConnection();
+        REDIS.execInContainer("redis-cli", "DEL", KEY);
+        assertRecovered(response);
+        recordFault("bandwidth", Map.of("rateKBps", 32, "payloadBytes", 65_536), elapsed,
+            "Complete bulk transfer throttled; HTTP 200; repair and hit after removal");
     }
 
     @Test
@@ -199,6 +335,7 @@ class VehicleStateRecoveryIntegrationTest extends PostgreSqlIntegrationSupport {
         double repairs = count("repair.failures");
         double fallbacks = count("fallback");
         String response;
+        long elapsedNanos;
         try {
             // TCP rimane aperto, ma Redis non può consegnare risposte al client.
             assertThatThrownBy(() -> projection.findByVehicleId(ID))
@@ -206,7 +343,7 @@ class VehicleStateRecoveryIntegrationTest extends PostgreSqlIntegrationSupport {
                 .hasCauseInstanceOf(QueryTimeoutException.class);
             long started = System.nanoTime();
             response = state();
-            long elapsedNanos = System.nanoTime() - started;
+            elapsedNanos = System.nanoTime() - started;
             // Generous test budget, not a production latency SLA or a noisy baseline comparison.
             assertThat(Duration.ofNanos(elapsedNanos))
                 .isBetween(Duration.ofMillis(150), Duration.ofSeconds(5));
@@ -222,6 +359,35 @@ class VehicleStateRecoveryIntegrationTest extends PostgreSqlIntegrationSupport {
         awaitConnection();
         REDIS.execInContainer("redis-cli", "DEL", KEY);
         assertRecovered(response);
+        recordFault("timeout", Map.of("toxicTimeoutMs", 0, "clientTimeoutMs", 200), elapsedNanos,
+            "QueryTimeoutException; HTTP 200 fallback; repair and hit after removal");
+    }
+
+    private Socket proxySocket() throws IOException {
+        Socket socket = new Socket();
+        socket.connect(new java.net.InetSocketAddress(TOXIPROXY.getHost(), TOXIPROXY.getMappedPort(8666)), 3000);
+        socket.setSoTimeout(3000);
+        return socket;
+    }
+
+    private static String readLine(BufferedInputStream input) throws IOException {
+        StringBuilder line = new StringBuilder();
+        while (line.length() < 128) {
+            int value = input.read();
+            if (value == -1) throw new IOException("Unexpected EOF in Redis response");
+            if (value == '\n') return line.toString().stripTrailing();
+            line.append((char) value);
+        }
+        throw new IOException("Redis response header exceeds test limit");
+    }
+
+    private void recordFault(String fault, Map<String, Object> parameters, long durationNanos,
+            String result) throws IOException {
+        String entry = json.writeValueAsString(Map.of("fault", fault, "direction", "DOWNSTREAM",
+            "parameters", parameters, "durationMs", durationNanos / 1_000_000.0,
+            "result", result, "recovered", true));
+        Files.writeString(EVIDENCE, entry + System.lineSeparator(), StandardOpenOption.APPEND);
+        System.out.println("FP-046 " + entry);
     }
 
     @Test
