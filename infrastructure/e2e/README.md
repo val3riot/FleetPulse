@@ -1,4 +1,4 @@
-# E2E backend FleetPulse — FP-050 / FP-051
+# E2E backend FleetPulse — FP-050 / FP-051 / FP-052
 
 Accettazione di [E2E-001](../../docs/12_STRATEGIA_DI_TEST.md#e2e-001--flusso-nominale):
 registrazione REST → TCP → ACK → Kafka → PostgreSQL → Redis → Fleet API.
@@ -111,3 +111,47 @@ Questa è una ripubblicazione TCP, non un reset offset o recupero DLT. I vincoli
 transazionali e i test di crash precedenti completano la copertura: questo E2E
 non certifica da solo ogni interleaving concorrente, tutti i tipi di alert,
 le transizioni CLOSED o i failure scenarios FP-052. Nessun servizio Java modificato.
+
+## Failure scenarios — FP-052
+
+```bash
+python3 infrastructure/e2e/verify_failures.py --output tmp/fp052-guasti
+```
+
+Stessi prerequisiti, output nuovo e isolamento dei precedenti verificatori.
+**Le prove arrestano servizi soltanto nel progetto sacrificabile `fp052-<id>`**,
+mai nello stack di lavoro. Non avviare manualmente un simulatore nel progetto di
+test: le riconciliazioni presuppongono traffico esclusivo del verificatore.
+
+I quattro scenari attraversano socket TCP, broker, database, cache e API reali:
+
+| Guasto | Evidenza durante il guasto | Verifica di recupero |
+|---|---|---|
+| Processor fermo | ACK ACCEPTED e raw pubblicato; lag 1, nessun nuovo sample, stato precedente | Start stesso container/group, backlog persistito, Redis/API aggiornati, lag zero senza ripubblicare |
+| Redis fermo | Readiness UP, sample persistito, projection failure e API 200 da SQL con failure/fallback/repair failure osservati | Start stesso Redis, cache vuota, read repair poi hit; nuovo evento aggiorna projection senza restart app |
+| Frame lunghezza zero | Socket chiusa senza ACK, counter invalid_length +1, nessun effetto Kafka/SQL/Redis | Gateway ready e frame valido successivo persistito/visibile via API |
+| Kafka fermo | Readiness gateway/processor DOWN ma liveness UP, API ready; REJECTED/UPSTREAM_UNAVAILABLE correlato | Start Kafka e retry dello stesso frame/messageId, un solo sample e stato corretto senza restart app |
+
+I backend si avviano prima con telemetria nominale. Dopo il restart del processor
+la porta HTTP dinamica viene riletta; i contatori di quel processo ripartono.
+Redis usa stop/start senza ricreazione: la prova riguarda endpoint stabile e non
+certifica ogni cambio IP/DNS. L'arresto processor è graceful: non sostituisce il
+crash deterministico post-commit/pre-offset già provato in FP-044.
+
+Il NACK Kafka significa pubblicazione **non confermata**, non garanzia di mancata
+consegna. Un send in timeout può arrivare dopo il ripristino: il verificatore
+ammette uno o due raw per l'ultimo messageId, ma richiede sempre un solo sample
+e l'eventuale duplicate processato. Totale atteso: 6 sample, 6 o 7 raw, 0 o 1
+duplicati coerenti, zero alert/rejected/DLT e lag zero.
+
+La socket durante Kafka down ha budget 75s per coprire l'eventuale attesa metadata
+producer oltre al confirmation timeout. È un limite del test, non uno SLA né
+una promessa che il confirmation timeout limiti l'intera chiamata sincrona.
+La chiusura del frame strutturalmente invalido è distinta dal NACK applicativo:
+non si inventa un ACK per un frame che non è stato decodificato.
+
+checks/summary/failure/cleanup hanno lo stesso ruolo delle altre prove. La suite
+`test_*.py` include regressioni contro falsi ACCEPTED, correlazioni errate,
+duplicati non elaborati, sample duplicati e cleanup su failure. PostgreSQL down,
+proxy/blackhole, capacity exhaustion e altri input invalidi rimangono nelle prove
+precedenti o in casi distinti: non sono nuovi requisiti impliciti di FP-052.

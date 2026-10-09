@@ -164,5 +164,5 @@ esclusa da Git.
 Diagnosi per messageId, comandi di sola lettura, gestione guasti e aggiornamenti:
 [Operations runbook](infrastructure/operations/README.md).
 
-Accettazione del flusso nominale completo, alert e replay idempotente:
+Accettazione del flusso nominale completo, alert, replay idempotente e guasti:
 [E2E backend](infrastructure/e2e/README.md).

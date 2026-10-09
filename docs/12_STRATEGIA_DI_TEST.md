@@ -253,6 +253,34 @@ del client in tali condizioni non è dimostrata dal solo stop/start.
 2. verifica rifiuto;
 3. verifica gateway ancora disponibile.
 
+### E2E-007 — Failure scenarios del backend (FP-052)
+
+L'accettazione usa servizi reali in un progetto Compose sacrificabile, con
+readiness iniziale, traffico controllato e cleanup anche dopo fallimento:
+
+- Processor fermo: il gateway conferma Kafka; il record resta pending senza
+  nuovo sample o projection. Riavviare il processor con lo stesso group deve
+  drenare il backlog e aggiornare SQL/Redis/API senza ripubblicazione.
+- Redis fermo: il processor persiste e committa l'offset; l'API risponde da SQL.
+  Osservare failure della projection e failure/fallback/repair API. Dopo stop/start
+  Redis, verificare read repair, cache hit e nuovo update processor, senza restart
+  delle applicazioni e senza estendere la prova al cambio IP/DNS.
+- Frame con lunghezza zero: la connessione viene chiusa senza ACK; counter di
+  rifiuto incrementato e nessun effetto Kafka/SQL/Redis. Un successivo frame valido
+  deve attraversare l'intera pipeline, senza restart gateway.
+- Kafka fermo: gateway/processor non ready ma vivi; nessun falso ACCEPTED. Il
+  rifiuto applicativo è UPSTREAM_UNAVAILABLE correlato. Dopo il ripristino,
+  ritentare lo stesso messageId e verificare persistenza unica e stato via API,
+  con recovery dei client senza restart applicativo.
+
+Un timeout di pubblicazione Kafka può lasciare un send in-flight: non dedurre
+assenza definitiva dal NACK. Riconciliare raw, sample, duplicati e terminal topic
+solo dopo il recupero e il drain; tollerare una consegna tardiva purché idempotente.
+Il budget generoso della socket comprende anche l'eventuale attesa metadata del
+producer e non equivale a uno SLA. Lo stop graceful del processor non sostituisce
+la prova di crash FP-044 descritta in E2E-003. Verificatore e comandi:
+[infrastructure/e2e](../infrastructure/e2e/README.md#failure-scenarios--fp-052).
+
 ### E2E-006 — Rifiuto asincrono del veicolo
 
 1. invia telemetria per un veicolo sconosciuto o disabilitato;
