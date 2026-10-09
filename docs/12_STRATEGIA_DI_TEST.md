@@ -142,11 +142,26 @@ end-to-end non può essere simulato come accettazione definitiva: per contratto
 
 ### E2E-001 — Flusso nominale
 
-1. registra veicolo;
-2. invia telemetria;
-3. verifica ACK;
-4. verifica persistenza;
-5. verifica stato corrente.
+L'accettazione nominale attraversa servizi e infrastruttura reali, senza mock
+applicativi e senza inserire fixture direttamente nel database:
+
+1. registra il veicolo via REST e verifica `201`, identificativo e risorsa creata;
+2. invia due telemetrie distinguibili sulla stessa connessione TCP e verifica
+   gli ACK `ACCEPTED`, versione e `messageId` correlati;
+3. osserva per ciascun messaggio il record Kafka, key `vehicleId`, identificativi,
+   timestamp e payload, senza modificare gli offset del group applicativo;
+4. verifica il singolo sample PostgreSQL e la corrispondenza dei dati;
+5. verifica contenuto completo e TTL della projection Redis **prima** della GET
+   State API, evitando che il read repair mascheri un update processor mancante;
+6. verifica HTTP `200`, tutti i campi della State API, freshness e cache hit senza
+   fallback PostgreSQL, per entrambi gli aggiornamenti;
+7. riconcilia sample e record raw, assenza di esiti terminali/alert inattesi e lag
+   drenato, poi verifica il cleanup delle sole risorse del test.
+
+Il test usa progetto, porte e volumi isolati, attese finite e timestamp confrontati
+come istanti considerando la precisione PostgreSQL. Non sostituisce il gate
+prestazionale FP-047. Il verificatore e le istruzioni di esecuzione sono in
+[infrastructure/e2e](../infrastructure/e2e/README.md).
 
 ### E2E-002 — Alert
 
