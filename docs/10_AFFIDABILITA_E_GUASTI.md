@@ -106,16 +106,25 @@ participant "Telemetry Processor" as Processor
 database PostgreSQL
 
 Kafka -> Processor : evento A
-Processor -> PostgreSQL : insert sample A
+Processor -> PostgreSQL : insert sample A e alert (transazione unica)
 PostgreSQL --> Processor : commit
 Processor -> Processor : crash prima dell'offset progress
 ...
 Kafka -> Processor : riconsegna A
-Processor -> PostgreSQL : insert sample A
+Processor -> PostgreSQL : tentativo insert aggregato A
 PostgreSQL --> Processor : duplicate messageId
 Processor -> Processor : evento già applicato
 @enduml
 ```
+
+Il riavvio mantiene lo stesso consumer group. Il record viene riconsegnato
+senza ripubblicazione o reset manuale degli offset; sample e alert conservano
+identità e timestamp. Un offset già committed impedisce la riconsegna nel
+normale restart dello stesso gruppo, in assenza di reset degli offset.
+
+Un'eccezione gestita nello stesso processo verifica il retry, non il crash
+della JVM. I criteri della prova con processo separato sono definiti in
+[E2E-003 — Restart del processor](12_STRATEGIA_DI_TEST.md#e2e-003--restart-del-processor).
 
 ## 7. Ambiguità dell'ACK
 

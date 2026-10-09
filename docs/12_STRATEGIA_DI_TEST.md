@@ -157,10 +157,40 @@ end-to-end non può essere simulato come accettazione definitiva: per contratto
 
 ### E2E-003 — Restart del processor
 
-1. arresta il processor;
-2. invia eventi;
-3. riavvia;
-4. verifica elaborazione eventuale una sola volta.
+Distinguere tre prove: retry dopo eccezione, restart del listener nella stessa
+JVM e restart del processo. Le prime due non dimostrano la recovery dopo la
+perdita del processo. `TelemetryOffsetSemanticsIntegrationTest` copre i confini
+commit/offset con errori simulati e il restart del listener; FP-044 richiede
+anche `TelemetryProcessorRestartIntegrationTest`, con JVM distinte e
+Kafka/PostgreSQL/Redis isolati tramite Testcontainers.
+
+1. Pubblicare un evento che genera sample e alert, registrandone
+   `messageId`, topic, partition e offset.
+2. Terminare bruscamente la JVM dopo il commit dell'aggregato PostgreSQL e
+   prima del ritorno del listener, senza shutdown hook o commit graceful.
+3. Verificare che sample e alert esistano e che l'offset committed del gruppo
+   non abbia superato quello del record. L'offset committed indica il prossimo
+   record da consumare: dopo il successo deve valere `sourceOffset + 1`.
+4. Avviare una nuova JVM con lo stesso consumer group, senza ripubblicare
+   l'evento e senza spostare gli offset. Verificare la riconsegna della stessa
+   posizione Kafka e il successivo avanzamento dell'offset.
+5. Confrontare cardinalità, identità, valori e timestamp dei sample/alert
+   prima e dopo il replay: l'aggregato deve rimanere invariato.
+6. Verificare log correlati di persistenza/duplicato e contatori per processo:
+   primo processo `persisted=1`, secondo `duplicates=1` e `persisted=0`.
+7. Dopo il commit offset riavviare ancora; un nuovo evento sulla stessa
+   partition deve essere elaborato senza riconsegnare quello già committed.
+
+La terminazione deterministica è una fixture esclusivamente di test; non
+introduce interruttori di crash nell'applicazione distribuita. Le attese hanno
+deadline e tutti i processi figli devono essere terminati anche in caso di
+fallimento. I contatori Micrometer ripartono nella nuova JVM: non confrontare
+valori cumulativi come se fossero uno storico durevole degli eventi.
+
+La prova copre l'idempotenza dell'aggregato, non l'atomicità fra PostgreSQL,
+Redis e Kafka. Il crash scelto è dopo il ritorno del servizio, quindi anche
+dopo il tentativo Redis; il crash fra commit DB e update Redis resta un
+confine distinto e non dimostra la recovery automatica della cache.
 
 ### E2E-004 — Redis non disponibile
 

@@ -162,7 +162,7 @@ class TelemetryOffsetSemanticsIntegrationTest extends PostgreSqlIntegrationSuppo
     }
 
     @Test
-    void doesNotReplayWhenProcessorRestartsAfterOffsetCommit() throws Exception {
+    void doesNotReplayWhenListenerRestartsAfterOffsetCommit() throws Exception {
         TelemetryEvent event = event();
         insertActiveVehicle(event.vehicleId());
 

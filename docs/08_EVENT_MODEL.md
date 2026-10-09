@@ -67,6 +67,16 @@ Un evento può essere riconsegnato quando:
 6. aggiornamento Redis;
 7. avanzamento dell'offset.
 
+Il consumer disabilita l'auto-commit e usa `AckMode.RECORD`: il container
+Kafka committa l'offset dopo il ritorno riuscito del listener. Il commit
+PostgreSQL precede tale ritorno; non esiste una transazione atomica fra DB e
+offset Kafka. Un crash in questa finestra comporta una riconsegna, gestita
+dai vincoli di unicità dell'aggregato sample/alert.
+
+Sul replay di un aggregato già persistito il processor riconosce il duplicato
+e non ripete l'update Redis. La cache può quindi richiedere read repair o un
+nuovo evento se il crash originale è avvenuto prima del suo aggiornamento.
+
 Per un veicolo sconosciuto o `DISABLED`, il processor non avvia i side effect
 di dominio e segue il flusso di rifiuto asincrono descritto nella sezione 7.
 
