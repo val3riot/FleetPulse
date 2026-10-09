@@ -1,5 +1,6 @@
 services:
   postgres:
+    user: "postgres"
     image: postgres:${POSTGRES_VERSION:?POSTGRES_VERSION must be set}
     environment:
       POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB must be set}
@@ -18,6 +19,7 @@ services:
     restart: unless-stopped
 
   flyway:
+    user: "10001:10001"
     image: flyway/flyway:${FLYWAY_VERSION:?FLYWAY_VERSION must be set}
     command: migrate
     environment:
@@ -34,6 +36,7 @@ services:
     restart: "no"
 
   redis:
+    user: "redis"
     image: redis:${REDIS_VERSION:?REDIS_VERSION must be set}
     command:
       - redis-server

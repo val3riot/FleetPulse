@@ -51,7 +51,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus
+        include: health,prometheus
 fleetpulse:
   health:
     kafka-timeout: ${KAFKA_HEALTH_TIMEOUT:1s}

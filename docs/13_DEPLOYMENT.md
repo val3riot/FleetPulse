@@ -362,3 +362,39 @@ Un container unhealthy non viene automaticamente riavviato da Compose: la
 restart policy riguarda l'uscita del processo. Le probe non sospendono da sole
 traffico TCP, richieste REST o consumer Kafka. La matrice delle dipendenze e i
 timeout sono definiti in [Observability](11_OBSERVABILITY.md#health-liveness-e-readiness--fp-048).
+
+## Security baseline locale — FP-054
+
+Lo stack Compose è destinato allo sviluppo su una macchina fidata. Tutte le porte
+pubblicate sono associate a `127.0.0.1`; i servizi comunicano nella rete Compose.
+Il bind loopback riguarda l'host: dentro i container i listener devono restare
+raggiungibili dai peer, incluso lo scrape Prometheus.
+
+Le applicazioni Java e il simulatore eseguono come UID/GID `10001:10001`.
+PostgreSQL e Redis usano rispettivamente gli utenti `postgres` e `redis` delle
+immagini; Flyway esegue come `10001:10001` con migration montate read-only.
+Kafka, kafka-init, Prometheus e Grafana mantengono gli utenti non-root forniti dalle
+rispettive immagini. Anche i job di inizializzazione devono completarsi senza root.
+I volumi PostgreSQL esistenti devono appartenere all'utente dell'immagine: cambiare
+immagine/UID richiede una migrazione dei permessi, non la cancellazione dei dati.
+
+I tre backend espongono esclusivamente health/probe e Prometheus tramite Actuator;
+health non pubblica dettagli o componenti. `info`, `env`, `configprops`, `heapdump`,
+`loggers` e gli altri endpoint amministrativi non sono esposti. La discovery
+`/actuator` resta disponibile. REST, OpenAPI/Swagger e TCP restano accessibili
+senza autenticazione: il loopback limita l'accesso di rete, non autorizza gli utenti
+locali né i container connessi alla rete Compose.
+
+`.env` non è tracciato da Git ed è escluso dal build context Docker. `.env.example`
+contiene placeholder, da sostituire prima dell'uso. Le credenziali sono trasmesse
+come variabili d'ambiente: chi controlla Docker può leggerle. Le credenziali Grafana
+inizializzano il database al primo avvio; cambiarle in `.env` non ruota automaticamente
+quelle di un volume già inizializzato.
+
+Questa baseline non rende il progetto production-ready: mancano autenticazione e
+autorizzazione REST/TCP, TLS e autenticazione Kafka, separazione dei privilegi DB
+(il ruolo locale è condiviso con Flyway), gestione/rotazione centralizzata dei segreti
+e isolamento delle reti per ruolo. Prometheus non richiede autenticazione; Redis
+usa password senza TLS. Il pinning tramite digest, la scansione delle vulnerabilità
+e l'hardening finale delle immagini appartengono a FP-072. Non pubblicare questo
+Compose su interfacce pubbliche o tramite proxy/tunnel senza progettare tali controlli.

@@ -54,7 +54,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus
+        include: health,prometheus
 
 springdoc:
   packages-to-scan: it.fleetpulse.api

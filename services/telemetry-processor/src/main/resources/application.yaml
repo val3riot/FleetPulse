@@ -106,7 +106,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus
+        include: health,prometheus
 
 logging:
   structured:

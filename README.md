@@ -97,6 +97,8 @@ Maven non deve essere installato: il repository include Maven Wrapper.
 
 Formatting, controlli dipendenze, warning compiler e comandi del gate completo:
 [Quality gate backend](infrastructure/quality/README.md).
+Verifica dello stack e limiti della sicurezza locale:
+[Security baseline](infrastructure/security/README.md).
 
 ### Avvio della piattaforma
 
