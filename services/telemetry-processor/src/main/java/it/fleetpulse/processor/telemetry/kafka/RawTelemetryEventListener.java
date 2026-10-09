@@ -13,6 +13,8 @@ import java.util.Objects;
 
 @Component
 public final class RawTelemetryEventListener {
+    public static final String LISTENER_ID = "fleetpulse-raw-telemetry";
+
     private static final Logger log = LoggerFactory.getLogger(RawTelemetryEventListener.class);
 
     private final TelemetryEventHandler handler;
@@ -21,7 +23,7 @@ public final class RawTelemetryEventListener {
         this.handler = Objects.requireNonNull(handler, "handler must not be null");
     }
 
-    @KafkaListener(topics = "${fleetpulse.kafka.topics.raw}")
+    @KafkaListener(id = LISTENER_ID, idIsGroup = false, topics = "${fleetpulse.kafka.topics.raw}")
     public void onTelemetry(ConsumerRecord<String, TelemetryEvent> record) {
         Objects.requireNonNull(record, "record must not be null");
         TelemetryEvent event =

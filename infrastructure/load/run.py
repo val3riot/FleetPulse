@@ -186,14 +186,15 @@ class Stack:
         for name, url in self.urls.items():
             while True:
                 try:
+                    health = json.loads(http(url + "/actuator/health/readiness"))
+                    if health.get("status") != "UP":
+                        raise RuntimeError("Application is not ready")
                     metrics(url)
                     break
                 except Exception:
                     if time.monotonic() > deadline:
                         raise RuntimeError(f'{name} not ready')
                     time.sleep(1)
-        # Kafka listener assignment must precede warm-up and measured traffic.
-        time.sleep(5)
 
     def sql(self, query):
         return self.call('exec', '-T', 'postgres', 'psql', '-U',
@@ -210,9 +211,13 @@ class Stack:
                          self.env['KAFKA_CONSUMER_GROUP_ID'])
         rows = [line.split() for line in raw.splitlines()
                 if self.env['KAFKA_TOPIC_RAW'] in line]
-        if not rows or any(not row[5].isdigit() for row in rows):
+        if not rows or any(len(row) < 6 or not row[4].isdigit() for row in rows):
             raise RuntimeError('Consumer lag unavailable')
-        return dict(total=sum(int(row[5]) for row in rows), rows=rows)
+        # A fresh isolated topic may have partitions without any committed offset.
+        # CLI renders their lag as '-'. Empty partitions have zero lag; otherwise
+        # count their complete log from offset zero until a commit is available.
+        lag = sum(max(0, int(row[4]) - (int(row[3]) if row[3].isdigit() else 0)) for row in rows)
+        return dict(total=lag, rows=rows)
 
     def offsets(self):
         return {key: sum(int(line.rsplit(':', 1)[1]) for line in

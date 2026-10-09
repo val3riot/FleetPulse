@@ -610,12 +610,16 @@ Endpoint esposti:
 
 ```text
 /actuator/health
+/actuator/health/liveness
+/actuator/health/readiness
 /actuator/info
 /actuator/prometheus
 ```
 
 Gli endpoint operativi non fanno parte del base path `/api/v1` e non devono
-esporre informazioni sensibili nell'ambiente locale.
+esporre informazioni sensibili nell'ambiente locale. Health/probe restituiscono
+payload Actuator (`status`), non il formato di errore REST del dominio. Semantica
+per servizio e mapping HTTP: [Observability](11_OBSERVABILITY.md#health-liveness-e-readiness--fp-048).
 
 ## 8. Mappatura sintetica degli errori
 

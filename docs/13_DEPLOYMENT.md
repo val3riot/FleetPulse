@@ -342,3 +342,20 @@ Riavviare il servizio dopo una modifica. Tenere min < max e soglie coerenti;
 non confondere queste proprietà con timeout, retry o gate prestazionali.
 Modifiche ai bucket aumentano/riducono le serie e richiedono verifica delle
 query Grafana/Prometheus. Nessun nuovo exporter o tracing è richiesto.
+
+### Probe del deployment locale — FP-048
+
+I tre backend hanno healthcheck Compose su `/actuator/health/readiness`, con
+intervallo 5 s, timeout 5 s, start period 20 s e 12 tentativi. Il simulatore
+attende API e gateway healthy. Una porta HTTP aperta o uno scrape riuscito non
+sostituiscono queste probe; anche l'harness FP-047 attende readiness UP.
+
+API e processor attendono che il container Redis sia avviato (`service_started`),
+non healthy: cache/projection opzionali non devono bloccare il ruolo applicativo.
+PostgreSQL/migrazioni e Kafka/topic mantengono i gate critici esistenti. Questo
+non promette cold start senza DB, necessario alla validazione Hibernate.
+
+Un container unhealthy non viene automaticamente riavviato da Compose: la
+restart policy riguarda l'uscita del processo. Le probe non sospendono da sole
+traffico TCP, richieste REST o consumer Kafka. La matrice delle dipendenze e i
+timeout sono definiti in [Observability](11_OBSERVABILITY.md#health-liveness-e-readiness--fp-048).

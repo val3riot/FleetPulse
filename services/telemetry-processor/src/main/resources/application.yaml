@@ -2,11 +2,16 @@ spring:
   application:
     name: telemetry-processor
   datasource:
+    hikari:
+      connection-timeout: ${DB_POOL_CONNECTION_TIMEOUT:1000}
+      validation-timeout: ${DB_POOL_VALIDATION_TIMEOUT:500}
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/fleetpulse}
     username: ${SPRING_DATASOURCE_USERNAME:fleetpulse}
     password: ${SPRING_DATASOURCE_PASSWORD}
   data:
     redis:
+      connect-timeout: ${SPRING_DATA_REDIS_CONNECT_TIMEOUT:500ms}
+      timeout: ${SPRING_DATA_REDIS_TIMEOUT:500ms}
       host: ${SPRING_DATA_REDIS_HOST:localhost}
       port: ${SPRING_DATA_REDIS_PORT:6379}
       password: ${SPRING_DATA_REDIS_PASSWORD}
@@ -39,6 +44,8 @@ spring:
       mode: never
 
 fleetpulse:
+  health:
+    kafka-timeout: ${KAFKA_HEALTH_TIMEOUT:1s}
   kafka:
     consumer:
       group-id: ${KAFKA_CONSUMER_GROUP_ID:fleetpulse-telemetry-processor-v1}
@@ -64,6 +71,20 @@ server:
   port: 8080
 
 management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+      show-components: never
+      group:
+        liveness:
+          include: livenessState
+        readiness:
+          include: readinessState,db,kafka,consumer
+  health:
+    redis:
+      enabled: false
   metrics:
     distribution:
       percentiles-histogram:

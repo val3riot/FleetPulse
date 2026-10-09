@@ -23,7 +23,8 @@ file. SIGINT runs cleanup; SIGKILL/host failure require manual cleanup of the
 unique `fp047-*` project identified in the startup message.
 
 Each scenario provisions separate vehicles, opens one TCP connection per vehicle,
-reads framed and correlated ACKs, schedules with a monotonic clock and records
+waits for the backend readiness probes, reads framed and correlated ACKs,
+schedules with a monotonic clock and records
 late slots. The mixed scenario closes a connection halfway through a selected
 payload (1% probability), reconnects and resends the full message; independently
 it resends selected accepted messages unchanged (2%). Seed defaults to 47.

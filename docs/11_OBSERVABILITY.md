@@ -309,3 +309,60 @@ Per un `messageId` devono essere individuabili:
 - [ADR-007 — Validazione del veicolo nel telemetry processor](adr/ADR-007-VALIDAZIONE-VEICOLO.md)
 
 - [ADR-009 — Contratto e aggiornamento della latest-state projection](adr/ADR-009-LATEST-STATE-PROJECTION.md)
+
+## Health, liveness e readiness — FP-048
+
+I tre servizi espongono `/actuator/health`, `/actuator/health/liveness` e
+`/actuator/health/readiness` sulla stessa porta HTTP applicativa. Le probe sono
+abilitate esplicitamente; i dettagli e i componenti non sono pubblicati.
+`UP` corrisponde a HTTP 200; `DOWN` e `OUT_OF_SERVICE` a HTTP 503. Queste risposte
+sono payload Actuator, distinti dagli errori REST del dominio.
+
+| Servizio | Gruppo liveness | Gruppo readiness |
+| --- | --- | --- |
+| Fleet API | `livenessState` | `readinessState,db` |
+| Gateway | `livenessState` | `readinessState,tcp,kafka` |
+| Processor | `livenessState` | `readinessState,db,kafka,consumer` |
+
+Liveness osserva lo stato interno dell'applicazione e non interroga dipendenze
+esterne. Readiness indica disponibilità del ruolo principale. Un guasto DB o
+Kafka non rende il processo non vivo; una readiness negativa non blocca di per
+sé richieste HTTP o consumo Kafka e non impedisce il recovery.
+
+Redis è opzionale per API e processor: gli indicatori Redis automatici sono
+disabilitati, così la cache indisponibile non rende DOWN neppure l'health
+generale. Fallback, read repair e projection restano osservabili tramite le
+metriche e i log già definiti; non si introduce un secondo endpoint Redis.
+Con PostgreSQL fermo la readiness dell'intera API è negativa, anche se un hit
+Redis può ancora servire la State API. Un miss continua invece a richiedere DB.
+Il contratto applicativo di [ADR-010](adr/ADR-010-STATE-API-FALLBACK.md) resta valido.
+
+`tcp` richiede un `TcpServerLifecycle` presente e in esecuzione: listener
+disabilitato o terminato implica DOWN anche se il server HTTP è raggiungibile.
+`consumer` richiede il container del listener `fleetpulse-raw-telemetry` presente
+e avviato. Questo ID non sostituisce il consumer group configurato. Pause,
+rebalance e assenza di partizioni assegnate non sono automaticamente guasti:
+il controllo non misura lag, progresso o throughput del consumer.
+
+`kafka` usa un Admin client gestito dal servizio, con la configurazione del
+KafkaAdmin esistente, e legge metadati/leader dei topic. Gateway richiede raw;
+processor richiede raw, rejected e dead-letter. Non pubblica eventi di prova
+e non certifica permessi WRITE/FETCH o riuscita di ogni operazione futura.
+Il client è chiuso allo shutdown. Le verifiche sono serializzate e il risultato
+è riusato per un secondo dal completamento, limitando il costo delle probe;
+i cambiamenti di stato possono quindi essere osservati con questo ritardo.
+
+`KAFKA_HEALTH_TIMEOUT` ha default `1s`, intervallo consentito `1ms..2s`, e limita
+la singola richiesta metadata e l'attesa del risultato. Eccezioni e indirizzi
+interni non vengono aggiunti alla risposta health. Il datasource mantiene il
+controllo DB standard: `DB_POOL_CONNECTION_TIMEOUT=1000` e
+`DB_POOL_VALIDATION_TIMEOUT=500` sono millisecondi e limitano acquisizione e
+validazione del pool; non sono timeout universali di tutte le query SQL.
+API e processor usano timeout Redis di connessione/comando di default `500ms`,
+configurabili tramite `SPRING_DATA_REDIS_CONNECT_TIMEOUT` e `SPRING_DATA_REDIS_TIMEOUT`.
+
+Il budget verificato per le probe nei guasti stop/restart di riferimento è
+inferiore a 5 s con i default. Non estendere questo risultato a ogni possibile
+blackhole JDBC o a override dei timeout. La disponibilità cold start dipende
+anche dall'inizializzazione JPA e dei topic: la readiness a runtime non promette
+l'avvio completo con PostgreSQL indisponibile.

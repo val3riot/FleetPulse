@@ -113,9 +113,13 @@ services:
       METRICS_TIMER_MAX: ${METRICS_TIMER_MAX:-30s}
       METRICS_TIMER_BUCKETS: ${METRICS_TIMER_BUCKETS:-50ms,100ms,250ms,500ms,1s,2s,5s,10s,30s}
       FLEETPULSE_LOG_FORMAT: "${FLEETPULSE_LOG_FORMAT-ecs}"
+      DB_POOL_CONNECTION_TIMEOUT: ${DB_POOL_CONNECTION_TIMEOUT:-1000}
+      DB_POOL_VALIDATION_TIMEOUT: ${DB_POOL_VALIDATION_TIMEOUT:-500}
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_DATA_REDIS_CONNECT_TIMEOUT: ${SPRING_DATA_REDIS_CONNECT_TIMEOUT:-500ms}
+      SPRING_DATA_REDIS_TIMEOUT: ${SPRING_DATA_REDIS_TIMEOUT:-500ms}
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: "6379"
       SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
@@ -129,11 +133,11 @@ services:
       flyway:
         condition: service_completed_successfully
       redis:
-        condition: service_healthy
+        condition: service_started
     healthcheck:
-      test: ["CMD-SHELL", "wget --quiet --spider http://localhost:8080/actuator/health || exit 1"]
+      test: ["CMD-SHELL", "wget --quiet --spider http://localhost:8080/actuator/health/readiness || exit 1"]
       interval: 5s
-      timeout: 3s
+      timeout: 5s
       retries: 12
       start_period: 20s
     restart: unless-stopped
@@ -146,6 +150,7 @@ services:
         MAVEN_IMAGE: ${MAVEN_IMAGE:?MAVEN_IMAGE must be set}
         JAVA_RUNTIME_IMAGE: ${JAVA_RUNTIME_IMAGE:?JAVA_RUNTIME_IMAGE must be set}
     environment:
+      KAFKA_HEALTH_TIMEOUT: ${KAFKA_HEALTH_TIMEOUT:-1s}
       METRICS_TIMER_MIN: ${METRICS_TIMER_MIN:-1ms}
       METRICS_TIMER_MAX: ${METRICS_TIMER_MAX:-30s}
       METRICS_TIMER_BUCKETS: ${METRICS_TIMER_BUCKETS:-50ms,100ms,250ms,500ms,1s,2s,5s,10s,30s}
@@ -163,6 +168,12 @@ services:
         condition: service_healthy
       kafka-init:
         condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --spider http://localhost:8080/actuator/health/readiness || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
     restart: unless-stopped
 
   telemetry-processor:
@@ -173,13 +184,18 @@ services:
         MAVEN_IMAGE: ${MAVEN_IMAGE:?MAVEN_IMAGE must be set}
         JAVA_RUNTIME_IMAGE: ${JAVA_RUNTIME_IMAGE:?JAVA_RUNTIME_IMAGE must be set}
     environment:
+      KAFKA_HEALTH_TIMEOUT: ${KAFKA_HEALTH_TIMEOUT:-1s}
       METRICS_TIMER_MIN: ${METRICS_TIMER_MIN:-1ms}
       METRICS_TIMER_MAX: ${METRICS_TIMER_MAX:-30s}
       METRICS_TIMER_BUCKETS: ${METRICS_TIMER_BUCKETS:-50ms,100ms,250ms,500ms,1s,2s,5s,10s,30s}
       FLEETPULSE_LOG_FORMAT: "${FLEETPULSE_LOG_FORMAT-ecs}"
+      DB_POOL_CONNECTION_TIMEOUT: ${DB_POOL_CONNECTION_TIMEOUT:-1000}
+      DB_POOL_VALIDATION_TIMEOUT: ${DB_POOL_VALIDATION_TIMEOUT:-500}
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_DATA_REDIS_CONNECT_TIMEOUT: ${SPRING_DATA_REDIS_CONNECT_TIMEOUT:-500ms}
+      SPRING_DATA_REDIS_TIMEOUT: ${SPRING_DATA_REDIS_TIMEOUT:-500ms}
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: "6379"
       SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
@@ -204,11 +220,17 @@ services:
       flyway:
         condition: service_completed_successfully
       redis:
-        condition: service_healthy
+        condition: service_started
       kafka:
         condition: service_healthy
       kafka-init:
         condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --spider http://localhost:8080/actuator/health/readiness || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
     restart: unless-stopped
 
   vehicle-simulator:
@@ -238,7 +260,7 @@ services:
       fleet-api:
         condition: service_healthy
       telemetry-gateway:
-        condition: service_started
+        condition: service_healthy
     restart: unless-stopped
 
   prometheus:

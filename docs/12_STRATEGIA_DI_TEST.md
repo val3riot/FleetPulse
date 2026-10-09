@@ -583,3 +583,45 @@ raccolta sul server Prometheus e dall'esecuzione delle query tramite Grafana.
 Le serie di failure presenti a zero sono valide; non dimostrano l'esecuzione
 dei percorsi di guasto. L'esito dello scrape non sostituisce readiness o salute
 delle dipendenze. L'assenza di dati non deve essere mascherata da valori fittizi.
+
+## Health e readiness — FP-048
+
+Le verifiche usano la configurazione applicativa effettiva: probe HTTP distinte,
+gruppi con contributor esistenti, Redis escluso anche dall'health generale e
+payload senza dettagli sensibili. Test con soli indicatori mock non sostituiscono
+la verifica di outage/recovery delle dipendenze reali.
+
+| Scenario | Risultato richiesto |
+| --- | --- |
+| Tre servizi sani | root/liveness/readiness UP, HTTP 200 |
+| Redis fermo, DB/Kafka sani | Tutte le probe 200; State API fallback 200 con ultimo sample; processor persiste e osserva failure projection |
+| Avvio API/processor con Redis già fermo | Probe 200 dopo completamento startup; fallback servibile |
+| PostgreSQL fermo a runtime | API/processor root e readiness 503; liveness 200; gateway ready |
+| PostgreSQL fermo, hit cache | State API 200 anche se readiness API 503; miss richiede DB e restituisce 503 |
+| Kafka fermo | Gateway/processor root e readiness 503; liveness 200; API ready |
+| Ripristino DB/Kafka | Probe tornano 200 e telemetria persiste senza restart delle applicazioni |
+| Listener TCP terminato | Gateway root/readiness 503, liveness 200 |
+| Listener TCP assente/disabilitato | Indicatore TCP DOWN |
+| Consumer assente/arrestato | Indicatore consumer DOWN; endpoint root/readiness 503 per container arrestato |
+| Consumer senza partizioni | Non dichiarare DOWN solo per assenza di assegnazioni |
+| REFUSING_TRAFFIC / BROKEN | Readiness / liveness rispettivamente 503, stato ripristinato a fine test |
+| Metadata incompleti, topic/leader assente, timeout Kafka | Indicatore DOWN, nessun dettaglio sensibile, attesa limitata |
+
+`GatewayHealthIntegrationTest` verifica HTTP e stati di disponibilità con Kafka
+reale; `ProcessorHealthIntegrationTest` verifica arresto/ripresa del consumer
+con PostgreSQL/Kafka e preserva il group ID configurato. I test unitari degli
+indicatori verificano leader/topic, cache, timeout, interrupt e shutdown.
+Il profilo test processor esclude Redis e non dimostra la sua opzionalità in
+production: questa è verificata da `infrastructure/health/verify.py`, tramite
+HTTP reale su stack Compose isolato con stop/start delle dipendenze.
+
+Le probe raccolte nel verificatore devono rispondere entro 5 s con i default;
+conservare status/body/durata e verificare ritorno UP senza restart DB/Kafka.
+I test non certificano blackhole JDBC arbitrari. Le regressioni riusano fallback,
+recovery Redis, offset e crash recovery già coperti in FP-044/045/046. Per il
+carico FP-047 è sufficiente uno smoke dell'avvio tramite nuova readiness: non
+si ripete la prova da dieci minuti senza modifiche al percorso dei frame.
+Sul broker isolato appena creato, una partizione vuota senza offset committed
+ha lag zero; una partizione non vuota ancora senza commit conta tutti gli offset
+dal principio del log. Il simbolo `-` della CLI non deve far fallire lo smoke
+né nascondere record ancora da confermare.

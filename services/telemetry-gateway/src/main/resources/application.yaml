@@ -23,6 +23,17 @@ gateway:
     read-timeout: ${GATEWAY_TCP_READ_TIMEOUT:30s}
     shutdown-grace-period: ${GATEWAY_TCP_GRACE_PERIOD:5s}
 management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+      show-components: never
+      group:
+        liveness:
+          include: livenessState
+        readiness:
+          include: readinessState,tcp,kafka
   metrics:
     distribution:
       percentiles-histogram:
@@ -42,6 +53,8 @@ management:
       exposure:
         include: health,info,prometheus
 fleetpulse:
+  health:
+    kafka-timeout: ${KAFKA_HEALTH_TIMEOUT:1s}
   kafka:
     topics:
       raw: ${KAFKA_TOPIC_RAW:telemetry.raw.v1}
