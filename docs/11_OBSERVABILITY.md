@@ -127,6 +127,8 @@ Il timer publish esclude log e costruzione dell'ACK dopo la conferma.
 | `fleetpulse.processor.dead.letter` | Counter | Recovery con pubblicazione dead-letter riuscita | Nessuna |
 | `fleetpulse.processor.rejections` | Counter | Veicolo rifiutato e pubblicazione rejected riuscita | `reason=UNKNOWN_VEHICLE,VEHICLE_DISABLED` |
 | `fleetpulse.processing.latency` | Timer | Ingresso handler → esito aggregato, prima di Redis | `outcome=persisted,duplicate,rejected,failed` |
+| `fleetpulse.pipeline.persistence.latency` | Timer | `TelemetryEvent.receivedAt` gateway → ritorno riuscito del writer dopo commit | Nessuna |
+| `fleetpulse.pipeline.persistence.clock.invalid` | Counter | Durata gateway → commit negativa: orologi non coerenti, campione escluso | Nessuna |
 | `fleetpulse.processor.projection.latency` | Timer | Tentativo update Redis post-commit | `outcome=completed,failed` |
 | `fleetpulse.telemetry.latest_state.updates` | Counter | Esito update Redis | `outcome=updated,skipped,failed` |
 | `fleetpulse.redis.update.failures` | Counter | Ogni update Redis fallito | Nessuna |
@@ -147,6 +149,22 @@ persistiti dal numero di record consegnati al listener o dagli offset.
 
 Questa latenza è lavoro locale del processor, non gateway→commit end-to-end:
 l'attesa in Kafka e il requisito RNF-003/FP-047 richiedono una misura distinta.
+`fleetpulse.pipeline.persistence.latency` soddisfa questo confine: parte dal
+mapping del frame valido nel gateway, prima della pubblicazione Kafka, e termina
+subito dopo il ritorno del proxy transazionale del writer, senza transazione
+esterna nell'orchestratore. Include coda e retry precedenti alla prima persistenza;
+esclude Redis, duplicati ignorati e tentativi falliti. Non parte dall'ACK TCP.
+Richiede orologi sincronizzati fra gateway e processor. Durate negative sono
+escluse e contate, senza trasformarle in zero. `processed_at` viene assegnato
+prima della transazione e non rappresenta l'istante di commit.
+
+Il log `telemetry.event.persisted` aggiunge `pipeline.persistence.completedAt`,
+`pipeline.persistence.latency.ms` numerico e `pipeline.persistence.clock.valid`.
+Con clock invalido la durata è nulla. I campi sono correlabili per `messageId`,
+senza label per messaggio, veicolo o run. Il percentile esatto di una prova usa
+queste durate; il percentile dai bucket Prometheus resta una stima. Il timer
+dedicato segue gli stessi override di distribuzione, incluso il bucket a 2 s
+di default; la dashboard processor esistente continua a mostrare il timer locale.
 Contratti domain/projection: [ADR-006](adr/ADR-006-AT-LEAST-ONCE-E-IDEMPOTENCY.md),
 [ADR-007](adr/ADR-007-VALIDAZIONE-VEICOLO.md),
 [ADR-009](adr/ADR-009-LATEST-STATE-PROJECTION.md).

@@ -279,6 +279,44 @@ duplicate probability: 2%
 disconnect probability: 1%
 ```
 
+### Contratto di accettazione FP-047
+
+La baseline usa 50 connessioni persistenti senza fault. La prova mista ripete
+lo stesso carico con seed dichiarato: per ogni frame unico, una decisione
+indipendente al 1% interrompe la socket a metà payload, quindi riconnette e
+invia integralmente lo stesso messaggio; una decisione al 2% reinvia un frame
+completo già accettato, con identici `messageId` e sequence. Le percentuali sono
+probabilità per frame, non quote esatte; riportare i conteggi osservati.
+
+Gli slot nominali sono t=0,2,...,298 s: 150 frame unici per veicolo, 7.500
+complessivi, 25 frame/s medi. Duplicati e payload parziali sono traffico aggiuntivo.
+La schedulazione usa tempo monotono e non somma il tempo di invio al periodo.
+Ritardi di almeno un intervallo invalidano la cadenza; lateness osservata e
+throughput sono conservati. Warm-up e drain sono esterni ai 300 s misurati.
+La prova usa ACK length-prefixed validi e correlati, ma verifica separatamente
+la persistenza: uguaglianza fra messageId offerti, accettati e righe SQL uniche,
+nessun alert per il profilo normale, nessun messaggio rejected/dead-letter e
+lag consumer finale zero entro 60 s. Errori/ACK ambigui restano errori del run.
+
+Il p95 gateway → commit usa i campi post-commit definiti in
+[Observability](11_OBSERVABILITY.md), con un campione valido per ogni frame
+unico e percentile nearest-rank. Obiettivo locale RNF-003: < 2 s. Non usare il
+timer del solo handler, differenze `processed_at - received_at` o somme di p95.
+Smoke e warm-up non certificano il carico completo.
+
+L'harness `infrastructure/load/run.py` usa uno stack Compose isolato, porte
+dinamiche e volumi propri, rimosso al termine anche in caso di errore.
+I budget operativi della prova, distinti da SLO di produzione, sono: 2 CPU per
+container; memoria massima 512 MiB per applicazione e PostgreSQL, 128 MiB Redis,
+1 GiB Kafka; heap massimo applicazioni 65% del limite container. Il working set
+container e l'heap usato devono restare sotto il 90% dei rispettivi massimi;
+CPU campionata entro 205% (margine di misura sul limite di 2 CPU), nessun OOM,
+restart o arresto inatteso. Fra campioni risorse si attendono 5 s, oltre al tempo di raccolta; il lag è
+misurato ogni sei campioni e a fine drain. La cadenza effettiva si ricava dai
+timestamp conservati. Conservare memoria/CPU, metriche JVM/GC/pool/connessioni,
+distribuzione latenze, conteggi, ambiente e commit. Una prova di cinque minuti
+dimostra il rispetto osservato dei budget, non l'assenza assoluta di leak.
+
 ## 7. Quality gate
 
 - unit test verdi;

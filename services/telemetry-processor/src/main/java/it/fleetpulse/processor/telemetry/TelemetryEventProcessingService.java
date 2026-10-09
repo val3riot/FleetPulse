@@ -2,6 +2,7 @@ package it.fleetpulse.processor.telemetry;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 
@@ -141,8 +142,15 @@ public final class TelemetryEventProcessingService implements TelemetryEventHand
             return new ProcessingResult(Outcome.DUPLICATE, null);
         }
 
+        // No outer transaction: the writer proxy has completed the commit before returning.
+        Instant committedAt = clock.instant();
         ProcessingResult result = new ProcessingResult(Outcome.PERSISTED, saved);
+        Duration persistenceLatency = metrics.recordPersistence(event.receivedAt(), committedAt);
         log.atInfo().addKeyValue("event.action", "telemetry.event.persisted")
+            .addKeyValue("pipeline.persistence.completedAt", committedAt)
+            .addKeyValue("pipeline.persistence.latency.ms",
+                persistenceLatency == null ? null : persistenceLatency.toNanos() / 1_000_000.0)
+            .addKeyValue("pipeline.persistence.clock.valid", persistenceLatency != null)
             .addKeyValue("sampleId", saved.getId())
             .addKeyValue("alertCandidates", candidates.size())
             .addKeyValue("messageId", saved.getMessageId())

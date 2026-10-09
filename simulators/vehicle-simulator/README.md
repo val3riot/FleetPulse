@@ -66,9 +66,10 @@ lo stesso percorso.
 Da host, con Fleet API e gateway raggiungibili:
 
 ```bash
+./mvnw --projects simulators/vehicle-simulator --also-make install -DskipTests
 SIMULATOR_ENABLED=true \
 SIMULATOR_VEHICLE_COUNT=5 \
-./mvnw --projects simulators/vehicle-simulator --also-make spring-boot:run
+./mvnw --projects simulators/vehicle-simulator spring-boot:run
 ```
 
 Con Docker Compose, impostare `SIMULATOR_ENABLED=true` in `.env` e avviare:

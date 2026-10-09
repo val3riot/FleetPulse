@@ -83,6 +83,36 @@ class TelemetryEventProcessingServiceTest {
             new TelemetryProcessingMetrics(registry));
 
     @Test
+    void measuresGatewayLatencyAfterWriterReturnsAndBeforeRedis() {
+        Clock clock = mock(Clock.class);
+        when(clock.instant()).thenReturn(PROCESSED_AT, PROCESSED_AT.plusMillis(300));
+        var measured = new TelemetryEventProcessingService(writer, new TelemetrySampleMapper(),
+            clock, failureClassifier, eligibilityGuard, projection, observability,
+            alertVehicleQuery, new AlertTelemetryMapper(), alertEvaluator,
+            new TelemetryProcessingMetrics(registry));
+        when(writer.insert(any(), anyList(), eq(PROCESSED_AT))).thenAnswer(invocation -> {
+            verify(clock).instant(); // The completion instant must not be captured before the write.
+            assertEquals(0, registry.get("fleetpulse.pipeline.persistence.latency").timer().count());
+            return new TelemetryAggregateWriteResult(invocation.getArgument(0), List.of());
+        });
+        when(projection.updateIfNewer(any())).thenAnswer(invocation -> {
+            assertEquals(1, registry.get("fleetpulse.pipeline.persistence.latency").timer().count());
+            return ProjectionUpdateResult.UPDATED;
+        });
+        measured.handle(event(TelemetryEventVersions.V1), SOURCE);
+        assertEquals(367, registry.get("fleetpulse.pipeline.persistence.latency")
+            .timer().totalTime(TimeUnit.MILLISECONDS), .001);
+    }
+
+    @Test
+    void excludesNegativeClockDurationsWithoutHidingClockSkew() {
+        var metrics = new TelemetryProcessingMetrics(registry);
+        assertEquals(null, metrics.recordPersistence(PROCESSED_AT, PROCESSED_AT.minusMillis(1)));
+        assertEquals(0, registry.get("fleetpulse.pipeline.persistence.latency").timer().count());
+        assertEquals(1, registry.get("fleetpulse.pipeline.persistence.clock.invalid").counter().count());
+    }
+
+    @Test
     void measuresCommitSeparatelyFromRedisWithMonotonicClock() {
         when(writer.insert(any(), anyList(), eq(PROCESSED_AT))).thenAnswer(invocation -> {
             metricsClock.add(Duration.ofMillis(100));
@@ -115,6 +145,7 @@ class TelemetryEventProcessingServiceTest {
         assertThrows(DataAccessResourceFailureException.class, () -> service.handle(event, SOURCE));
         service.handle(event, SOURCE);
         service.handle(event, SOURCE);
+        assertEquals(1, registry.get("fleetpulse.pipeline.persistence.latency").timer().count());
         assertEquals(3, registry.get("fleetpulse.processor.events").counter().count());
         assertEquals(1, registry.get("fleetpulse.processor.persisted").counter().count());
         assertEquals(1, registry.get("fleetpulse.processor.duplicates").counter().count());

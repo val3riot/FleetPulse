@@ -59,7 +59,7 @@ class PrometheusHistogramConfigurationTest {
                             overridden ? 5_000_000_000.0 : 30_000_000_000.0));
                 });
             String export = registry.scrape();
-            for (String metric : List.of("fleetpulse_processing_latency_seconds",
+            for (String metric : List.of("fleetpulse_pipeline_persistence_latency_seconds", "fleetpulse_processing_latency_seconds",
                     "fleetpulse_processor_projection_latency_seconds")) {
                 var lines = export.lines().filter(line -> line.startsWith(metric + "_")).toList();
                 assertThat(lines).anyMatch(line -> line.startsWith(metric + "_count") && line.endsWith(" 1"));
