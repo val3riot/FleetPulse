@@ -165,10 +165,23 @@ prestazionale FP-047. Il verificatore e le istruzioni di esecuzione sono in
 
 ### E2E-002 — Alert
 
-1. invia valore oltre soglia;
-2. verifica un alert;
-3. ripeti lo stesso `messageId`;
-4. verifica assenza di duplicato.
+1. registra un veicolo via REST e invia via TCP un valore oltre soglia;
+2. verifica ACK, record raw, sample e un alert con `sourceMessageId`, tipo,
+   severity e stato `OPEN` attesi, esposto da collection e dettaglio REST;
+3. ripubblica lo stesso frame con lo stesso `messageId`, verificando che un nuovo
+   record raw raggiunga il processor;
+4. attende la classificazione positiva del duplicato e il commit dell'offset
+   prima di confrontare gli esiti: conteggi invariati subito dopo ACK non bastano;
+5. verifica che sample e alert restino identici, inclusi ID e timestamp;
+6. riconosce l'alert via REST (`ACKNOWLEDGED`) e ripete il replay, verificando che
+   non venga riaperto e che il timestamp dell'operatore sia conservato;
+7. riconcilia tre pubblicazioni raw, un sample, un alert, due duplicati e nessun
+   rejected/DLT, quindi verifica cleanup delle sole risorse isolate.
+
+Il replay E2E è una nuova pubblicazione dello stesso messaggio tramite gateway:
+non è un reset degli offset, un replay DLT o una prova di crash del processo.
+La verifica usa servizi reali e riusa l'harness nominale; istruzioni in
+[infrastructure/e2e](../infrastructure/e2e/README.md#alert-e-replay--fp-051).
 
 ### E2E-003 — Restart del processor
 

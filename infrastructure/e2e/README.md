@@ -1,4 +1,4 @@
-# E2E nominale FleetPulse — FP-050
+# E2E backend FleetPulse — FP-050 / FP-051
 
 Accettazione di [E2E-001](../../docs/12_STRATEGIA_DI_TEST.md#e2e-001--flusso-nominale):
 registrazione REST → TCP → ACK → Kafka → PostgreSQL → Redis → Fleet API.
@@ -80,3 +80,34 @@ Le regressioni controllano che dati errati, stato precedente, veicolo diverso e
 campi tecnici estranei non vengano accettati e che i timestamp equivalenti siano
 confrontati come istanti. Alert/replay appartengono a FP-051 e i guasti a FP-052;
 questa prova mantiene il flusso nominale senza restart o interruzioni dei servizi.
+
+## Alert e replay — FP-051
+
+```bash
+python3 infrastructure/e2e/verify_alerts.py --output tmp/fp051-alert-replay
+```
+
+Stessi prerequisiti/isolamento del nominale, progetto dedicato `fp051-<id>` e
+directory output nuova. Lo scenario registra un veicolo, invia una temperatura
+oltre la soglia configurata e mantiene batteria/odometro nominali per ottenere
+esattamente un `ENGINE_TEMPERATURE_HIGH`, severity `HIGH` e stato `OPEN`.
+Verifica il flusso TCP/Kafka/SQL/Redis/State API riusando FP-050, poi controlla
+l'alert SQL, le collection REST scoped/globale e il dettaglio.
+
+Ripubblica due volte lo **stesso frame** con lo stesso messageId: prima con alert
+OPEN, poi dopo un PATCH REST a ACKNOWLEDGED. Ciascun replay deve essere accettato
+e pubblicato su raw; il test attende incremento del counter duplicati e lag zero
+prima di verificare che sample/alert completi siano invariati. Non basta che il
+conteggio sia ancora uno subito dopo ACK: il processor potrebbe non avere ancora
+consumato il replay. La seconda prova verifica che il lavoro dell'operatore non
+venga perso: stesso alert ID, stato ACKNOWLEDGED e acknowledgedAt conservato.
+
+Esito atteso: tre raw, un sample, un alert, due duplicati, zero rejected/DLT,
+lag zero. checks/summary/failure/cleanup hanno lo stesso ruolo del nominale.
+La suite `test_*.py` comprende anche le regressioni su sourceMessageId, sostituzione
+dell'alert a conteggio invariato, riapertura, duplicazione e cleanup su failure.
+
+Questa è una ripubblicazione TCP, non un reset offset o recupero DLT. I vincoli
+transazionali e i test di crash precedenti completano la copertura: questo E2E
+non certifica da solo ogni interleaving concorrente, tutti i tipi di alert,
+le transizioni CLOSED o i failure scenarios FP-052. Nessun servizio Java modificato.
