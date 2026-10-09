@@ -6,8 +6,7 @@ import org.mapstruct.ReportingPolicy;
 
 import java.time.Instant;
 
-@Mapper(componentModel = MappingConstants.ComponentModel.SPRING,
-    unmappedTargetPolicy = ReportingPolicy.ERROR)
+@Mapper(componentModel = MappingConstants.ComponentModel.SPRING, unmappedTargetPolicy = ReportingPolicy.ERROR)
 public interface VehicleMapper {
     /**
      * Converte la richiesta in entity aggiungendo i valori assegnati dal backend.

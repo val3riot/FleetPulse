@@ -14,7 +14,9 @@ import org.springframework.stereotype.Component;
 
 @Component
 public final class TelemetryProcessingMetrics {
-    public enum Outcome { PERSISTED, DUPLICATE, REJECTED, FAILED }
+    public enum Outcome {
+        PERSISTED, DUPLICATE, REJECTED, FAILED
+    }
 
     private final MeterRegistry registry;
     private final Counter attempts;
@@ -32,20 +34,22 @@ public final class TelemetryProcessingMetrics {
         persisted = registry.counter("fleetpulse.processor.persisted");
         duplicates = registry.counter("fleetpulse.processor.duplicates");
         persistence = Timer.builder("fleetpulse.pipeline.persistence.latency")
-            .description("Gateway receivedAt through successful aggregate commit, excluding Redis")
-            .register(registry);
+                .description(
+                        "Gateway receivedAt through successful aggregate commit, excluding Redis")
+                .register(registry);
         invalidPersistenceClock = registry.counter("fleetpulse.pipeline.persistence.clock.invalid");
         for (Outcome outcome : Outcome.values()) {
             processing.put(outcome, Timer.builder("fleetpulse.processing.latency")
-                .description("Decoded telemetry attempt through aggregate commit, excluding Redis")
-                .tag("outcome", outcome.name().toLowerCase(Locale.ROOT)).register(registry));
+                    .description(
+                            "Decoded telemetry attempt through aggregate commit, excluding Redis")
+                    .tag("outcome", outcome.name().toLowerCase(Locale.ROOT)).register(registry));
         }
         completedProjection = Timer.builder("fleetpulse.processor.projection.latency")
-            .description("Latest-state Redis update duration after aggregate commit")
-            .tag("outcome", "completed").register(registry);
+                .description("Latest-state Redis update duration after aggregate commit")
+                .tag("outcome", "completed").register(registry);
         failedProjection = Timer.builder("fleetpulse.processor.projection.latency")
-            .description("Latest-state Redis update duration after aggregate commit")
-            .tag("outcome", "failed").register(registry);
+                .description("Latest-state Redis update duration after aggregate commit")
+                .tag("outcome", "failed").register(registry);
     }
 
     public Timer.Sample startAttempt() {
@@ -69,7 +73,8 @@ public final class TelemetryProcessingMetrics {
         switch (outcome) {
             case PERSISTED -> persisted.increment();
             case DUPLICATE -> duplicates.increment();
-            default -> { }
+            default -> {
+            }
         }
     }
 

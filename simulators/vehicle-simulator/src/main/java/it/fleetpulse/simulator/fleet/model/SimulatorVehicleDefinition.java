@@ -9,8 +9,7 @@ public record SimulatorVehicleDefinition(
         String externalCode,
         String plate,
         int serviceIntervalKm,
-        long nextServiceAtKm
-) {
+        long nextServiceAtKm) {
 
     public static SimulatorVehicleDefinition of(int index, VehicleProperties properties) {
         if (index <= 0) {
@@ -18,13 +17,13 @@ public record SimulatorVehicleDefinition(
         }
         Objects.requireNonNull(properties, "properties must not be null");
 
-        double nextService =
-            Math.ceil(properties.initialOdometerKm()) + properties.serviceIntervalKm();
+        double nextService = Math.ceil(properties.initialOdometerKm())
+                + properties.serviceIntervalKm();
         if (nextService > Long.MAX_VALUE) {
             throw new IllegalArgumentException("nextServiceAtKm exceeds the supported range");
         }
 
         return new SimulatorVehicleDefinition(index, "FP-SIM-%03d".formatted(index),
-            "SIM%03d".formatted(index), properties.serviceIntervalKm(), (long) nextService);
+                "SIM%03d".formatted(index), properties.serviceIntervalKm(), (long) nextService);
     }
 }

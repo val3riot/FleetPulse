@@ -32,12 +32,12 @@ public final class VehicleSimulatorLifecycle implements SmartLifecycle {
 
     @Autowired
     public VehicleSimulatorLifecycle(VehicleSimulatorProperties properties,
-        FleetProvisioner provisioner, VehicleWorkloadProvider workloadFactory) {
+            FleetProvisioner provisioner, VehicleWorkloadProvider workloadFactory) {
         this(properties, provisioner, workloadFactory, Executors::newVirtualThreadPerTaskExecutor);
     }
 
     VehicleSimulatorLifecycle(VehicleSimulatorProperties properties, FleetProvisioner provisioner,
-        VehicleWorkloadProvider workloadFactory, Supplier<ExecutorService> executorFactory) {
+            VehicleWorkloadProvider workloadFactory, Supplier<ExecutorService> executorFactory) {
         this.properties = Objects.requireNonNull(properties, "properties");
         this.provisioner = Objects.requireNonNull(provisioner, "provisioner");
         this.workloadFactory = Objects.requireNonNull(workloadFactory, "workloadFactory");
@@ -51,12 +51,12 @@ public final class VehicleSimulatorLifecycle implements SmartLifecycle {
         }
         if (!properties.enabled()) {
             log.atInfo().addKeyValue("event.action", "vehicle.simulator.is.disabled")
-                .log("Vehicle simulator is disabled");
+                    .log("Vehicle simulator is disabled");
             return;
         }
 
         log.atInfo().addKeyValue("event.action", "simulator.vehicles.provisioning")
-            .log("Provisioning {} simulated vehicles", properties.vehicleCount());
+                .log("Provisioning {} simulated vehicles", properties.vehicleCount());
         List<ProvisionedVehicle> vehicles = provisioner.provision();
         ExecutorService newExecutor = executorFactory.get();
         try {
@@ -68,7 +68,7 @@ public final class VehicleSimulatorLifecycle implements SmartLifecycle {
             executor = newExecutor;
             running = true;
             log.atInfo().addKeyValue("event.action", "simulator.workloads.started")
-                .log("Started {} vehicle workloads on virtual threads", vehicles.size());
+                    .log("Started {} vehicle workloads on virtual threads", vehicles.size());
         } catch (RuntimeException startupFailure) {
             tasks.forEach(VehicleTask::close);
             tasks = List.of();
@@ -90,7 +90,7 @@ public final class VehicleSimulatorLifecycle implements SmartLifecycle {
             awaitTermination(executorToStop);
         }
         log.atInfo().addKeyValue("event.action", "vehicle.simulator.lifecycle.stopped")
-            .log("Vehicle simulator lifecycle stopped");
+                .log("Vehicle simulator lifecycle stopped");
     }
 
     @Override
@@ -110,17 +110,17 @@ public final class VehicleSimulatorLifecycle implements SmartLifecycle {
     private void awaitTermination(ExecutorService executorToStop) {
         try {
             if (!executorToStop.awaitTermination(properties.shutdownGracePeriod().toMillis(),
-                TimeUnit.MILLISECONDS)) {
+                    TimeUnit.MILLISECONDS)) {
                 log.atWarn().addKeyValue("event.action",
-                    "vehicle.workload.executor.did.not.terminate.within")
-                    .log("Vehicle workload executor did not terminate within {} ms",
-                properties.shutdownGracePeriod().toMillis());
+                        "vehicle.workload.executor.did.not.terminate.within")
+                        .log("Vehicle workload executor did not terminate within {} ms",
+                                properties.shutdownGracePeriod().toMillis());
             }
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();
             log.atWarn().addKeyValue("event.action",
-                "interrupted.while.waiting.for.vehicle.workloads.to.stop")
-                .log("Interrupted while waiting for vehicle workloads to stop");
+                    "interrupted.while.waiting.for.vehicle.workloads.to.stop")
+                    .log("Interrupted while waiting for vehicle workloads to stop");
         }
     }
 }

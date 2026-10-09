@@ -1,6 +1,9 @@
 package it.fleetpulse.api.common;
 
 public class ApplicationException extends RuntimeException {
+
+    @java.io.Serial
+    private static final long serialVersionUID = 1L;
     private final ErrorCode errorCode;
 
     /**

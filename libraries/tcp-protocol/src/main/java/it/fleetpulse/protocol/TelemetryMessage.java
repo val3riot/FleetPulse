@@ -14,6 +14,5 @@ public record TelemetryMessage(
         double batteryVoltage,
         long odometerKm,
         double latitude,
-        double longitude
-) {
+        double longitude) {
 }

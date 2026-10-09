@@ -46,11 +46,11 @@ public class RedisLatestStateProjection implements LatestStateProjection, Latest
                 UpdateAttempt result = attemptUpdate(key, candidateJson, candidate);
 
                 switch (result) {
-                    case UPDATED:
+                    case UPDATED :
                         return ProjectionUpdateResult.UPDATED;
-                    case SKIPPED:
+                    case SKIPPED :
                         return ProjectionUpdateResult.SKIPPED;
-                    case CONFLICT:
+                    case CONFLICT :
                         break;
                 }
             }
@@ -147,8 +147,6 @@ public class RedisLatestStateProjection implements LatestStateProjection, Latest
     }
 
     private enum UpdateAttempt {
-        UPDATED,
-        SKIPPED,
-        CONFLICT
+        UPDATED, SKIPPED, CONFLICT
     }
 }

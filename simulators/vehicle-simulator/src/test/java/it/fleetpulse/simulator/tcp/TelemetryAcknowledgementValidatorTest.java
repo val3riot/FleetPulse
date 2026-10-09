@@ -20,8 +20,8 @@ class TelemetryAcknowledgementValidatorTest {
 
     @Test
     void acceptsDocumentedAcceptedAcknowledgement() {
-        TelemetryAck acknowledgement =
-            new TelemetryAck(ProtocolConstants.PROTOCOL_VERSION, MESSAGE_ID, AckStatus.ACCEPTED,
+        TelemetryAck acknowledgement = new TelemetryAck(ProtocolConstants.PROTOCOL_VERSION,
+                MESSAGE_ID, AckStatus.ACCEPTED,
                 RECEIVED_AT, null);
 
         assertDoesNotThrow(() -> TelemetryAcknowledgementValidator.validate(acknowledgement));
@@ -29,8 +29,8 @@ class TelemetryAcknowledgementValidatorTest {
 
     @Test
     void acceptsDocumentedRejectedAcknowledgement() {
-        TelemetryAck acknowledgement =
-            new TelemetryAck(ProtocolConstants.PROTOCOL_VERSION, MESSAGE_ID, AckStatus.REJECTED,
+        TelemetryAck acknowledgement = new TelemetryAck(ProtocolConstants.PROTOCOL_VERSION,
+                MESSAGE_ID, AckStatus.REJECTED,
                 RECEIVED_AT, ProtocolErrorCode.INVALID_TELEMETRY);
 
         assertDoesNotThrow(() -> TelemetryAcknowledgementValidator.validate(acknowledgement));
@@ -38,21 +38,21 @@ class TelemetryAcknowledgementValidatorTest {
 
     @Test
     void acceptedAcknowledgementRejectsErrorCode() {
-        TelemetryAck acknowledgement =
-            new TelemetryAck(ProtocolConstants.PROTOCOL_VERSION, MESSAGE_ID, AckStatus.ACCEPTED,
+        TelemetryAck acknowledgement = new TelemetryAck(ProtocolConstants.PROTOCOL_VERSION,
+                MESSAGE_ID, AckStatus.ACCEPTED,
                 RECEIVED_AT, ProtocolErrorCode.INVALID_TELEMETRY);
 
         assertThrows(MalformedAcknowledgementException.class,
-            () -> TelemetryAcknowledgementValidator.validate(acknowledgement));
+                () -> TelemetryAcknowledgementValidator.validate(acknowledgement));
     }
 
     @Test
     void rejectedAcknowledgementRequiresErrorCode() {
-        TelemetryAck acknowledgement =
-            new TelemetryAck(ProtocolConstants.PROTOCOL_VERSION, MESSAGE_ID, AckStatus.REJECTED,
+        TelemetryAck acknowledgement = new TelemetryAck(ProtocolConstants.PROTOCOL_VERSION,
+                MESSAGE_ID, AckStatus.REJECTED,
                 RECEIVED_AT, null);
 
         assertThrows(MalformedAcknowledgementException.class,
-            () -> TelemetryAcknowledgementValidator.validate(acknowledgement));
+                () -> TelemetryAcknowledgementValidator.validate(acknowledgement));
     }
 }

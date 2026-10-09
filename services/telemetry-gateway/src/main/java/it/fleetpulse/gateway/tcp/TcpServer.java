@@ -43,23 +43,23 @@ public final class TcpServer implements AutoCloseable {
     private static final int FORCE_SHUTDOWN_TIMEOUT_SECONDS = 1;
 
     public TcpServer(FrameHandler frameHandler, TcpServerProperties properties,
-        FrameDecoder frameDecoder, TelemetryAckEncoder acknowledgementEncoder,
-        MeterRegistry meterRegistry) {
+            FrameDecoder frameDecoder, TelemetryAckEncoder acknowledgementEncoder,
+            MeterRegistry meterRegistry) {
         this(frameHandler, properties, frameDecoder, acknowledgementEncoder,
-            Executors.newVirtualThreadPerTaskExecutor(), meterRegistry);
+                Executors.newVirtualThreadPerTaskExecutor(), meterRegistry);
     }
 
     TcpServer(FrameHandler frameHandler, TcpServerProperties properties, FrameDecoder frameDecoder,
-        TelemetryAckEncoder acknowledgementEncoder, ExecutorService executor,
-        MeterRegistry meterRegistry) {
+            TelemetryAckEncoder acknowledgementEncoder, ExecutorService executor,
+            MeterRegistry meterRegistry) {
         this.frameHandler = Objects.requireNonNull(frameHandler, "frameHandler must not be null");
         this.frameDecoder = Objects.requireNonNull(frameDecoder, "frameDecoder must not be null");
         this.acknowledgementEncoder = Objects.requireNonNull(acknowledgementEncoder,
-            "acknowledgementEncoder must not be null");
+                "acknowledgementEncoder must not be null");
         this.properties = Objects.requireNonNull(properties, "properties must not be null");
         this.executor = Objects.requireNonNull(executor, "executor must not be null");
         this.metrics = new TcpServerMetrics(
-            Objects.requireNonNull(meterRegistry, "meterRegistry must not be null"), clients);
+                Objects.requireNonNull(meterRegistry, "meterRegistry must not be null"), clients);
         this.connectionPermits = new Semaphore(properties.maxConnections());
     }
 
@@ -73,11 +73,11 @@ public final class TcpServer implements AutoCloseable {
             throw exception;
         }
         log.atInfo().addKeyValue("event.action", "tcp.server.listening")
-            .addKeyValue("port", serverSocket.getLocalPort())
-            .addKeyValue("activeClients", clients.size())
-            .log("TCP server listening: port={}, activeClients={}",
-                serverSocket.getLocalPort(),
-                clients.size());
+                .addKeyValue("port", serverSocket.getLocalPort())
+                .addKeyValue("activeClients", clients.size())
+                .log("TCP server listening: port={}, activeClients={}",
+                        serverSocket.getLocalPort(),
+                        clients.size());
         try {
             while (!serverSocket.isClosed()) {
                 acceptClient();
@@ -85,8 +85,8 @@ public final class TcpServer implements AutoCloseable {
         } catch (SocketException exception) {
             if (serverSocket.isClosed()) {
                 log.atDebug().addKeyValue("event.action",
-                    "tcp.accept.loop.stopped.because.the.server.socket.was.closed")
-                    .log("TCP accept loop stopped because the server socket was closed");
+                        "tcp.accept.loop.stopped.because.the.server.socket.was.closed")
+                        .log("TCP accept loop stopped because the server socket was closed");
                 return;
             }
             throw exception;
@@ -104,17 +104,18 @@ public final class TcpServer implements AutoCloseable {
             metrics.connectionCapacityRejected();
             closeRejectedClient(client);
             log.atWarn().addKeyValue("event.action",
-                "tcp.connection.rejected.because.capacity.is.exhausted")
-                .addKeyValue("remote", client.getRemoteSocketAddress())
-                .addKeyValue("activeClients", clients.size())
-                .addKeyValue("maxConnections", properties.maxConnections())
-                .addKeyValue("capacityRejectedConnections", metrics.capacityRejectedConnections())
-                .log("TCP connection rejected because capacity is exhausted: remote={}, " +
-                    "activeClients={}, maxConnections={}, capacityRejectedConnections={}",
-                client.getRemoteSocketAddress(),
-                clients.size(),
-                properties.maxConnections(),
-                metrics.capacityRejectedConnections());
+                    "tcp.connection.rejected.because.capacity.is.exhausted")
+                    .addKeyValue("remote", client.getRemoteSocketAddress())
+                    .addKeyValue("activeClients", clients.size())
+                    .addKeyValue("maxConnections", properties.maxConnections())
+                    .addKeyValue("capacityRejectedConnections",
+                            metrics.capacityRejectedConnections())
+                    .log("TCP connection rejected because capacity is exhausted: remote={}, " +
+                            "activeClients={}, maxConnections={}, capacityRejectedConnections={}",
+                            client.getRemoteSocketAddress(),
+                            clients.size(),
+                            properties.maxConnections(),
+                            metrics.capacityRejectedConnections());
             return;
         }
         try {
@@ -124,14 +125,15 @@ public final class TcpServer implements AutoCloseable {
             metrics.connectionFailed();
             closeRejectedClient(client);
             log.atWarn().addKeyValue("event.action", "unable.to.configure.tcp.client.read.timeout")
-                .addKeyValue("remote", client.getRemoteSocketAddress())
-                .addKeyValue("readTimeout", properties.readTimeout())
-                .addKeyValue("connectionFailures", metrics.connectionFailures())
-                .addKeyValue("errorType", exception.getClass().getSimpleName())
-                .log("Unable to configure TCP client read timeout: remote={}, readTimeout={}, " +
-                    "connectionFailures={}", client.getRemoteSocketAddress(),
-                properties.readTimeout(),
-                metrics.connectionFailures());
+                    .addKeyValue("remote", client.getRemoteSocketAddress())
+                    .addKeyValue("readTimeout", properties.readTimeout())
+                    .addKeyValue("connectionFailures", metrics.connectionFailures())
+                    .addKeyValue("errorType", exception.getClass().getSimpleName())
+                    .log("Unable to configure TCP client read timeout: remote={}, readTimeout={}, "
+                            +
+                            "connectionFailures={}", client.getRemoteSocketAddress(),
+                            properties.readTimeout(),
+                            metrics.connectionFailures());
             return;
         }
         clients.add(client);
@@ -139,24 +141,24 @@ public final class TcpServer implements AutoCloseable {
             executor.submit(() -> handleClient(client));
             metrics.connectionAccepted();
             log.atDebug().addKeyValue("event.action", "tcp.client.accepted")
-                .addKeyValue("remote", client.getRemoteSocketAddress())
-                .addKeyValue("activeClients", clients.size())
-                .log("TCP client accepted: remote={}, activeClients={}",
-                client.getRemoteSocketAddress(),
-                clients.size());
+                    .addKeyValue("remote", client.getRemoteSocketAddress())
+                    .addKeyValue("activeClients", clients.size())
+                    .log("TCP client accepted: remote={}, activeClients={}",
+                            client.getRemoteSocketAddress(),
+                            clients.size());
         } catch (RejectedExecutionException exception) {
             clients.remove(client);
             connectionPermits.release();
             metrics.connectionRejected();
             closeRejectedClient(client);
             log.atDebug().addKeyValue("event.action", "tcp.client.rejected.during.shutdown")
-                .addKeyValue("remote", client.getRemoteSocketAddress())
-                .addKeyValue("activeClients", clients.size())
-                .addKeyValue("rejectedConnections", metrics.rejectedConnections())
-                .log("TCP client rejected during shutdown: remote={}, activeClients={}, " +
-                    "rejectedConnections={}", client.getRemoteSocketAddress(),
-                clients.size(),
-                metrics.rejectedConnections());
+                    .addKeyValue("remote", client.getRemoteSocketAddress())
+                    .addKeyValue("activeClients", clients.size())
+                    .addKeyValue("rejectedConnections", metrics.rejectedConnections())
+                    .log("TCP client rejected during shutdown: remote={}, activeClients={}, " +
+                            "rejectedConnections={}", client.getRemoteSocketAddress(),
+                            clients.size(),
+                            metrics.rejectedConnections());
         }
     }
 
@@ -174,108 +176,109 @@ public final class TcpServer implements AutoCloseable {
                 TelemetryMessage message = frameDecoder.read(inputStream);
                 metrics.frameReceived();
                 log.atDebug().addKeyValue("event.action", "tcp.frame.received")
-                    .addKeyValue("remote", client.getRemoteSocketAddress())
-                    .addKeyValue("messageId", message.messageId())
-                    .addKeyValue("vehicleId", message.vehicleId())
-                    .addKeyValue("activeClients", clients.size())
-                    .addKeyValue("receivedFrames", metrics.receivedFrames())
-                    .log("TCP frame received: remote={}, messageId={}, vehicleId={}," +
-                        " activeClients={}," +
-                        " receivedFrames={}", client.getRemoteSocketAddress(),
-                    message.messageId(),
-                    message.vehicleId(),
-                    clients.size(),
-                    metrics.receivedFrames());
+                        .addKeyValue("remote", client.getRemoteSocketAddress())
+                        .addKeyValue("messageId", message.messageId())
+                        .addKeyValue("vehicleId", message.vehicleId())
+                        .addKeyValue("activeClients", clients.size())
+                        .addKeyValue("receivedFrames", metrics.receivedFrames())
+                        .log("TCP frame received: remote={}, messageId={}, vehicleId={}," +
+                                " activeClients={}," +
+                                " receivedFrames={}", client.getRemoteSocketAddress(),
+                                message.messageId(),
+                                message.vehicleId(),
+                                clients.size(),
+                                metrics.receivedFrames());
                 try {
                     TelemetryAck ack = frameHandler.handle(message);
                     acknowledgementEncoder.write(ack, outputStream);
                 } catch (RuntimeException exception) {
                     metrics.connectionFailed();
                     log.atError().addKeyValue("event.action",
-                        "unexpected.tcp.frame.handler.failure")
-                        .addKeyValue("remote", client.getRemoteSocketAddress())
-                        .addKeyValue("messageId", message.messageId())
-                        .addKeyValue("vehicleId", message.vehicleId())
-                        .addKeyValue("activeClients", clients.size())
-                        .addKeyValue("connectionFailures", metrics.connectionFailures())
-                        .addKeyValue("errorType", exception.getClass().getSimpleName())
-                        .log("Unexpected TCP frame handler failure: remote={}, messageId={}, " +
-                            "vehicleId={}, activeClients={}, connectionFailures={}",
-                        client.getRemoteSocketAddress(),
-                        message.messageId(),
-                        message.vehicleId(),
-                        clients.size(),
-                        metrics.connectionFailures());
+                            "unexpected.tcp.frame.handler.failure")
+                            .addKeyValue("remote", client.getRemoteSocketAddress())
+                            .addKeyValue("messageId", message.messageId())
+                            .addKeyValue("vehicleId", message.vehicleId())
+                            .addKeyValue("activeClients", clients.size())
+                            .addKeyValue("connectionFailures", metrics.connectionFailures())
+                            .addKeyValue("errorType", exception.getClass().getSimpleName())
+                            .log("Unexpected TCP frame handler failure: remote={}, messageId={}, " +
+                                    "vehicleId={}, activeClients={}, connectionFailures={}",
+                                    client.getRemoteSocketAddress(),
+                                    message.messageId(),
+                                    message.vehicleId(),
+                                    clients.size(),
+                                    metrics.connectionFailures());
                     break;
                 }
             }
         } catch (FrameStreamClosedException exception) {
             log.atDebug().addKeyValue("event.action", "tcp.client.closed.the.connection")
-                .addKeyValue("remote", client.getRemoteSocketAddress())
-                .addKeyValue("activeClients", clients.size())
-                .addKeyValue("receivedFrames", metrics.receivedFrames())
-                .log("TCP client closed the connection: remote={}, activeClients={}," +
-                    " receivedFrames={}",
+                    .addKeyValue("remote", client.getRemoteSocketAddress())
+                    .addKeyValue("activeClients", clients.size())
+                    .addKeyValue("receivedFrames", metrics.receivedFrames())
+                    .log("TCP client closed the connection: remote={}, activeClients={}," +
+                            " receivedFrames={}",
 
-                client.getRemoteSocketAddress(),
-                clients.size(),
-                metrics.receivedFrames());
+                            client.getRemoteSocketAddress(),
+                            clients.size(),
+                            metrics.receivedFrames());
 
         } catch (SocketTimeoutException exception) {
             metrics.connectionTimedOut();
             log.atDebug().addKeyValue("event.action", "tcp.client.read.timed.out")
-                .addKeyValue("remote", client.getRemoteSocketAddress())
-                .addKeyValue("readTimeout", properties.readTimeout())
-                .addKeyValue("activeClients", clients.size())
-                .addKeyValue("connectionTimeouts", metrics.connectionTimeouts())
-                .log("TCP client read timed out: remote={}, readTimeout={}, activeClients={}, " +
-                    "connectionTimeouts={}", client.getRemoteSocketAddress(),
-                properties.readTimeout(),
-                clients.size(),
-                metrics.connectionTimeouts());
+                    .addKeyValue("remote", client.getRemoteSocketAddress())
+                    .addKeyValue("readTimeout", properties.readTimeout())
+                    .addKeyValue("activeClients", clients.size())
+                    .addKeyValue("connectionTimeouts", metrics.connectionTimeouts())
+                    .log("TCP client read timed out: remote={}, readTimeout={}, activeClients={}, "
+                            +
+                            "connectionTimeouts={}", client.getRemoteSocketAddress(),
+                            properties.readTimeout(),
+                            clients.size(),
+                            metrics.connectionTimeouts());
 
         } catch (IOException exception) {
             if (stopping.get()) {
                 log.atDebug().addKeyValue("event.action",
-                    "tcp.client.closed.during.server.shutdown")
-                    .addKeyValue("remote", client.getRemoteSocketAddress())
-                    .addKeyValue("activeClients", clients.size())
-                    .log("TCP client closed during server shutdown: remote={}, activeClients={}",
-                client.getRemoteSocketAddress(),
-                clients.size());
+                        "tcp.client.closed.during.server.shutdown")
+                        .addKeyValue("remote", client.getRemoteSocketAddress())
+                        .addKeyValue("activeClients", clients.size())
+                        .log("TCP client closed during server shutdown: remote={}, activeClients={}",
+                                client.getRemoteSocketAddress(),
+                                clients.size());
             } else {
                 metrics.recordFrameRejectionIfApplicable(exception);
                 metrics.connectionFailed();
 
                 log.atWarn().addKeyValue("event.action", "tcp.client.connection.failed")
-                    .addKeyValue("remote", client.getRemoteSocketAddress())
-                    .addKeyValue("activeClients", clients.size())
-                    .addKeyValue("connectionFailures", metrics.connectionFailures())
-                    .addKeyValue("errorType", exception.getClass().getSimpleName())
-                    .log("TCP client connection failed: remote={}, activeClients={}, " +
-                        "connectionFailures={}", client.getRemoteSocketAddress(),
-                    clients.size(),
-                    metrics.connectionFailures());
+                        .addKeyValue("remote", client.getRemoteSocketAddress())
+                        .addKeyValue("activeClients", clients.size())
+                        .addKeyValue("connectionFailures", metrics.connectionFailures())
+                        .addKeyValue("errorType", exception.getClass().getSimpleName())
+                        .log("TCP client connection failed: remote={}, activeClients={}, " +
+                                "connectionFailures={}", client.getRemoteSocketAddress(),
+                                clients.size(),
+                                metrics.connectionFailures());
             }
         } finally {
             clients.remove(client);
             connectionPermits.release();
             log.atDebug().addKeyValue("event.action", "tcp.client.disconnected")
-                .addKeyValue("remote", client.getRemoteSocketAddress())
-                .addKeyValue("activeClients", clients.size())
-                .addKeyValue("acceptedConnections", metrics.acceptedConnections())
-                .addKeyValue("rejectedConnections", metrics.rejectedConnections())
-                .addKeyValue("receivedFrames", metrics.receivedFrames())
-                .addKeyValue("connectionFailures", metrics.connectionFailures())
-                .log("TCP client disconnected: remote={}, activeClients={}," +
-                    " acceptedConnections={}, " +
-                    "rejectedConnections={}, receivedFrames={}, connectionFailures={}",
-                client.getRemoteSocketAddress(),
-                clients.size(),
-                metrics.acceptedConnections(),
-                metrics.rejectedConnections(),
-                metrics.receivedFrames(),
-                metrics.connectionFailures());
+                    .addKeyValue("remote", client.getRemoteSocketAddress())
+                    .addKeyValue("activeClients", clients.size())
+                    .addKeyValue("acceptedConnections", metrics.acceptedConnections())
+                    .addKeyValue("rejectedConnections", metrics.rejectedConnections())
+                    .addKeyValue("receivedFrames", metrics.receivedFrames())
+                    .addKeyValue("connectionFailures", metrics.connectionFailures())
+                    .log("TCP client disconnected: remote={}, activeClients={}," +
+                            " acceptedConnections={}, " +
+                            "rejectedConnections={}, receivedFrames={}, connectionFailures={}",
+                            client.getRemoteSocketAddress(),
+                            clients.size(),
+                            metrics.acceptedConnections(),
+                            metrics.rejectedConnections(),
+                            metrics.receivedFrames(),
+                            metrics.connectionFailures());
             if (previous == null) {
                 MDC.clear();
             } else {
@@ -290,40 +293,40 @@ public final class TcpServer implements AutoCloseable {
             return;
         }
         log.atInfo().addKeyValue("event.action", "stopping.tcp.server")
-            .addKeyValue("activeClients", clients.size())
-            .addKeyValue("acceptedConnections", metrics.acceptedConnections())
-            .addKeyValue("rejectedConnections", metrics.rejectedConnections())
-            .addKeyValue("receivedFrames", metrics.receivedFrames())
-            .addKeyValue("connectionFailures", metrics.connectionFailures())
-            .log("Stopping TCP server: activeClients={}, acceptedConnections={}, " +
-                "rejectedConnections={}, receivedFrames={}, connectionFailures={}",
-            clients.size(),
-            metrics.acceptedConnections(),
-            metrics.rejectedConnections(),
-            metrics.receivedFrames(),
-            metrics.connectionFailures());
+                .addKeyValue("activeClients", clients.size())
+                .addKeyValue("acceptedConnections", metrics.acceptedConnections())
+                .addKeyValue("rejectedConnections", metrics.rejectedConnections())
+                .addKeyValue("receivedFrames", metrics.receivedFrames())
+                .addKeyValue("connectionFailures", metrics.connectionFailures())
+                .log("Stopping TCP server: activeClients={}, acceptedConnections={}, " +
+                        "rejectedConnections={}, receivedFrames={}, connectionFailures={}",
+                        clients.size(),
+                        metrics.acceptedConnections(),
+                        metrics.rejectedConnections(),
+                        metrics.receivedFrames(),
+                        metrics.connectionFailures());
         closeServerSocket();
         executor.shutdown();
         if (!awaitGracefulTermination()) {
             log.atWarn().addKeyValue("event.action", "tcp.graceful.shutdown.timed.out.closing")
-                .log("TCP graceful shutdown timed out; closing {} active client(s)",
-                clients.size());
+                    .log("TCP graceful shutdown timed out; closing {} active client(s)",
+                            clients.size());
             closeClients();
             awaitForcedTermination();
         }
         log.atInfo().addKeyValue("event.action", "tcp.server.stopped")
-            .addKeyValue("activeClients", clients.size())
-            .addKeyValue("acceptedConnections", metrics.acceptedConnections())
-            .addKeyValue("rejectedConnections", metrics.rejectedConnections())
-            .addKeyValue("receivedFrames", metrics.receivedFrames())
-            .addKeyValue("connectionFailures", metrics.connectionFailures())
-            .log("TCP server stopped: activeClients={}, acceptedConnections={}, " +
-                "rejectedConnections={}, receivedFrames={}, connectionFailures={}",
-            clients.size(),
-            metrics.acceptedConnections(),
-            metrics.rejectedConnections(),
-            metrics.receivedFrames(),
-            metrics.connectionFailures());
+                .addKeyValue("activeClients", clients.size())
+                .addKeyValue("acceptedConnections", metrics.acceptedConnections())
+                .addKeyValue("rejectedConnections", metrics.rejectedConnections())
+                .addKeyValue("receivedFrames", metrics.receivedFrames())
+                .addKeyValue("connectionFailures", metrics.connectionFailures())
+                .log("TCP server stopped: activeClients={}, acceptedConnections={}, " +
+                        "rejectedConnections={}, receivedFrames={}, connectionFailures={}",
+                        clients.size(),
+                        metrics.acceptedConnections(),
+                        metrics.rejectedConnections(),
+                        metrics.receivedFrames(),
+                        metrics.connectionFailures());
     }
 
     private void closeServerSocket() {
@@ -334,9 +337,9 @@ public final class TcpServer implements AutoCloseable {
             serverSocket.close();
         } catch (IOException exception) {
             log.atDebug().addKeyValue("event.action",
-                "unable.to.close.tcp.server.socket.during.shutdown")
-                .addKeyValue("errorType", exception.getClass().getSimpleName())
-                .log("Unable to close TCP server socket during shutdown");
+                    "unable.to.close.tcp.server.socket.during.shutdown")
+                    .addKeyValue("errorType", exception.getClass().getSimpleName())
+                    .log("Unable to close TCP server socket during shutdown");
         }
     }
 
@@ -346,11 +349,11 @@ public final class TcpServer implements AutoCloseable {
                 client.close();
             } catch (IOException exception) {
                 log.atDebug().addKeyValue("event.action",
-                    "unable.to.close.tcp.client.during.shutdown")
-                    .addKeyValue("remote", client.getRemoteSocketAddress())
-                    .addKeyValue("errorType", exception.getClass().getSimpleName())
-                    .log("Unable to close TCP client during shutdown: remote={}",
-                client.getRemoteSocketAddress());
+                        "unable.to.close.tcp.client.during.shutdown")
+                        .addKeyValue("remote", client.getRemoteSocketAddress())
+                        .addKeyValue("errorType", exception.getClass().getSimpleName())
+                        .log("Unable to close TCP client during shutdown: remote={}",
+                                client.getRemoteSocketAddress());
             }
         }
     }
@@ -360,10 +363,10 @@ public final class TcpServer implements AutoCloseable {
             client.close();
         } catch (IOException exception) {
             log.atDebug().addKeyValue("event.action", "unable.to.close.rejected.tcp.client")
-                .addKeyValue("remote", client.getRemoteSocketAddress())
-                .addKeyValue("errorType", exception.getClass().getSimpleName())
-                .log("Unable to close rejected TCP client: remote={}",
-                client.getRemoteSocketAddress());
+                    .addKeyValue("remote", client.getRemoteSocketAddress())
+                    .addKeyValue("errorType", exception.getClass().getSimpleName())
+                    .log("Unable to close rejected TCP client: remote={}",
+                            client.getRemoteSocketAddress());
         }
     }
 
@@ -371,8 +374,8 @@ public final class TcpServer implements AutoCloseable {
         try {
             if (!executor.awaitTermination(FORCE_SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
                 log.atWarn().addKeyValue("event.action",
-                    "tcp.executor.did.not.terminate.after.closing.client.sockets")
-                    .log("TCP executor did not terminate after closing client sockets");
+                        "tcp.executor.did.not.terminate.after.closing.client.sockets")
+                        .log("TCP executor did not terminate after closing client sockets");
 
                 executor.shutdownNow();
             }
@@ -385,13 +388,13 @@ public final class TcpServer implements AutoCloseable {
     private boolean awaitGracefulTermination() {
         try {
             return executor.awaitTermination(properties.shutdownGracePeriod().toMillis(),
-                TimeUnit.MILLISECONDS);
+                    TimeUnit.MILLISECONDS);
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
 
             log.atWarn().addKeyValue("event.action",
-                "interrupted.while.waiting.for.tcp.graceful.shutdown")
-                .log("Interrupted while waiting for TCP graceful shutdown");
+                    "interrupted.while.waiting.for.tcp.graceful.shutdown")
+                    .log("Interrupted while waiting for TCP graceful shutdown");
 
             return false;
         }

@@ -14,10 +14,10 @@ public final class TcpServerConfiguration {
     @Bean(destroyMethod = "")
     @ConditionalOnProperty(prefix = "gateway.tcp", name = "enabled", havingValue = "true")
     TcpServer tcpServer(FrameHandler frameHandler, TcpServerProperties properties,
-        FrameDecoder frameDecoder, TelemetryAckEncoder acknowledgementEncoder,
-        MeterRegistry meterRegistry) {
+            FrameDecoder frameDecoder, TelemetryAckEncoder acknowledgementEncoder,
+            MeterRegistry meterRegistry) {
         return new TcpServer(frameHandler, properties, frameDecoder, acknowledgementEncoder,
-            meterRegistry);
+                meterRegistry);
     }
 
     @Bean

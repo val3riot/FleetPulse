@@ -17,12 +17,12 @@ class AlertRuleTest {
         var rule = new EngineTemperatureRule(110.0);
 
         assertThat(rule.evaluate(VEHICLE, sample(Math.nextDown(110.0), 12.6, 85_000)))
-            .isEmpty();
+                .isEmpty();
         assertThat(rule.evaluate(VEHICLE, sample(110.0, 12.6, 85_000))).isEmpty();
         assertThat(rule.evaluate(VEHICLE, sample(Math.nextUp(110.0), 12.6, 85_000)))
-            .contains(new AlertCandidate(VEHICLE_ID, MESSAGE_ID,
-                AlertType.ENGINE_TEMPERATURE_HIGH, AlertSeverity.HIGH,
-                EngineTemperatureRule.DESCRIPTION));
+                .contains(new AlertCandidate(VEHICLE_ID, MESSAGE_ID,
+                        AlertType.ENGINE_TEMPERATURE_HIGH, AlertSeverity.HIGH,
+                        EngineTemperatureRule.DESCRIPTION));
     }
 
     @Test
@@ -30,12 +30,12 @@ class AlertRuleTest {
         var rule = new BatteryVoltageRule(11.8);
 
         assertThat(rule.evaluate(VEHICLE, sample(90.0, Math.nextDown(11.8), 85_000)))
-            .contains(new AlertCandidate(VEHICLE_ID, MESSAGE_ID,
-                AlertType.BATTERY_VOLTAGE_LOW, AlertSeverity.HIGH,
-                BatteryVoltageRule.DESCRIPTION));
+                .contains(new AlertCandidate(VEHICLE_ID, MESSAGE_ID,
+                        AlertType.BATTERY_VOLTAGE_LOW, AlertSeverity.HIGH,
+                        BatteryVoltageRule.DESCRIPTION));
         assertThat(rule.evaluate(VEHICLE, sample(90.0, 11.8, 85_000))).isEmpty();
         assertThat(rule.evaluate(VEHICLE, sample(90.0, Math.nextUp(11.8), 85_000)))
-            .isEmpty();
+                .isEmpty();
     }
 
     @Test
@@ -44,8 +44,8 @@ class AlertRuleTest {
 
         assertThat(rule.evaluate(VEHICLE, sample(90.0, 12.6, 89_999))).isEmpty();
         assertThat(rule.evaluate(VEHICLE, sample(90.0, 12.6, 90_000)))
-            .contains(new AlertCandidate(VEHICLE_ID, MESSAGE_ID, AlertType.SERVICE_DUE,
-                AlertSeverity.MEDIUM, ServiceDueRule.DESCRIPTION));
+                .contains(new AlertCandidate(VEHICLE_ID, MESSAGE_ID, AlertType.SERVICE_DUE,
+                        AlertSeverity.MEDIUM, ServiceDueRule.DESCRIPTION));
         assertThat(rule.evaluate(VEHICLE, sample(90.0, 12.6, 90_001))).isPresent();
     }
 
@@ -59,16 +59,16 @@ class AlertRuleTest {
     @Test
     void rejectsSampleBelongingToAnotherVehicle() {
         var otherVehicleSample = new AlertTelemetrySample(MESSAGE_ID, UUID.randomUUID(),
-            90.0, 12.6, 85_000);
+                90.0, 12.6, 85_000);
 
         assertThatThrownBy(() -> new ServiceDueRule().evaluate(VEHICLE, otherVehicleSample))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessage("sample vehicleId must match vehicle id");
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("sample vehicleId must match vehicle id");
     }
 
     private static AlertTelemetrySample sample(double temperature, double batteryVoltage,
-        long odometerKm) {
+            long odometerKm) {
         return new AlertTelemetrySample(MESSAGE_ID, VEHICLE_ID, temperature, batteryVoltage,
-            odometerKm);
+                odometerKm);
     }
 }

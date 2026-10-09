@@ -8,7 +8,8 @@ import org.springframework.stereotype.Component;
 public class MaintenanceAlertRequestValidator {
 
     public void validate(MaintenanceAlertSearchRequest request) {
-        if (request.from() != null && request.to() != null && request.from().isAfter(request.to())) {
+        if (request.from() != null && request.to() != null
+                && request.from().isAfter(request.to())) {
             throw new ApplicationException(ErrorCode.REQUEST_INVALID_TIME_RANGE);
         }
     }

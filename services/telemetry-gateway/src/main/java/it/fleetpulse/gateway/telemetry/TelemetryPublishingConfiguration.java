@@ -28,7 +28,7 @@ public class TelemetryPublishingConfiguration {
 
     @Bean
     TelemetryPublisher telemetryPublisher(KafkaTemplate<String, TelemetryEvent> kafkaTemplate,
-        KafkaTopicsProperties topics) {
+            KafkaTopicsProperties topics) {
         return new KafkaTelemetryPublisher(kafkaTemplate, topics.raw());
     }
 
@@ -39,7 +39,7 @@ public class TelemetryPublishingConfiguration {
 
     @Bean
     FrameHandler frameHandler(TelemetryEventMapper mapper, TelemetryPublisher publisher,
-        KafkaPublisherProperties properties, TelemetryPublishingMetrics metrics) {
+            KafkaPublisherProperties properties, TelemetryPublishingMetrics metrics) {
         return new PublishingFrameHandler(mapper, publisher, properties, metrics);
     }
 }

@@ -51,7 +51,7 @@ class MaintenanceAlertStateMachineTest {
         MaintenanceAlertEntity closed = alertWithStatus(AlertStatus.CLOSED);
 
         assertThat(stateMachine.transition(acknowledged, AlertStatusTarget.ACKNOWLEDGED, NOW))
-            .isFalse();
+                .isFalse();
         assertThat(stateMachine.transition(closed, AlertStatusTarget.CLOSED, NOW)).isFalse();
 
         verify(acknowledged, never()).acknowledge(NOW);
@@ -65,10 +65,10 @@ class MaintenanceAlertStateMachineTest {
         MaintenanceAlertEntity alert = alertWithStatus(AlertStatus.CLOSED);
 
         assertThatThrownBy(
-            () -> stateMachine.transition(alert, AlertStatusTarget.ACKNOWLEDGED, NOW))
-            .isInstanceOfSatisfying(ApplicationException.class,
-                exception -> assertThat(exception.getErrorCode())
-                    .isEqualTo(ErrorCode.ALERT_STATUS_TRANSITION_CONFLICT));
+                () -> stateMachine.transition(alert, AlertStatusTarget.ACKNOWLEDGED, NOW))
+                .isInstanceOfSatisfying(ApplicationException.class,
+                        exception -> assertThat(exception.getErrorCode())
+                                .isEqualTo(ErrorCode.ALERT_STATUS_TRANSITION_CONFLICT));
     }
 
     private MaintenanceAlertEntity alertWithStatus(AlertStatus status) {

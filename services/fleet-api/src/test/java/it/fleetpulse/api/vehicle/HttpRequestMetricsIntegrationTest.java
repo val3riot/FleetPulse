@@ -29,9 +29,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(VehicleController.class)
 @AutoConfigureMetrics
 @ImportAutoConfiguration({PrometheusMetricsExportAutoConfiguration.class,
-    WebMvcObservationAutoConfiguration.class})
+        WebMvcObservationAutoConfiguration.class})
 @Import({VehiclePageableFactory.class, TimeConfiguration.class,
-    DatabaseConstraintErrorResolver.class, DatabaseAvailabilityClassifier.class})
+        DatabaseConstraintErrorResolver.class, DatabaseAvailabilityClassifier.class})
 class HttpRequestMetricsIntegrationTest {
 
     @Autowired
@@ -50,29 +50,35 @@ class HttpRequestMetricsIntegrationTest {
         for (int index = 0; index < ids.size(); index++) {
             UUID id = ids.get(index);
             if (index == 2) {
-                when(service.findById(id)).thenThrow(new ApplicationException(ErrorCode.VEHICLE_NOT_FOUND));
+                when(service.findById(id))
+                        .thenThrow(new ApplicationException(ErrorCode.VEHICLE_NOT_FOUND));
             } else {
-                when(service.findById(id)).thenReturn(new VehicleResponse(id, "VAN-METRICS", "FP041AA",
-                    VehicleStatus.ACTIVE, 15_000, 90_000, Instant.parse("2026-10-07T12:00:00Z")));
+                when(service.findById(id))
+                        .thenReturn(new VehicleResponse(id, "VAN-METRICS", "FP041AA",
+                                VehicleStatus.ACTIVE, 15_000, 90_000,
+                                Instant.parse("2026-10-07T12:00:00Z")));
             }
             mockMvc.perform(get("/api/v1/vehicles/{vehicleId}", id)
                     .queryParam("private", "private-query-marker")
                     .header("X-Request-ID", requestIds.get(index)))
-                .andExpect(index == 2 ? status().isNotFound() : status().isOk());
+                    .andExpect(index == 2 ? status().isNotFound() : status().isOk());
         }
 
         var timers = registry.find("http.server.requests").timers();
         assertThat(timers).hasSize(2);
-        assertThat(timers).allSatisfy(timer ->
-            assertThat(timer.getId().getTag("uri")).isEqualTo("/api/v1/vehicles/{vehicleId}"));
-        assertThat(registry.get("http.server.requests").tag("status", "200").timer().count()).isEqualTo(2);
-        assertThat(registry.get("http.server.requests").tag("status", "404").timer().count()).isEqualTo(1);
+        assertThat(timers).allSatisfy(timer -> assertThat(timer.getId().getTag("uri"))
+                .isEqualTo("/api/v1/vehicles/{vehicleId}"));
+        assertThat(registry.get("http.server.requests").tag("status", "200").timer().count())
+                .isEqualTo(2);
+        assertThat(registry.get("http.server.requests").tag("status", "404").timer().count())
+                .isEqualTo(1);
 
         String export = registry.scrape();
         assertThat(export).contains("http_server_requests_seconds_count{",
-            "http_server_requests_seconds_sum{", "http_server_requests_seconds_bucket{",
-            "uri=\"/api/v1/vehicles/{vehicleId}\"", "le=\"2.0\"", "le=\"+Inf\"")
-            .doesNotContain("private-query-marker", "VAN-METRICS", "FP041AA", "vehicleId=", "requestId=");
+                "http_server_requests_seconds_sum{", "http_server_requests_seconds_bucket{",
+                "uri=\"/api/v1/vehicles/{vehicleId}\"", "le=\"2.0\"", "le=\"+Inf\"")
+                .doesNotContain("private-query-marker", "VAN-METRICS", "FP041AA", "vehicleId=",
+                        "requestId=");
         ids.forEach(id -> assertThat(export).doesNotContain(id.toString()));
         requestIds.forEach(id -> assertThat(export).doesNotContain(id.toString()));
     }

@@ -26,10 +26,10 @@ class KafkaTelemetryTerminalEventPublisherTest {
 
     private final KafkaTemplate<String, Object> kafkaTemplate = kafkaTemplate();
 
-    private final KafkaTelemetryTerminalEventPublisher publisher =
-        new KafkaTelemetryTerminalEventPublisher(kafkaTemplate,
+    private final KafkaTelemetryTerminalEventPublisher publisher = new KafkaTelemetryTerminalEventPublisher(
+            kafkaTemplate,
             new KafkaTopicsProperties("telemetry.raw.v1", "telemetry.rejected.v1",
-                "telemetry.dead-letter.v1"),
+                    "telemetry.dead-letter.v1"),
             new KafkaTerminalPublishingProperties(Duration.ofSeconds(1)));
 
     @SuppressWarnings("unchecked")
@@ -40,11 +40,11 @@ class KafkaTelemetryTerminalEventPublisherTest {
     @Test
     void publishesRejectionUsingVehicleIdAsKey() {
         TelemetryRejectedEvent event = new TelemetryRejectedEvent(MESSAGE_ID, VEHICLE_ID,
-            TelemetryRejectionReason.UNKNOWN_VEHICLE, Instant.parse("2026-08-17T10:00:00Z"),
-            "telemetry.raw.v1", 1, 42L);
+                TelemetryRejectionReason.UNKNOWN_VEHICLE, Instant.parse("2026-08-17T10:00:00Z"),
+                "telemetry.raw.v1", 1, 42L);
 
         when(kafkaTemplate.send("telemetry.rejected.v1", VEHICLE_ID.toString(), event)).thenReturn(
-            CompletableFuture.completedFuture(null));
+                CompletableFuture.completedFuture(null));
 
         publisher.publishRejected(event);
 
@@ -53,13 +53,13 @@ class KafkaTelemetryTerminalEventPublisherTest {
 
     @Test
     void publishesDeadLetterUsingOriginalKey() {
-        TelemetryDeadLetterEvent event =
-            new TelemetryDeadLetterEvent(Instant.parse("2026-08-17T10:00:00Z"), "telemetry.raw.v1",
+        TelemetryDeadLetterEvent event = new TelemetryDeadLetterEvent(
+                Instant.parse("2026-08-17T10:00:00Z"), "telemetry.raw.v1",
                 1, 42L, 4, "DATABASE_UNAVAILABLE", "Database unavailable", VEHICLE_ID.toString(),
                 Map.of("messageId", MESSAGE_ID.toString()));
 
         when(kafkaTemplate.send("telemetry.dead-letter.v1", VEHICLE_ID.toString(),
-            event)).thenReturn(CompletableFuture.completedFuture(null));
+                event)).thenReturn(CompletableFuture.completedFuture(null));
 
         publisher.publishDeadLetter(event);
 
@@ -68,18 +68,18 @@ class KafkaTelemetryTerminalEventPublisherTest {
 
     @Test
     void propagatesBrokerPublicationFailure() {
-        TelemetryDeadLetterEvent event =
-            new TelemetryDeadLetterEvent(Instant.parse("2026-08-17T10:00:00Z"), "telemetry.raw.v1",
+        TelemetryDeadLetterEvent event = new TelemetryDeadLetterEvent(
+                Instant.parse("2026-08-17T10:00:00Z"), "telemetry.raw.v1",
                 1, 42L, 4, "DATABASE_UNAVAILABLE", "Database unavailable", VEHICLE_ID.toString(),
                 Map.of());
 
         RuntimeException brokerFailure = new RuntimeException("broker unavailable");
 
         when(kafkaTemplate.send("telemetry.dead-letter.v1", VEHICLE_ID.toString(),
-            event)).thenReturn(CompletableFuture.failedFuture(brokerFailure));
+                event)).thenReturn(CompletableFuture.failedFuture(brokerFailure));
 
-        TelemetryTerminalPublicationException thrown =
-            assertThrows(TelemetryTerminalPublicationException.class,
+        TelemetryTerminalPublicationException thrown = assertThrows(
+                TelemetryTerminalPublicationException.class,
                 () -> publisher.publishDeadLetter(event));
 
         assertSame(brokerFailure, thrown.getCause().getCause());

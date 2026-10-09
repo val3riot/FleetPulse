@@ -17,11 +17,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class TelemetryHistoryRequestTest {
     private static final Instant FROM = Instant.parse("2026-08-01T10:00:00Z");
     private static final Instant TO = Instant.parse("2026-08-01T11:00:00Z");
-    private static final ValidatorFactory VALIDATOR_FACTORY =
-        Validation.buildDefaultValidatorFactory();
+    private static final ValidatorFactory VALIDATOR_FACTORY = Validation
+            .buildDefaultValidatorFactory();
     private static final Validator VALIDATOR = VALIDATOR_FACTORY.getValidator();
-    private final TelemetryHistoryRequestValidator rangeValidator =
-        new TelemetryHistoryRequestValidator();
+    private final TelemetryHistoryRequestValidator rangeValidator = new TelemetryHistoryRequestValidator();
 
     @AfterAll
     static void closeValidatorFactory() {
@@ -40,29 +39,29 @@ class TelemetryHistoryRequestTest {
 
     @Test
     void rejectsMissingRangeAndInvalidPaginationOrSort() {
-        TelemetryHistoryRequest request =
-            new TelemetryHistoryRequest(null, null, -1, 101, "sequenceNumber,desc");
+        TelemetryHistoryRequest request = new TelemetryHistoryRequest(null, null, -1, 101,
+                "sequenceNumber,desc");
 
         assertThat(VALIDATOR.validate(request)).extracting(violation -> violation.getPropertyPath()
-            .toString()).contains("from", "to", "page", "size", "sort");
+                .toString()).contains("from", "to", "page", "size", "sort");
     }
 
     @Test
     void acceptsAnInclusiveSingleInstantRange() {
-        TelemetryHistoryRequest request =
-            new TelemetryHistoryRequest(FROM, FROM, 0, 1, "observedAt,asc");
+        TelemetryHistoryRequest request = new TelemetryHistoryRequest(FROM, FROM, 0, 1,
+                "observedAt,asc");
 
         assertThatCode(() -> rangeValidator.validate(request)).doesNotThrowAnyException();
     }
 
     @Test
     void mapsAnInvertedRangeToTheDedicatedError() {
-        TelemetryHistoryRequest request =
-            new TelemetryHistoryRequest(TO, FROM, 0, 50, "observedAt,desc");
+        TelemetryHistoryRequest request = new TelemetryHistoryRequest(TO, FROM, 0, 50,
+                "observedAt,desc");
 
         assertThatThrownBy(() -> rangeValidator.validate(request))
-            .isInstanceOfSatisfying(ApplicationException.class,
-                exception -> assertThat(exception.getErrorCode())
-                    .isEqualTo(ErrorCode.REQUEST_INVALID_TIME_RANGE));
+                .isInstanceOfSatisfying(ApplicationException.class,
+                        exception -> assertThat(exception.getErrorCode())
+                                .isEqualTo(ErrorCode.REQUEST_INVALID_TIME_RANGE));
     }
 }

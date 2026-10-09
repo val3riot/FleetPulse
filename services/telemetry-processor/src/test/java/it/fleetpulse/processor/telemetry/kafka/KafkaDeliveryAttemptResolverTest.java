@@ -17,7 +17,7 @@ class KafkaDeliveryAttemptResolverTest {
         ConsumerRecord<String, String> record = record();
 
         record.headers().add(KafkaHeaders.DELIVERY_ATTEMPT,
-            ByteBuffer.allocate(Integer.BYTES).putInt(4).array());
+                ByteBuffer.allocate(Integer.BYTES).putInt(4).array());
 
         assertThat(resolver.resolve(record)).isEqualTo(4);
     }
@@ -41,7 +41,7 @@ class KafkaDeliveryAttemptResolverTest {
         ConsumerRecord<String, String> record = record();
 
         record.headers().add(KafkaHeaders.DELIVERY_ATTEMPT,
-            ByteBuffer.allocate(Integer.BYTES).putInt(0).array());
+                ByteBuffer.allocate(Integer.BYTES).putInt(0).array());
 
         assertThat(resolver.resolve(record)).isEqualTo(1);
     }

@@ -23,10 +23,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ReconnectingVehicleConnectionTest {
 
-    private static final ReconnectProperties PROPERTIES =
-        new ReconnectProperties(Duration.ofMillis(250), Duration.ofSeconds(1), 4, 0);
-    private static final TelemetryMessage MESSAGE =
-        new TelemetryMessage(ProtocolConstants.PROTOCOL_VERSION, UUID.randomUUID(),
+    private static final ReconnectProperties PROPERTIES = new ReconnectProperties(
+            Duration.ofMillis(250), Duration.ofSeconds(1), 4, 0);
+    private static final TelemetryMessage MESSAGE = new TelemetryMessage(
+            ProtocolConstants.PROTOCOL_VERSION, UUID.randomUUID(),
             UUID.randomUUID(), 1, Instant.parse("2026-08-12T12:00:00Z"), 50, 90, 13, 10_001, 41.9,
             12.5);
 
@@ -46,7 +46,7 @@ class ReconnectingVehicleConnectionTest {
         assertTrue(connection.isConnected());
         assertEquals(4, delegate.connectAttempts);
         assertEquals(List.of(Duration.ofMillis(250), Duration.ofMillis(500), Duration.ofSeconds(1)),
-            sleeper.delays);
+                sleeper.delays);
     }
 
     @Test
@@ -61,8 +61,8 @@ class ReconnectingVehicleConnectionTest {
         connection.connect();
 
         assertEquals(
-            List.of(Duration.ofMillis(250), Duration.ofMillis(500), Duration.ofMillis(250)),
-            sleeper.delays);
+                List.of(Duration.ofMillis(250), Duration.ofMillis(500), Duration.ofMillis(250)),
+                sleeper.delays);
     }
 
     @Test
@@ -96,8 +96,8 @@ class ReconnectingVehicleConnectionTest {
         };
         ReconnectingVehicleConnection connection = connection(delegate, sleeper);
 
-        InterruptedIOException failure =
-            assertThrows(InterruptedIOException.class, connection::connect);
+        InterruptedIOException failure = assertThrows(InterruptedIOException.class,
+                connection::connect);
 
         assertTrue(Thread.currentThread().isInterrupted());
         assertSame(connectionFailure.getClass(), failure.getCause().getClass());
@@ -115,11 +115,11 @@ class ReconnectingVehicleConnectionTest {
         assertEquals("gateway unavailable", failure.getMessage());
         assertEquals(4, delegate.connectAttempts);
         assertEquals(List.of(Duration.ofMillis(250), Duration.ofMillis(500), Duration.ofSeconds(1)),
-            sleeper.delays);
+                sleeper.delays);
     }
 
     private static ReconnectingVehicleConnection connection(StubConnection delegate,
-        RetrySleeper sleeper) {
+            RetrySleeper sleeper) {
         return new ReconnectingVehicleConnection("FP-SIM-001", delegate, PROPERTIES, sleeper);
     }
 

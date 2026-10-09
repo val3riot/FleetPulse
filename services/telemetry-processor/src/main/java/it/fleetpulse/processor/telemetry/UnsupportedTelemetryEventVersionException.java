@@ -2,6 +2,9 @@ package it.fleetpulse.processor.telemetry;
 
 public final class UnsupportedTelemetryEventVersionException extends RuntimeException {
 
+    @java.io.Serial
+    private static final long serialVersionUID = 1L;
+
     private final int actualVersion;
 
     public UnsupportedTelemetryEventVersionException(int actualVersion) {

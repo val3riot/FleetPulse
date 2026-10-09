@@ -11,7 +11,7 @@ public final class TelemetryDeadLetterRecoverer implements ConsumerRecordRecover
     private final TelemetryTerminalEventPublisher publisher;
 
     public TelemetryDeadLetterRecoverer(TelemetryDeadLetterEventFactory eventFactory,
-        TelemetryTerminalEventPublisher publisher) {
+            TelemetryTerminalEventPublisher publisher) {
         this.eventFactory = Objects.requireNonNull(eventFactory);
         this.publisher = Objects.requireNonNull(publisher);
     }

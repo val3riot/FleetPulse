@@ -13,6 +13,6 @@ final class TestAcknowledgements {
 
     static TelemetryAck accepted(TelemetryMessage message) {
         return new TelemetryAck(ProtocolConstants.PROTOCOL_VERSION, message.messageId(),
-            AckStatus.ACCEPTED, Instant.EPOCH, null);
+                AckStatus.ACCEPTED, Instant.EPOCH, null);
     }
 }

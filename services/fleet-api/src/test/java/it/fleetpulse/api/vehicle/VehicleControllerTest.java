@@ -44,11 +44,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(VehicleController.class)
 @Import({GlobalExceptionHandler.class,
-    DatabaseConstraintErrorResolver.class,
-    DatabaseAvailabilityClassifier.class,
-    VehiclePageableFactory.class,
-    VehicleControllerTest.BindingTestController.class,
-    VehicleControllerTest.FixedClockConfiguration.class})
+        DatabaseConstraintErrorResolver.class,
+        DatabaseAvailabilityClassifier.class,
+        VehiclePageableFactory.class,
+        VehicleControllerTest.BindingTestController.class,
+        VehicleControllerTest.FixedClockConfiguration.class})
 class VehicleControllerTest {
 
     private static final UUID ID = UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0");
@@ -68,21 +68,21 @@ class VehicleControllerTest {
     @DisplayName("POST registra un veicolo e restituisce 201 con Location")
     void createsVehicle() throws Exception {
         when(service.create(
-            new CreateVehicleRequest("VAN-001", "FP001AA", 15_000, 90_000L))).thenReturn(
-            response());
+                new CreateVehicleRequest("VAN-001", "FP001AA", 15_000, 90_000L))).thenReturn(
+                        response());
 
         mockMvc.perform(
                 post(VEHICLES_PATH).contentType(MediaType.APPLICATION_JSON).content(validJson()))
-            .andExpect(status().isCreated())
-            .andExpect(header().string("Location", "http://localhost/api/v1/vehicles/" + ID))
-            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.id").value(ID.toString()))
-            .andExpect(jsonPath("$.externalCode").value("VAN-001"))
-            .andExpect(jsonPath("$.plate").value("FP001AA"))
-            .andExpect(jsonPath("$.status").value("ACTIVE"))
-            .andExpect(jsonPath("$.serviceIntervalKm").value(15_000))
-            .andExpect(jsonPath("$.nextServiceAtKm").value(90_000))
-            .andExpect(jsonPath("$.createdAt").value(NOW.toString()));
+                .andExpect(status().isCreated())
+                .andExpect(header().string("Location", "http://localhost/api/v1/vehicles/" + ID))
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.id").value(ID.toString()))
+                .andExpect(jsonPath("$.externalCode").value("VAN-001"))
+                .andExpect(jsonPath("$.plate").value("FP001AA"))
+                .andExpect(jsonPath("$.status").value("ACTIVE"))
+                .andExpect(jsonPath("$.serviceIntervalKm").value(15_000))
+                .andExpect(jsonPath("$.nextServiceAtKm").value(90_000))
+                .andExpect(jsonPath("$.createdAt").value(NOW.toString()));
     }
 
     /**
@@ -94,13 +94,13 @@ class VehicleControllerTest {
         when(service.findById(ID)).thenReturn(response());
 
         mockMvc.perform(get(VEHICLES_PATH + "/{vehicleId}", ID)).andExpect(status().isOk())
-            .andExpect(jsonPath("$.id").value(ID.toString()))
-            .andExpect(jsonPath("$.externalCode").value("VAN-001"))
-            .andExpect(jsonPath("$.plate").value("FP001AA"))
-            .andExpect(jsonPath("$.status").value("ACTIVE"))
-            .andExpect(jsonPath("$.serviceIntervalKm").value(15_000))
-            .andExpect(jsonPath("$.nextServiceAtKm").value(90_000))
-            .andExpect(jsonPath("$.createdAt").value(NOW.toString()));
+                .andExpect(jsonPath("$.id").value(ID.toString()))
+                .andExpect(jsonPath("$.externalCode").value("VAN-001"))
+                .andExpect(jsonPath("$.plate").value("FP001AA"))
+                .andExpect(jsonPath("$.status").value("ACTIVE"))
+                .andExpect(jsonPath("$.serviceIntervalKm").value(15_000))
+                .andExpect(jsonPath("$.nextServiceAtKm").value(90_000))
+                .andExpect(jsonPath("$.createdAt").value(NOW.toString()));
     }
 
     /**
@@ -111,10 +111,10 @@ class VehicleControllerTest {
     @DisplayName("POST converte Bean Validation in REQUEST_INVALID")
     void rejectsInvalidRequests(String description, String json, String field) throws Exception {
         ResultActions result = mockMvc.perform(
-            post(VEHICLES_PATH).contentType(MediaType.APPLICATION_JSON).content(json));
+                post(VEHICLES_PATH).contentType(MediaType.APPLICATION_JSON).content(json));
 
         expectError(result, 400, ErrorCode.REQUEST_INVALID, VEHICLES_PATH).andExpect(
-            jsonPath("$.details[*].field", hasItem(field)));
+                jsonPath("$.details[*].field", hasItem(field)));
     }
 
     /**
@@ -124,8 +124,8 @@ class VehicleControllerTest {
     @DisplayName("POST senza body restituisce REQUEST_MALFORMED_JSON")
     void rejectsMissingBody() throws Exception {
         expectError(mockMvc.perform(post(VEHICLES_PATH).contentType(MediaType.APPLICATION_JSON)),
-            400, ErrorCode.REQUEST_MALFORMED_JSON, VEHICLES_PATH).andExpect(
-            jsonPath("$.details").isEmpty());
+                400, ErrorCode.REQUEST_MALFORMED_JSON, VEHICLES_PATH).andExpect(
+                        jsonPath("$.details").isEmpty());
     }
 
     /**
@@ -135,7 +135,8 @@ class VehicleControllerTest {
     @DisplayName("POST con JSON malformato restituisce REQUEST_MALFORMED_JSON")
     void rejectsMalformedJson() throws Exception {
         expectError(mockMvc.perform(post(VEHICLES_PATH).contentType(MediaType.APPLICATION_JSON)
-            .content("{\"externalCode\":")), 400, ErrorCode.REQUEST_MALFORMED_JSON, VEHICLES_PATH);
+                .content("{\"externalCode\":")), 400, ErrorCode.REQUEST_MALFORMED_JSON,
+                VEHICLES_PATH);
     }
 
     /**
@@ -148,7 +149,7 @@ class VehicleControllerTest {
 
         expectError(mockMvc.perform(
                 post(VEHICLES_PATH).contentType(MediaType.APPLICATION_JSON).content(json)), 400,
-            ErrorCode.REQUEST_MALFORMED_JSON, VEHICLES_PATH);
+                ErrorCode.REQUEST_MALFORMED_JSON, VEHICLES_PATH);
     }
 
     /**
@@ -158,8 +159,8 @@ class VehicleControllerTest {
     @DisplayName("GET con UUID non valido restituisce REQUEST_INVALID")
     void rejectsInvalidUuid() throws Exception {
         expectError(mockMvc.perform(get(VEHICLES_PATH + "/not-a-uuid")), 400,
-            ErrorCode.REQUEST_INVALID, VEHICLES_PATH + "/not-a-uuid").andExpect(
-            jsonPath("$.details[0].field").value("vehicleId"));
+                ErrorCode.REQUEST_INVALID, VEHICLES_PATH + "/not-a-uuid").andExpect(
+                        jsonPath("$.details[0].field").value("vehicleId"));
     }
 
     /**
@@ -170,8 +171,9 @@ class VehicleControllerTest {
     void rejectsUnsupportedMediaType() throws Exception {
         expectError(mockMvc.perform(
                 post(VEHICLES_PATH).contentType(MediaType.TEXT_PLAIN).content(validJson())), 415,
-            ErrorCode.REQUEST_UNSUPPORTED_MEDIA_TYPE, VEHICLES_PATH).andExpect(
-            header().string("Accept", org.hamcrest.Matchers.containsString("application/json")));
+                ErrorCode.REQUEST_UNSUPPORTED_MEDIA_TYPE, VEHICLES_PATH).andExpect(
+                        header().string("Accept",
+                                org.hamcrest.Matchers.containsString("application/json")));
     }
 
     /**
@@ -181,8 +183,8 @@ class VehicleControllerTest {
     @DisplayName("Metodo HTTP non supportato restituisce 405 e Allow")
     void rejectsUnsupportedMethod() throws Exception {
         expectError(mockMvc.perform(put(VEHICLES_PATH + "/{vehicleId}", ID)), 405,
-            ErrorCode.REQUEST_METHOD_NOT_ALLOWED, VEHICLES_PATH + "/" + ID).andExpect(
-            header().string("Allow", org.hamcrest.Matchers.containsString("GET")));
+                ErrorCode.REQUEST_METHOD_NOT_ALLOWED, VEHICLES_PATH + "/" + ID).andExpect(
+                        header().string("Allow", org.hamcrest.Matchers.containsString("GET")));
     }
 
     /**
@@ -192,10 +194,10 @@ class VehicleControllerTest {
     @DisplayName("Codice esterno duplicato restituisce il 409 documentato")
     void mapsExternalCodeConflict() throws Exception {
         when(service.create(org.mockito.ArgumentMatchers.any())).thenThrow(
-            new ApplicationException(ErrorCode.VEHICLE_EXTERNAL_CODE_CONFLICT));
+                new ApplicationException(ErrorCode.VEHICLE_EXTERNAL_CODE_CONFLICT));
 
         expectError(postValidVehicle(), 409, ErrorCode.VEHICLE_EXTERNAL_CODE_CONFLICT,
-            VEHICLES_PATH);
+                VEHICLES_PATH);
     }
 
     /**
@@ -205,7 +207,7 @@ class VehicleControllerTest {
     @DisplayName("Targa duplicata restituisce il 409 documentato")
     void mapsPlateConflict() throws Exception {
         when(service.create(org.mockito.ArgumentMatchers.any())).thenThrow(
-            new ApplicationException(ErrorCode.VEHICLE_PLATE_CONFLICT));
+                new ApplicationException(ErrorCode.VEHICLE_PLATE_CONFLICT));
 
         expectError(postValidVehicle(), 409, ErrorCode.VEHICLE_PLATE_CONFLICT, VEHICLES_PATH);
     }
@@ -219,7 +221,7 @@ class VehicleControllerTest {
         when(service.findById(ID)).thenThrow(new ApplicationException(ErrorCode.VEHICLE_NOT_FOUND));
 
         expectError(mockMvc.perform(get(VEHICLES_PATH + "/{vehicleId}", ID)), 404,
-            ErrorCode.VEHICLE_NOT_FOUND, VEHICLES_PATH + "/" + ID);
+                ErrorCode.VEHICLE_NOT_FOUND, VEHICLES_PATH + "/" + ID);
     }
 
     /**
@@ -229,26 +231,26 @@ class VehicleControllerTest {
     @DisplayName("CannotCreateTransactionException restituisce SERVICE_UNAVAILABLE")
     void mapsCannotCreateTransaction() throws Exception {
         when(service.findById(ID)).thenThrow(
-            new CannotCreateTransactionException("database unavailable"));
+                new CannotCreateTransactionException("database unavailable"));
 
         expectError(mockMvc.perform(get(VEHICLES_PATH + "/{vehicleId}", ID)), 503,
-            ErrorCode.SERVICE_UNAVAILABLE, VEHICLES_PATH + "/" + ID);
+                ErrorCode.SERVICE_UNAVAILABLE, VEHICLES_PATH + "/" + ID);
     }
 
     /**
      * Verifica che una failure JDBC di connessione sia un errore temporaneo.
      */
     @Test
-    @DisplayName(
-        "DataAccessResourceFailureException di connessione restituisce " + "SERVICE_UNAVAILABLE")
+    @DisplayName("DataAccessResourceFailureException di connessione restituisce "
+            + "SERVICE_UNAVAILABLE")
     void mapsDataAccessResourceFailure() throws Exception {
-        DataAccessResourceFailureException exception =
-            new DataAccessResourceFailureException("database unavailable",
+        DataAccessResourceFailureException exception = new DataAccessResourceFailureException(
+                "database unavailable",
                 new SQLException("connection refused", "08006"));
         when(service.findById(ID)).thenThrow(exception);
 
         expectError(mockMvc.perform(get(VEHICLES_PATH + "/{vehicleId}", ID)), 503,
-            ErrorCode.SERVICE_UNAVAILABLE, VEHICLES_PATH + "/" + ID);
+                ErrorCode.SERVICE_UNAVAILABLE, VEHICLES_PATH + "/" + ID);
     }
 
     /**
@@ -260,9 +262,11 @@ class VehicleControllerTest {
         when(service.findById(ID)).thenThrow(new IllegalStateException("secret technical detail"));
 
         expectError(mockMvc.perform(get(VEHICLES_PATH + "/{vehicleId}", ID)), 500,
-            ErrorCode.INTERNAL_ERROR, VEHICLES_PATH + "/" + ID).andExpect(content().string(
-            org.hamcrest.Matchers.not(
-                org.hamcrest.Matchers.containsString("secret technical detail"))));
+                ErrorCode.INTERNAL_ERROR, VEHICLES_PATH + "/" + ID).andExpect(
+                        content().string(
+                                org.hamcrest.Matchers.not(
+                                        org.hamcrest.Matchers
+                                                .containsString("secret technical detail"))));
     }
 
     /**
@@ -274,7 +278,7 @@ class VehicleControllerTest {
         when(service.findById(ID)).thenThrow(new ConstraintViolationException(java.util.Set.of()));
 
         expectError(mockMvc.perform(get(VEHICLES_PATH + "/{vehicleId}", ID)), 400,
-            ErrorCode.REQUEST_INVALID, VEHICLES_PATH + "/" + ID);
+                ErrorCode.REQUEST_INVALID, VEHICLES_PATH + "/" + ID);
     }
 
     /**
@@ -284,8 +288,8 @@ class VehicleControllerTest {
     @DisplayName("Query parameter obbligatorio assente restituisce REQUEST_INVALID")
     void mapsMissingRequestParameter() throws Exception {
         expectError(mockMvc.perform(get("/test/required-parameter")), 400,
-            ErrorCode.REQUEST_INVALID, "/test/required-parameter").andExpect(
-            jsonPath("$.details[0].field").value("value"));
+                ErrorCode.REQUEST_INVALID, "/test/required-parameter").andExpect(
+                        jsonPath("$.details[0].field").value("value"));
     }
 
     /**
@@ -295,8 +299,8 @@ class VehicleControllerTest {
     @DisplayName("Path variable obbligatoria assente restituisce REQUEST_INVALID")
     void mapsMissingPathVariable() throws Exception {
         expectError(mockMvc.perform(get("/test/missing-path-variable")), 400,
-            ErrorCode.REQUEST_INVALID, "/test/missing-path-variable").andExpect(
-            jsonPath("$.details[0].field").value("missing"));
+                ErrorCode.REQUEST_INVALID, "/test/missing-path-variable").andExpect(
+                        jsonPath("$.details[0].field").value("missing"));
     }
 
     /**
@@ -306,7 +310,7 @@ class VehicleControllerTest {
     @DisplayName("Constraint database sconosciuto restituisce INTERNAL_ERROR")
     void mapsUnknownDatabaseConstraintToInternalError() throws Exception {
         when(service.create(org.mockito.ArgumentMatchers.any())).thenThrow(
-            new DataIntegrityViolationException("unknown constraint"));
+                new DataIntegrityViolationException("unknown constraint"));
 
         expectError(postValidVehicle(), 500, ErrorCode.INTERNAL_ERROR, VEHICLES_PATH);
     }
@@ -320,7 +324,7 @@ class VehicleControllerTest {
         when(service.findById(ID)).thenThrow(new DataRetrievalFailureException("query failed"));
 
         expectError(mockMvc.perform(get(VEHICLES_PATH + "/{vehicleId}", ID)), 500,
-            ErrorCode.INTERNAL_ERROR, VEHICLES_PATH + "/" + ID);
+                ErrorCode.INTERNAL_ERROR, VEHICLES_PATH + "/" + ID);
     }
 
     /**
@@ -331,19 +335,19 @@ class VehicleControllerTest {
     void changesVehicleStatus() throws Exception {
         VehicleResponse disabled = response(VehicleStatus.DISABLED);
         when(service.changeStatus(ID,
-            new ChangeVehicleStatusRequest(VehicleStatus.DISABLED))).thenReturn(disabled);
+                new ChangeVehicleStatusRequest(VehicleStatus.DISABLED))).thenReturn(disabled);
 
         mockMvc.perform(patch(statusPath(ID)).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"status\":\"DISABLED\"}")).andExpect(status().isOk())
-            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.id").value(ID.toString()))
-            .andExpect(jsonPath("$.externalCode").value("VAN-001"))
-            .andExpect(jsonPath("$.plate").value("FP001AA"))
-            .andExpect(jsonPath("$.status").value("DISABLED"))
-            .andExpect(jsonPath("$.serviceIntervalKm").value(15_000))
-            .andExpect(jsonPath("$.nextServiceAtKm").value(90_000))
-            .andExpect(jsonPath("$.createdAt").value(NOW.toString()))
-            .andExpect(header().doesNotExist("Location"));
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.id").value(ID.toString()))
+                .andExpect(jsonPath("$.externalCode").value("VAN-001"))
+                .andExpect(jsonPath("$.plate").value("FP001AA"))
+                .andExpect(jsonPath("$.status").value("DISABLED"))
+                .andExpect(jsonPath("$.serviceIntervalKm").value(15_000))
+                .andExpect(jsonPath("$.nextServiceAtKm").value(90_000))
+                .andExpect(jsonPath("$.createdAt").value(NOW.toString()))
+                .andExpect(header().doesNotExist("Location"));
 
         verify(service).changeStatus(ID, new ChangeVehicleStatusRequest(VehicleStatus.DISABLED));
     }
@@ -356,7 +360,7 @@ class VehicleControllerTest {
     void rejectsNullStatus() throws Exception {
         expectError(mockMvc.perform(patch(statusPath(ID)).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"status\":null}")), 400, ErrorCode.REQUEST_INVALID,
-            statusPath(ID)).andExpect(jsonPath("$.details[0].field").value("status"));
+                statusPath(ID)).andExpect(jsonPath("$.details[0].field").value("status"));
     }
 
     /**
@@ -366,7 +370,7 @@ class VehicleControllerTest {
     @DisplayName("PATCH senza body restituisce REQUEST_MALFORMED_JSON")
     void rejectsMissingStatusBody() throws Exception {
         expectError(mockMvc.perform(patch(statusPath(ID)).contentType(MediaType.APPLICATION_JSON)),
-            400, ErrorCode.REQUEST_MALFORMED_JSON, statusPath(ID));
+                400, ErrorCode.REQUEST_MALFORMED_JSON, statusPath(ID));
     }
 
     /**
@@ -377,7 +381,7 @@ class VehicleControllerTest {
     void rejectsUnknownStatusValue() throws Exception {
         expectError(mockMvc.perform(patch(statusPath(ID)).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"status\":\"UNKNOWN\"}")), 400, ErrorCode.REQUEST_MALFORMED_JSON,
-            statusPath(ID));
+                statusPath(ID));
     }
 
     /**
@@ -389,7 +393,7 @@ class VehicleControllerTest {
         String path = VEHICLES_PATH + "/not-a-uuid/status";
         expectError(mockMvc.perform(patch(path).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"status\":\"ACTIVE" + "\"}")), 400, ErrorCode.REQUEST_INVALID,
-            path).andExpect(jsonPath("$.details[0].field").value("vehicleId"));
+                path).andExpect(jsonPath("$.details[0].field").value("vehicleId"));
     }
 
     /**
@@ -399,12 +403,12 @@ class VehicleControllerTest {
     @DisplayName("PATCH su veicolo assente restituisce VEHICLE_NOT_FOUND")
     void mapsMissingVehicleDuringStatusChange() throws Exception {
         when(service.changeStatus(ID,
-            new ChangeVehicleStatusRequest(VehicleStatus.DISABLED))).thenThrow(
-            new ApplicationException(ErrorCode.VEHICLE_NOT_FOUND));
+                new ChangeVehicleStatusRequest(VehicleStatus.DISABLED))).thenThrow(
+                        new ApplicationException(ErrorCode.VEHICLE_NOT_FOUND));
 
         expectError(mockMvc.perform(patch(statusPath(ID)).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"status\":\"DISABLED\"}")), 404, ErrorCode.VEHICLE_NOT_FOUND,
-            statusPath(ID));
+                statusPath(ID));
     }
 
     /**
@@ -412,22 +416,23 @@ class VehicleControllerTest {
      */
     private ResultActions postValidVehicle() throws Exception {
         return mockMvc.perform(
-            post(VEHICLES_PATH).contentType(MediaType.APPLICATION_JSON).content(validJson()));
+                post(VEHICLES_PATH).contentType(MediaType.APPLICATION_JSON).content(validJson()));
     }
 
     /**
      * Verifica la struttura comune e deterministica di una risposta di errore.
      */
     private ResultActions expectError(ResultActions result, int status, ErrorCode code,
-        String path) throws Exception {
+            String path) throws Exception {
         return result.andExpect(status().is(status))
-            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.timestamp").value(NOW.toString()))
-            .andExpect(jsonPath("$.status").value(status))
-            .andExpect(jsonPath("$.code").value(code.getCode()))
-            .andExpect(jsonPath("$.message").value(code.getDefaultMessage()))
-            .andExpect(jsonPath("$.path").value(path)).andExpect(jsonPath("$.details").isArray())
-            .andExpect(jsonPath("$.error").doesNotExist());
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.timestamp").value(NOW.toString()))
+                .andExpect(jsonPath("$.status").value(status))
+                .andExpect(jsonPath("$.code").value(code.getCode()))
+                .andExpect(jsonPath("$.message").value(code.getDefaultMessage()))
+                .andExpect(jsonPath("$.path").value(path))
+                .andExpect(jsonPath("$.details").isArray())
+                .andExpect(jsonPath("$.error").doesNotExist());
     }
 
     /**
@@ -436,21 +441,22 @@ class VehicleControllerTest {
     @Test
     @DisplayName("GET lista usa i default e non richiede Content-Type")
     void listsVehiclesWithDefaults() throws Exception {
-        PagedResponse<VehicleResponse> page =
-            new PagedResponse<>(List.of(response()), 0, 20, 1, 1, true, true);
+        PagedResponse<VehicleResponse> page = new PagedResponse<>(List.of(response()), 0, 20, 1, 1,
+                true, true);
         PageRequest expectedPageable = PageRequest.of(0, 20,
-            Sort.by(Sort.Direction.DESC, "createdAt").and(Sort.by(Sort.Direction.ASC, "id")));
+                Sort.by(Sort.Direction.DESC, "createdAt").and(Sort.by(Sort.Direction.ASC, "id")));
         when(service.search(new VehicleSearchCriteria(null, null), expectedPageable)).thenReturn(
-            page);
+                page);
 
         mockMvc.perform(get(VEHICLES_PATH)).andExpect(status().isOk())
-            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.content[0].id").value(ID.toString()))
-            .andExpect(jsonPath("$.content[0].status").value("ACTIVE"))
-            .andExpect(jsonPath("$.page").value(0)).andExpect(jsonPath("$.size").value(20))
-            .andExpect(jsonPath("$.totalElements").value(1))
-            .andExpect(jsonPath("$.totalPages").value(1)).andExpect(jsonPath("$.first").value(true))
-            .andExpect(jsonPath("$.last").value(true));
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.content[0].id").value(ID.toString()))
+                .andExpect(jsonPath("$.content[0].status").value("ACTIVE"))
+                .andExpect(jsonPath("$.page").value(0)).andExpect(jsonPath("$.size").value(20))
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.totalPages").value(1))
+                .andExpect(jsonPath("$.first").value(true))
+                .andExpect(jsonPath("$.last").value(true));
 
         verify(service).search(new VehicleSearchCriteria(null, null), expectedPageable);
     }
@@ -462,16 +468,17 @@ class VehicleControllerTest {
     @DisplayName("GET lista propaga filtri e paginazione")
     void listsVehiclesWithFilters() throws Exception {
         PageRequest expectedPageable = PageRequest.of(2, 50,
-            Sort.by(Sort.Direction.ASC, "plate").and(Sort.by(Sort.Direction.ASC, "id")));
+                Sort.by(Sort.Direction.ASC, "plate").and(Sort.by(Sort.Direction.ASC, "id")));
         VehicleSearchCriteria criteria = new VehicleSearchCriteria("fp", VehicleStatus.ACTIVE);
         when(service.search(criteria, expectedPageable)).thenReturn(
-            new PagedResponse<>(List.of(), 2, 50, 0, 0, false, true));
+                new PagedResponse<>(List.of(), 2, 50, 0, 0, false, true));
 
         mockMvc.perform(
                 get(VEHICLES_PATH).param("query", "fp").param("status", "ACTIVE").param("page", "2")
-                    .param("size", "50").param("sort", "plate,asc")).andExpect(status().isOk())
-            .andExpect(jsonPath("$.content").isEmpty()).andExpect(jsonPath("$.page").value(2))
-            .andExpect(jsonPath("$.size").value(50));
+                        .param("size", "50").param("sort", "plate,asc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isEmpty()).andExpect(jsonPath("$.page").value(2))
+                .andExpect(jsonPath("$.size").value(50));
 
         verify(service).search(criteria, expectedPageable);
     }
@@ -483,9 +490,9 @@ class VehicleControllerTest {
     @MethodSource("invalidListParameters")
     @DisplayName("GET lista rifiuta paginazione e sort non validi")
     void rejectsInvalidListParameters(String name, String parameter,
-        String value) throws Exception {
+            String value) throws Exception {
         expectError(mockMvc.perform(get(VEHICLES_PATH).param(parameter, value)), 400,
-            ErrorCode.REQUEST_INVALID, VEHICLES_PATH);
+                ErrorCode.REQUEST_INVALID, VEHICLES_PATH);
     }
 
     /**
@@ -495,7 +502,7 @@ class VehicleControllerTest {
     @DisplayName("GET lista rifiuta uno status sconosciuto")
     void rejectsUnknownStatus() throws Exception {
         expectError(mockMvc.perform(get(VEHICLES_PATH).param("status", "UNKNOWN")), 400,
-            ErrorCode.REQUEST_INVALID, VEHICLES_PATH);
+                ErrorCode.REQUEST_INVALID, VEHICLES_PATH);
     }
 
     /**
@@ -503,11 +510,11 @@ class VehicleControllerTest {
      */
     private static Stream<Arguments> invalidListParameters() {
         return Stream.of(Arguments.of("page negativa", "page", "-1"),
-            Arguments.of("size zero", "size", "0"),
-            Arguments.of("size oltre il massimo", "size", "101"),
-            Arguments.of("sort malformato", "sort", "plate"),
-            Arguments.of("campo sort sconosciuto", "sort", "odometer,asc"),
-            Arguments.of("direzione sort sconosciuta", "sort", "plate,sideways"));
+                Arguments.of("size zero", "size", "0"),
+                Arguments.of("size oltre il massimo", "size", "101"),
+                Arguments.of("sort malformato", "sort", "plate"),
+                Arguments.of("campo sort sconosciuto", "sort", "odometer,asc"),
+                Arguments.of("direzione sort sconosciuta", "sort", "plate,sideways"));
     }
 
     /**
@@ -517,35 +524,39 @@ class VehicleControllerTest {
         String tooLongExternalCode = "X".repeat(65);
         String tooLongPlate = "P".repeat(17);
         return Stream.of(
-            Arguments.of("externalCode nullo", json("null", "\"FP001AA\"", "15000", "90000"),
-                "externalCode"),
-            Arguments.of("externalCode blank", json("\"   \"", "\"FP001AA\"", "15000", "90000"),
-                "externalCode"), Arguments.of("externalCode oltre 64",
-                json("\"" + tooLongExternalCode + "\"", "\"FP001AA\"", "15000", "90000"),
-                "externalCode"),
-            Arguments.of("plate nulla", json("\"VAN-001\"", "null", "15000", "90000"), "plate"),
-            Arguments.of("plate blank", json("\"VAN-001\"", "\"   \"", "15000", "90000"), "plate"),
-            Arguments.of("plate oltre 16",
-                json("\"VAN-001\"", "\"" + tooLongPlate + "\"", "15000", "90000"), "plate"),
-            Arguments.of("serviceIntervalKm nullo",
-                json("\"VAN-001\"", "\"FP001AA\"", "null", "90000"), "serviceIntervalKm"),
-            Arguments.of("serviceIntervalKm zero", json("\"VAN-001\"", "\"FP001AA\"", "0", "90000"),
-                "serviceIntervalKm"), Arguments.of("serviceIntervalKm negativo",
-                json("\"VAN-001\"", "\"FP001AA\"", "-1", "90000"), "serviceIntervalKm"),
-            Arguments.of("nextServiceAtKm nullo",
-                json("\"VAN-001\"", "\"FP001AA\"", "15000", "null"), "nextServiceAtKm"),
-            Arguments.of("nextServiceAtKm negativo",
-                json("\"VAN-001\"", "\"FP001AA\"", "15000", "-1"), "nextServiceAtKm"));
+                Arguments.of("externalCode nullo", json("null", "\"FP001AA\"", "15000", "90000"),
+                        "externalCode"),
+                Arguments.of("externalCode blank", json("\"   \"", "\"FP001AA\"", "15000", "90000"),
+                        "externalCode"),
+                Arguments.of("externalCode oltre 64",
+                        json("\"" + tooLongExternalCode + "\"", "\"FP001AA\"", "15000", "90000"),
+                        "externalCode"),
+                Arguments.of("plate nulla", json("\"VAN-001\"", "null", "15000", "90000"), "plate"),
+                Arguments.of("plate blank", json("\"VAN-001\"", "\"   \"", "15000", "90000"),
+                        "plate"),
+                Arguments.of("plate oltre 16",
+                        json("\"VAN-001\"", "\"" + tooLongPlate + "\"", "15000", "90000"), "plate"),
+                Arguments.of("serviceIntervalKm nullo",
+                        json("\"VAN-001\"", "\"FP001AA\"", "null", "90000"), "serviceIntervalKm"),
+                Arguments.of("serviceIntervalKm zero",
+                        json("\"VAN-001\"", "\"FP001AA\"", "0", "90000"),
+                        "serviceIntervalKm"),
+                Arguments.of("serviceIntervalKm negativo",
+                        json("\"VAN-001\"", "\"FP001AA\"", "-1", "90000"), "serviceIntervalKm"),
+                Arguments.of("nextServiceAtKm nullo",
+                        json("\"VAN-001\"", "\"FP001AA\"", "15000", "null"), "nextServiceAtKm"),
+                Arguments.of("nextServiceAtKm negativo",
+                        json("\"VAN-001\"", "\"FP001AA\"", "15000", "-1"), "nextServiceAtKm"));
     }
 
     /**
      * Costruisce un payload JSON con valori già serializzati.
      */
     private static String json(String externalCode, String plate, String interval,
-        String nextService) {
+            String nextService) {
         return """
-            {"externalCode":%s,"plate":%s,"serviceIntervalKm":%s,"nextServiceAtKm":%s}
-            """.formatted(externalCode, plate, interval, nextService);
+                {"externalCode":%s,"plate":%s,"serviceIntervalKm":%s,"nextServiceAtKm":%s}
+                """.formatted(externalCode, plate, interval, nextService);
     }
 
     /**
@@ -596,7 +607,7 @@ class VehicleControllerTest {
          */
         @org.springframework.web.bind.annotation.GetMapping("/test/required-parameter")
         String requiredParameter(
-            @org.springframework.web.bind.annotation.RequestParam String value) {
+                @org.springframework.web.bind.annotation.RequestParam String value) {
             return value;
         }
 
@@ -605,7 +616,7 @@ class VehicleControllerTest {
          */
         @org.springframework.web.bind.annotation.GetMapping("/test/missing-path-variable")
         String missingPathVariable(
-            @org.springframework.web.bind.annotation.PathVariable String missing) {
+                @org.springframework.web.bind.annotation.PathVariable String missing) {
             return missing;
         }
     }

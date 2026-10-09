@@ -28,7 +28,7 @@ public final class PublishingFrameHandler implements FrameHandler {
     private final TelemetryPublishingMetrics metrics;
 
     public PublishingFrameHandler(TelemetryEventMapper mapper, TelemetryPublisher publisher,
-        KafkaPublisherProperties properties, TelemetryPublishingMetrics metrics) {
+            KafkaPublisherProperties properties, TelemetryPublishingMetrics metrics) {
         this.mapper = Objects.requireNonNull(mapper, "mapper must not be null");
         this.publisher = Objects.requireNonNull(publisher, "publisher must not be null");
         this.properties = Objects.requireNonNull(properties, "properties must not be null");
@@ -45,36 +45,36 @@ public final class PublishingFrameHandler implements FrameHandler {
         try {
             try {
                 publisher.publish(event).toCompletableFuture()
-                    .get(properties.confirmationTimeout().toMillis(), TimeUnit.MILLISECONDS);
+                        .get(properties.confirmationTimeout().toMillis(), TimeUnit.MILLISECONDS);
                 confirmed = true;
             } finally {
                 metrics.completePublication(publication, confirmed);
             }
             log.atInfo().addKeyValue("event.action", "telemetry.publication.confirmed")
-                .addKeyValue("messageId", event.messageId())
-                .addKeyValue("vehicleId", event.vehicleId())
-                .log("Telemetry publication confirmed");
+                    .addKeyValue("messageId", event.messageId())
+                    .addKeyValue("vehicleId", event.vehicleId())
+                    .log("Telemetry publication confirmed");
             return accepted(event);
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
             metrics.publicationFailed();
             log.atWarn().addKeyValue("event.action", "kafka.publication.interrupted")
-                .addKeyValue("messageId", event.messageId())
-                .addKeyValue("vehicleId", event.vehicleId())
-                .log("Kafka publication interrupted: messageId={}, vehicleId={}",
-                event.messageId(),
-                event.vehicleId());
+                    .addKeyValue("messageId", event.messageId())
+                    .addKeyValue("vehicleId", event.vehicleId())
+                    .log("Kafka publication interrupted: messageId={}, vehicleId={}",
+                            event.messageId(),
+                            event.vehicleId());
             return rejected(event);
         } catch (ExecutionException | TimeoutException | RuntimeException exception) {
             metrics.publicationFailed();
             log.atWarn().addKeyValue("event.action", "kafka.publication.not.confirmed")
-                .addKeyValue("messageId", event.messageId())
-                .addKeyValue("vehicleId", event.vehicleId())
-                .addKeyValue("failure", exception.getClass().getSimpleName())
-                .log("Kafka publication not confirmed: messageId={}, vehicleId={}, failure={}",
-                event.messageId(),
-                event.vehicleId(),
-                exception.getClass().getSimpleName());
+                    .addKeyValue("messageId", event.messageId())
+                    .addKeyValue("vehicleId", event.vehicleId())
+                    .addKeyValue("failure", exception.getClass().getSimpleName())
+                    .log("Kafka publication not confirmed: messageId={}, vehicleId={}, failure={}",
+                            event.messageId(),
+                            event.vehicleId(),
+                            exception.getClass().getSimpleName());
             return rejected(event);
         } finally {
             metrics.completeAcknowledgement(acknowledgement);
@@ -83,11 +83,11 @@ public final class PublishingFrameHandler implements FrameHandler {
 
     private static TelemetryAck accepted(TelemetryEvent event) {
         return new TelemetryAck(ProtocolConstants.PROTOCOL_VERSION, event.messageId(),
-            AckStatus.ACCEPTED, event.receivedAt(), null);
+                AckStatus.ACCEPTED, event.receivedAt(), null);
     }
 
     private static TelemetryAck rejected(TelemetryEvent event) {
         return new TelemetryAck(ProtocolConstants.PROTOCOL_VERSION, event.messageId(),
-            AckStatus.REJECTED, event.receivedAt(), ProtocolErrorCode.UPSTREAM_UNAVAILABLE);
+                AckStatus.REJECTED, event.receivedAt(), ProtocolErrorCode.UPSTREAM_UNAVAILABLE);
     }
 }

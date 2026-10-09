@@ -5,8 +5,7 @@ import java.time.Duration;
 public record GatewayProperties(
         String host,
         int port,
-        Duration connectTimeout
-) {
+        Duration connectTimeout) {
 
     public GatewayProperties {
         if (host == null || host.isBlank()) {

@@ -23,32 +23,32 @@ public class TelemetryEventMapperTest {
 
     private static final Instant RECEIVED_AT = Instant.parse("2026-08-01T10:15:30.083Z");
 
-    private final TelemetryEventMapper mapper =
-        new TelemetryEventMapper(Clock.fixed(RECEIVED_AT, ZoneOffset.UTC));
+    private final TelemetryEventMapper mapper = new TelemetryEventMapper(
+            Clock.fixed(RECEIVED_AT, ZoneOffset.UTC));
 
     @Test
     void mapsTelemetryMessageToVersionOneEvent() {
-        TelemetryMessage message =
-            new TelemetryMessage(ProtocolConstants.PROTOCOL_VERSION, MESSAGE_ID, VEHICLE_ID, 42,
+        TelemetryMessage message = new TelemetryMessage(ProtocolConstants.PROTOCOL_VERSION,
+                MESSAGE_ID, VEHICLE_ID, 42,
                 OBSERVED_AT, 72.4, 91.8, 12.6, 85312, 41.9028, 12.4964);
         TelemetryEvent result = mapper.map(message);
-        TelemetryEvent excepted =
-            new TelemetryEvent(1, MESSAGE_ID, VEHICLE_ID, 42, OBSERVED_AT, RECEIVED_AT,
+        TelemetryEvent excepted = new TelemetryEvent(1, MESSAGE_ID, VEHICLE_ID, 42, OBSERVED_AT,
+                RECEIVED_AT,
                 new TelemetryData(72.4, 91.8, 12.6, 85312, 41.9028, 12.4964));
         assertEquals(excepted, result);
     }
 
     @Test
     void rejectsNullMessage() {
-        NullPointerException exception =
-            assertThrows(NullPointerException.class, () -> mapper.map(null));
+        NullPointerException exception = assertThrows(NullPointerException.class,
+                () -> mapper.map(null));
         assertEquals("message must not be null", exception.getMessage());
     }
 
     @Test
     void rejectsNullClock() {
-        NullPointerException exception =
-            assertThrows(NullPointerException.class, () -> new TelemetryEventMapper(null));
+        NullPointerException exception = assertThrows(NullPointerException.class,
+                () -> new TelemetryEventMapper(null));
         assertEquals("clock must not be null", exception.getMessage());
     }
 }

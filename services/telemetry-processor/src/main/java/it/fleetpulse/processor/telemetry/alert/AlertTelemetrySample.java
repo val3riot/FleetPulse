@@ -8,8 +8,7 @@ public record AlertTelemetrySample(
         UUID vehicleId,
         double engineTemperatureC,
         double batteryVoltage,
-        long odometerKm
-) {
+        long odometerKm) {
 
     public AlertTelemetrySample {
         Objects.requireNonNull(messageId, "messageId must not be null");

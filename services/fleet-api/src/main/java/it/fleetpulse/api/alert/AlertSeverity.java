@@ -1,8 +1,5 @@
 package it.fleetpulse.api.alert;
 
 public enum AlertSeverity {
-    LOW,
-    MEDIUM,
-    HIGH,
-    CRITICAL
+    LOW, MEDIUM, HIGH, CRITICAL
 }

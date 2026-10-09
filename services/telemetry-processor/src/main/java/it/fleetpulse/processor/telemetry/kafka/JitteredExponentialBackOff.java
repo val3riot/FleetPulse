@@ -18,13 +18,13 @@ public final class JitteredExponentialBackOff implements BackOff {
     private final DoubleSupplier random;
 
     public JitteredExponentialBackOff(Duration initialInterval, Duration maxInterval,
-        int maxAttempts, double multiplier, double jitterRatio) {
+            int maxAttempts, double multiplier, double jitterRatio) {
         this(initialInterval, maxInterval, maxAttempts, multiplier, jitterRatio,
-            () -> ThreadLocalRandom.current().nextDouble());
+                () -> ThreadLocalRandom.current().nextDouble());
     }
 
     JitteredExponentialBackOff(Duration initialInterval, Duration maxInterval, int maxAttempts,
-        double multiplier, double jitterRatio, DoubleSupplier random) {
+            double multiplier, double jitterRatio, DoubleSupplier random) {
         Objects.requireNonNull(initialInterval);
         Objects.requireNonNull(maxInterval);
         this.random = Objects.requireNonNull(random);

@@ -15,7 +15,8 @@ import java.util.function.LongSupplier;
 
 @Component
 public final class LatestStateProjectionObservability {
-    private static final Logger log = LoggerFactory.getLogger(LatestStateProjectionObservability.class);
+    private static final Logger log = LoggerFactory
+            .getLogger(LatestStateProjectionObservability.class);
     private static final long WARNING_INTERVAL_NANOS = Duration.ofSeconds(30).toNanos();
     private static final String UPDATES = "fleetpulse.telemetry.latest_state.updates";
 
@@ -41,27 +42,27 @@ public final class LatestStateProjectionObservability {
     }
 
     public void completed(UUID messageId, LatestVehicleState candidate,
-        ProjectionUpdateResult result) {
+            ProjectionUpdateResult result) {
         switch (result) {
             case UPDATED -> updated.increment();
             case SKIPPED -> skipped.increment();
         }
         log.atDebug().addKeyValue("event.action", "latest.state.projection.completed")
-            .addKeyValue("messageId", messageId)
-            .addKeyValue("vehicleId", candidate.vehicleId())
-            .addKeyValue("sequenceNumber", candidate.lastSequenceNumber())
-            .addKeyValue("outcome", result)
-            .log("Latest state projection completed: messageId={}, vehicleId={}," +
-                " sequenceNumber={}, outcome={}",
+                .addKeyValue("messageId", messageId)
+                .addKeyValue("vehicleId", candidate.vehicleId())
+                .addKeyValue("sequenceNumber", candidate.lastSequenceNumber())
+                .addKeyValue("outcome", result)
+                .log("Latest state projection completed: messageId={}, vehicleId={}," +
+                        " sequenceNumber={}, outcome={}",
 
-                messageId,
-                candidate.vehicleId(),
-                candidate.lastSequenceNumber(),
-                result);
+                        messageId,
+                        candidate.vehicleId(),
+                        candidate.lastSequenceNumber(),
+                        result);
     }
 
     public void failed(UUID messageId, LatestVehicleState candidate,
-        LatestStateProjectionException failure) {
+            LatestStateProjectionException failure) {
         failed.increment();
         redisFailures.increment();
         long now = nanoTime.getAsLong();
@@ -71,17 +72,17 @@ public final class LatestStateProjectionObservability {
             // Exception messages can contain serialized telemetry; log only the error type.
             Throwable cause = failure.getCause() == null ? failure : failure.getCause();
             log.atWarn().addKeyValue("event.action",
-                "latest.state.projection.failed.after.postgresql.commit")
-                .addKeyValue("messageId", messageId)
-                .addKeyValue("vehicleId", candidate.vehicleId())
-                .addKeyValue("sequenceNumber", candidate.lastSequenceNumber())
-                .addKeyValue("errorType", cause.getClass().getSimpleName())
-                .log("Latest state projection failed after PostgreSQL commit: "
-                    + "messageId={}, vehicleId={}, sequenceNumber={}, errorType={}",
-                messageId,
-                candidate.vehicleId(),
-                candidate.lastSequenceNumber(),
-                cause.getClass().getSimpleName());
+                    "latest.state.projection.failed.after.postgresql.commit")
+                    .addKeyValue("messageId", messageId)
+                    .addKeyValue("vehicleId", candidate.vehicleId())
+                    .addKeyValue("sequenceNumber", candidate.lastSequenceNumber())
+                    .addKeyValue("errorType", cause.getClass().getSimpleName())
+                    .log("Latest state projection failed after PostgreSQL commit: "
+                            + "messageId={}, vehicleId={}, sequenceNumber={}, errorType={}",
+                            messageId,
+                            candidate.vehicleId(),
+                            candidate.lastSequenceNumber(),
+                            cause.getClass().getSimpleName());
         }
     }
 }

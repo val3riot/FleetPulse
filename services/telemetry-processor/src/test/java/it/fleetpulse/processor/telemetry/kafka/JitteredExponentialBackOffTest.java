@@ -11,8 +11,8 @@ public class JitteredExponentialBackOffTest {
 
     @Test
     void growsExponentiallyStopsAtCapAndLimitsAttempts() {
-        JitteredExponentialBackOff backOff =
-            new JitteredExponentialBackOff(Duration.ofMillis(500), Duration.ofMillis(1_500), 4, 2.0,
+        JitteredExponentialBackOff backOff = new JitteredExponentialBackOff(Duration.ofMillis(500),
+                Duration.ofMillis(1_500), 4, 2.0,
                 0.0, () -> 0.5);
 
         BackOffExecution execution = backOff.start();
@@ -26,12 +26,12 @@ public class JitteredExponentialBackOffTest {
 
     @Test
     void appliesDeterministicJitter() {
-        JitteredExponentialBackOff minimum =
-            new JitteredExponentialBackOff(Duration.ofSeconds(1), Duration.ofSeconds(5), 1, 2.0,
+        JitteredExponentialBackOff minimum = new JitteredExponentialBackOff(Duration.ofSeconds(1),
+                Duration.ofSeconds(5), 1, 2.0,
                 0.2, () -> 0.0);
 
-        JitteredExponentialBackOff maximum =
-            new JitteredExponentialBackOff(Duration.ofSeconds(1), Duration.ofSeconds(5), 1, 2.0,
+        JitteredExponentialBackOff maximum = new JitteredExponentialBackOff(Duration.ofSeconds(1),
+                Duration.ofSeconds(5), 1, 2.0,
                 0.2, () -> 1.0);
 
         assertThat(minimum.start().nextBackOff()).isEqualTo(800);
@@ -40,8 +40,8 @@ public class JitteredExponentialBackOffTest {
 
     @Test
     void createsIndependentExecutions() {
-        JitteredExponentialBackOff backOff =
-            new JitteredExponentialBackOff(Duration.ofMillis(250), Duration.ofSeconds(1), 1, 2.0,
+        JitteredExponentialBackOff backOff = new JitteredExponentialBackOff(Duration.ofMillis(250),
+                Duration.ofSeconds(1), 1, 2.0,
                 0.0, () -> 0.5);
 
         assertThat(backOff.start().nextBackOff()).isEqualTo(250);

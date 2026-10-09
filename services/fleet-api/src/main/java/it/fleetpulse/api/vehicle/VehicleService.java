@@ -25,7 +25,7 @@ public class VehicleService {
      * Crea il servizio con repository, mapper e sorgente temporale applicativa.
      */
     public VehicleService(VehicleRepository vehicleRepository, VehicleMapper vehicleMapper,
-        Clock clock) {
+            Clock clock) {
         this.vehicleRepository = vehicleRepository;
         this.vehicleMapper = vehicleMapper;
         this.clock = clock;
@@ -36,8 +36,8 @@ public class VehicleService {
      */
     @Transactional
     public VehicleResponse create(CreateVehicleRequest request) {
-        boolean externalCodeConflict =
-            vehicleRepository.existsByExternalCode(request.externalCode());
+        boolean externalCodeConflict = vehicleRepository
+                .existsByExternalCode(request.externalCode());
         if (externalCodeConflict) {
             throw new ApplicationException(ErrorCode.VEHICLE_EXTERNAL_CODE_CONFLICT);
         }
@@ -45,13 +45,14 @@ public class VehicleService {
         if (plateConflict) {
             throw new ApplicationException(ErrorCode.VEHICLE_PLATE_CONFLICT);
         }
-        VehicleEntity entity =
-            vehicleMapper.toEntity(request, clock.instant(), VehicleStatus.ACTIVE);
+        VehicleEntity entity = vehicleMapper.toEntity(request, clock.instant(),
+                VehicleStatus.ACTIVE);
         entity = vehicleRepository.save(entity);
         log.atInfo().addKeyValue("event.action", "vehicle.registered")
-            .addKeyValue("vehicleId", entity.getId())
-            .addKeyValue("status", entity.getStatus())
-            .log("Vehicle registered: vehicleId={}, status={}", entity.getId(), entity.getStatus());
+                .addKeyValue("vehicleId", entity.getId())
+                .addKeyValue("status", entity.getStatus())
+                .log("Vehicle registered: vehicleId={}, status={}", entity.getId(),
+                        entity.getStatus());
         return vehicleMapper.toResponse(entity);
     }
 
@@ -61,10 +62,10 @@ public class VehicleService {
     @Transactional(readOnly = true)
     public VehicleResponse findById(UUID id) {
         log.atDebug().addKeyValue("event.action", "looking.up.vehicle")
-            .addKeyValue("vehicleId", id)
-            .log("Looking up vehicle: vehicleId={}", id);
+                .addKeyValue("vehicleId", id)
+                .log("Looking up vehicle: vehicleId={}", id);
         VehicleEntity entity = vehicleRepository.findById(id)
-            .orElseThrow(() -> new ApplicationException(ErrorCode.VEHICLE_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.VEHICLE_NOT_FOUND));
         return vehicleMapper.toResponse(entity);
     }
 
@@ -73,19 +74,19 @@ public class VehicleService {
      */
     @Transactional(readOnly = true)
     public PagedResponse<VehicleResponse> search(VehicleSearchCriteria criteria,
-        Pageable pageable) {
-        Page<VehicleEntity> result =
-            vehicleRepository.findAll(VehicleSpecifications.from(criteria), pageable);
+            Pageable pageable) {
+        Page<VehicleEntity> result = vehicleRepository.findAll(VehicleSpecifications.from(criteria),
+                pageable);
         log.atDebug().addKeyValue("event.action", "vehicle.search.completed")
-            .addKeyValue("page", pageable.getPageNumber())
-            .addKeyValue("size", pageable.getPageSize())
-            .addKeyValue("results", result.getNumberOfElements())
-            .addKeyValue("total", result.getTotalElements())
-            .log("Vehicle search completed: page={}, size={}, results={}, total={}",
-                pageable.getPageNumber(),
-                pageable.getPageSize(),
-                result.getNumberOfElements(),
-                result.getTotalElements());
+                .addKeyValue("page", pageable.getPageNumber())
+                .addKeyValue("size", pageable.getPageSize())
+                .addKeyValue("results", result.getNumberOfElements())
+                .addKeyValue("total", result.getTotalElements())
+                .log("Vehicle search completed: page={}, size={}, results={}, total={}",
+                        pageable.getPageNumber(),
+                        pageable.getPageSize(),
+                        result.getNumberOfElements(),
+                        result.getTotalElements());
 
         return PagedResponse.from(result, vehicleMapper::toResponse);
     }
@@ -96,18 +97,18 @@ public class VehicleService {
     @Transactional
     public VehicleResponse changeStatus(UUID id, ChangeVehicleStatusRequest request) {
         VehicleEntity entity = vehicleRepository.findById(id)
-            .orElseThrow(() -> new ApplicationException(ErrorCode.VEHICLE_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.VEHICLE_NOT_FOUND));
         VehicleStatus previousStatus = entity.getStatus();
         entity.changeStatus(request.status());
         entity = vehicleRepository.save(entity);
         log.atInfo().addKeyValue("event.action", "vehicle.status.updated")
-            .addKeyValue("vehicleId", id)
-            .addKeyValue("previousStatus", previousStatus)
-            .addKeyValue("currentStatus", entity.getStatus())
-            .log("Vehicle status updated: vehicleId={}, previousStatus={}, currentStatus={}",
-                id,
-                previousStatus,
-                entity.getStatus());
+                .addKeyValue("vehicleId", id)
+                .addKeyValue("previousStatus", previousStatus)
+                .addKeyValue("currentStatus", entity.getStatus())
+                .log("Vehicle status updated: vehicleId={}, previousStatus={}, currentStatus={}",
+                        id,
+                        previousStatus,
+                        entity.getStatus());
         return vehicleMapper.toResponse(entity);
     }
 }

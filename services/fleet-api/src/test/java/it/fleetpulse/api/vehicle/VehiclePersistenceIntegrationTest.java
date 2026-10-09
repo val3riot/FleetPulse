@@ -46,7 +46,7 @@ class VehiclePersistenceIntegrationTest extends PostgreSqlIntegrationSupport {
     @DisplayName("Flyway applica la migration V1 su un database vuoto")
     void appliesFlywayMigration() {
         Boolean success = jdbcTemplate.queryForObject(
-            "select success from flyway_schema_history where version = '1'", Boolean.class);
+                "select success from flyway_schema_history where version = '1'", Boolean.class);
 
         assertThat(success).isTrue();
     }
@@ -67,8 +67,10 @@ class VehiclePersistenceIntegrationTest extends PostgreSqlIntegrationSupport {
             assertThat(vehicle.getCreatedAt()).isEqualTo(CREATED_AT);
         });
         assertThat(
-            jdbcTemplate.queryForObject("select status from vehicles where id = ?", String.class,
-                saved.getId())).isEqualTo("ACTIVE");
+                jdbcTemplate.queryForObject("select status from vehicles where id = ?",
+                        String.class,
+                        saved.getId()))
+                .isEqualTo("ACTIVE");
     }
 
     /**
@@ -80,10 +82,10 @@ class VehiclePersistenceIntegrationTest extends PostgreSqlIntegrationSupport {
         repository.saveAndFlush(entity("VAN-DUP", "FP101AA"));
 
         assertThatThrownBy(
-            () -> repository.saveAndFlush(entity("VAN-DUP", "FP102AA"))).isInstanceOfSatisfying(
-            DataIntegrityViolationException.class,
-            exception -> assertThat(resolver.resolve(exception)).contains(
-                ErrorCode.VEHICLE_EXTERNAL_CODE_CONFLICT));
+                () -> repository.saveAndFlush(entity("VAN-DUP", "FP102AA"))).isInstanceOfSatisfying(
+                        DataIntegrityViolationException.class,
+                        exception -> assertThat(resolver.resolve(exception)).contains(
+                                ErrorCode.VEHICLE_EXTERNAL_CODE_CONFLICT));
     }
 
     /**
@@ -95,10 +97,11 @@ class VehiclePersistenceIntegrationTest extends PostgreSqlIntegrationSupport {
         repository.saveAndFlush(entity("VAN-PLATE-1", "FP103AA"));
 
         assertThatThrownBy(
-            () -> repository.saveAndFlush(entity("VAN-PLATE-2", "FP103AA"))).isInstanceOfSatisfying(
-            DataIntegrityViolationException.class,
-            exception -> assertThat(resolver.resolve(exception)).contains(
-                ErrorCode.VEHICLE_PLATE_CONFLICT));
+                () -> repository.saveAndFlush(entity("VAN-PLATE-2", "FP103AA")))
+                .isInstanceOfSatisfying(
+                        DataIntegrityViolationException.class,
+                        exception -> assertThat(resolver.resolve(exception)).contains(
+                                ErrorCode.VEHICLE_PLATE_CONFLICT));
     }
 
     /**
@@ -106,6 +109,6 @@ class VehiclePersistenceIntegrationTest extends PostgreSqlIntegrationSupport {
      */
     private VehicleEntity entity(String externalCode, String plate) {
         return new VehicleEntity(externalCode, plate, VehicleStatus.ACTIVE, 15_000, 90_000L,
-            CREATED_AT);
+                CREATED_AT);
     }
 }

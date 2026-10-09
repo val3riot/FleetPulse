@@ -12,8 +12,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class TelemetryHistoryPageableFactoryTest {
-    private final TelemetryHistoryPageableFactory factory =
-        new TelemetryHistoryPageableFactory();
+    private final TelemetryHistoryPageableFactory factory = new TelemetryHistoryPageableFactory();
 
     @Test
     void createsDescendingDefaultWithStableTieBreaker() {
@@ -22,9 +21,9 @@ class TelemetryHistoryPageableFactoryTest {
         assertThat(pageable.getPageNumber()).isZero();
         assertThat(pageable.getPageSize()).isEqualTo(50);
         assertThat(pageable.getSort().getOrderFor("observedAt").getDirection())
-            .isEqualTo(Sort.Direction.DESC);
+                .isEqualTo(Sort.Direction.DESC);
         assertThat(pageable.getSort().getOrderFor("id").getDirection())
-            .isEqualTo(Sort.Direction.DESC);
+                .isEqualTo(Sort.Direction.DESC);
     }
 
     @Test
@@ -34,14 +33,14 @@ class TelemetryHistoryPageableFactoryTest {
         assertThat(pageable.getPageNumber()).isEqualTo(2);
         assertThat(pageable.getPageSize()).isEqualTo(25);
         assertThat(pageable.getSort().getOrderFor("observedAt").getDirection())
-            .isEqualTo(Sort.Direction.ASC);
+                .isEqualTo(Sort.Direction.ASC);
         assertThat(pageable.getSort().getOrderFor("id").getDirection())
-            .isEqualTo(Sort.Direction.ASC);
+                .isEqualTo(Sort.Direction.ASC);
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"createdAt,desc", "observedAt", "observedAt,up",
-        "observedAt,desc,id,desc", ",desc", " "})
+            "observedAt,desc,id,desc", ",desc", " "})
     void rejectsUnsupportedSortExpressions(String sort) {
         assertInvalid(() -> factory.create(0, 50, sort));
     }
@@ -55,6 +54,7 @@ class TelemetryHistoryPageableFactoryTest {
 
     private void assertInvalid(org.assertj.core.api.ThrowableAssert.ThrowingCallable invocation) {
         assertThatThrownBy(invocation).isInstanceOfSatisfying(ApplicationException.class,
-            exception -> assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.REQUEST_INVALID));
+                exception -> assertThat(exception.getErrorCode())
+                        .isEqualTo(ErrorCode.REQUEST_INVALID));
     }
 }

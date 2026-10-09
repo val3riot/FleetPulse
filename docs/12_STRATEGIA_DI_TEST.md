@@ -681,3 +681,25 @@ Sul broker isolato appena creato, una partizione vuota senza offset committed
 ha lag zero; una partizione non vuota ancora senza commit conta tutti gli offset
 dal principio del log. Il simbolo `-` della CLI non deve far fallire lo smoke
 né nascondere record ancora da confermare.
+
+## Quality gate del backend — FP-053
+
+Il gate Maven del reactor richiede JDK 21, Maven 3.9.13–3.x, convergenza delle
+versioni delle dipendenze e assenza di dichiarazioni duplicate nei POM. Le versioni
+dei plugin di qualità e del formatter sono fissate nella build.
+
+`clean verify` deve compilare sorgenti e test senza warning javac non giustificati,
+eseguire i test e verificare il formatting Java in tutti i moduli. Le eccezioni
+lint devono essere circoscritte e motivate; non sono accettate esclusioni globali
+di deprecation/unchecked/serial per mascherare problemi esistenti. Il solo lint
+processing è disattivato per le annotazioni runtime del framework.
+
+Il formatter applica lo stile Java comune (spazi, indentazione 4, larghezza
+obiettivo 100) ai sorgenti main/test; la verifica non modifica i file. I test
+Python dei verificatori infrastrutturali sono parte del gate locale completo;
+le prove Docker E2E restano verifiche separate. I warning runtime attesi nei test
+di guasto non equivalgono a warning compiler. La verifica di convergenza non
+costituisce un vulnerability scan o una certificazione di sicurezza.
+
+Istruzioni e configurazione in
+[infrastructure/quality](../infrastructure/quality/README.md).

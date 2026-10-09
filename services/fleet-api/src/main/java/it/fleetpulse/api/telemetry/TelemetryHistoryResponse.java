@@ -12,30 +12,17 @@ import java.util.List;
  * Pagina REST dello storico telemetrico di un veicolo.
  */
 public record TelemetryHistoryResponse(
-    @NotNull
-    @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
-    List<@Valid TelemetrySampleResponse> content,
+        @NotNull @Schema(requiredMode = Schema.RequiredMode.REQUIRED) List<@Valid TelemetrySampleResponse> content,
 
-    @PositiveOrZero
-    @Schema(requiredMode = Schema.RequiredMode.REQUIRED, minimum = "0")
-    int page,
+        @PositiveOrZero @Schema(requiredMode = Schema.RequiredMode.REQUIRED, minimum = "0") int page,
 
-    @Positive
-    @Schema(requiredMode = Schema.RequiredMode.REQUIRED, minimum = "1")
-    int size,
+        @Positive @Schema(requiredMode = Schema.RequiredMode.REQUIRED, minimum = "1") int size,
 
-    @PositiveOrZero
-    @Schema(requiredMode = Schema.RequiredMode.REQUIRED, minimum = "0")
-    long totalElements,
+        @PositiveOrZero @Schema(requiredMode = Schema.RequiredMode.REQUIRED, minimum = "0") long totalElements,
 
-    @PositiveOrZero
-    @Schema(requiredMode = Schema.RequiredMode.REQUIRED, minimum = "0")
-    int totalPages,
+        @PositiveOrZero @Schema(requiredMode = Schema.RequiredMode.REQUIRED, minimum = "0") int totalPages,
 
-    @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
-    boolean first,
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED) boolean first,
 
-    @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
-    boolean last
-) {
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED) boolean last) {
 }

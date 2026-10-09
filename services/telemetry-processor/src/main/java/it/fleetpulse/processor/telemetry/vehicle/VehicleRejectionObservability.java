@@ -25,8 +25,8 @@ public final class VehicleRejectionObservability {
 
         for (TelemetryRejectionReason reason : TelemetryRejectionReason.values()) {
             counters.put(reason, Counter.builder("fleetpulse.processor.rejections")
-                .description("Telemetry events rejected by vehicle eligibility")
-                .tag("reason", reason.name()).register(registry));
+                    .description("Telemetry events rejected by vehicle eligibility")
+                    .tag("reason", reason.name()).register(registry));
         }
     }
 
@@ -35,19 +35,19 @@ public final class VehicleRejectionObservability {
         counters.get(event.reason()).increment();
 
         log.atInfo().addKeyValue("event.action", "telemetry.event.rejected")
-            .addKeyValue("messageId", event.messageId())
-            .addKeyValue("vehicleId", event.vehicleId())
-            .addKeyValue("reason", event.reason())
-            .addKeyValue("sourceTopic", event.sourceTopic())
-            .addKeyValue("sourcePartition", event.sourcePartition())
-            .addKeyValue("sourceOffset", event.sourceOffset())
-            .log("Telemetry event rejected: messageId={}, vehicleId={}, reason={}," +
-                " sourceTopic={}, " +
-                "sourcePartition={}, sourceOffset={}", event.messageId(),
-            event.vehicleId(),
-            event.reason(),
-            event.sourceTopic(),
-            event.sourcePartition(),
-            event.sourceOffset());
+                .addKeyValue("messageId", event.messageId())
+                .addKeyValue("vehicleId", event.vehicleId())
+                .addKeyValue("reason", event.reason())
+                .addKeyValue("sourceTopic", event.sourceTopic())
+                .addKeyValue("sourcePartition", event.sourcePartition())
+                .addKeyValue("sourceOffset", event.sourceOffset())
+                .log("Telemetry event rejected: messageId={}, vehicleId={}, reason={}," +
+                        " sourceTopic={}, " +
+                        "sourcePartition={}, sourceOffset={}", event.messageId(),
+                        event.vehicleId(),
+                        event.reason(),
+                        event.sourceTopic(),
+                        event.sourcePartition(),
+                        event.sourceOffset());
     }
 }

@@ -14,6 +14,6 @@ public final class MaintenanceAlertMapper {
         Objects.requireNonNull(createdAt, "createdAt must not be null");
 
         return new MaintenanceAlertEntity(candidate.vehicleId(), candidate.sourceMessageId(),
-            candidate.type(), candidate.severity(), candidate.description(), createdAt);
+                candidate.type(), candidate.severity(), candidate.description(), createdAt);
     }
 }

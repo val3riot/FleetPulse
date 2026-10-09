@@ -31,23 +31,23 @@ public final class TelemetryFrameEncoder {
         byte[] payload = objectMapper.writeValueAsBytes(message);
         frameWriter.write(payload, output);
         log.atDebug().addKeyValue("event.action", "encoded.telemetry.frame")
-            .addKeyValue("messageId", message.messageId())
-            .addKeyValue("vehicleId", message.vehicleId())
-            .addKeyValue("payloadBytes", payload.length)
-            .log("Encoded telemetry frame: messageId={}, payloadBytes={}",
-                message.messageId(),
-                payload.length);
+                .addKeyValue("messageId", message.messageId())
+                .addKeyValue("vehicleId", message.vehicleId())
+                .addKeyValue("payloadBytes", payload.length)
+                .log("Encoded telemetry frame: messageId={}, payloadBytes={}",
+                        message.messageId(),
+                        payload.length);
     }
 
     private static void validateProtocolVersion(
-        int protocolVersion) throws UnsupportedProtocolVersionException {
+            int protocolVersion) throws UnsupportedProtocolVersionException {
         if (protocolVersion != ProtocolConstants.PROTOCOL_VERSION) {
             throw new UnsupportedProtocolVersionException(protocolVersion);
         }
     }
 
     private static void validateArguments(TelemetryMessage message,
-        OutputStream output) throws TelemetryFrameEncodingException {
+            OutputStream output) throws TelemetryFrameEncodingException {
         if (message == null) {
             throw new TelemetryFrameEncodingException("Telemetry message must not be null");
         }

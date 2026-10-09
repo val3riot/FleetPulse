@@ -13,8 +13,8 @@ public class KafkaTerminalPublishingConfiguration {
 
     @Bean
     TelemetryTerminalEventPublisher terminalEventPublisher(
-        KafkaTemplate<String, Object> kafkaTemplate, KafkaTopicsProperties topics,
-        KafkaTerminalPublishingProperties properties) {
+            KafkaTemplate<String, Object> kafkaTemplate, KafkaTopicsProperties topics,
+            KafkaTerminalPublishingProperties properties) {
         return new KafkaTelemetryTerminalEventPublisher(kafkaTemplate, topics, properties);
     }
 
@@ -30,14 +30,14 @@ public class KafkaTerminalPublishingConfiguration {
 
     @Bean
     TelemetryDeadLetterEventFactory deadLetterEventFactory(Clock clock,
-        KafkaOriginalPayloadResolver payloadResolver,
-        KafkaDeliveryAttemptResolver attemptResolver) {
+            KafkaOriginalPayloadResolver payloadResolver,
+            KafkaDeliveryAttemptResolver attemptResolver) {
         return new TelemetryDeadLetterEventFactory(clock, payloadResolver, attemptResolver);
     }
 
     @Bean
     ConsumerRecordRecoverer deadLetterRecoverer(TelemetryDeadLetterEventFactory eventFactory,
-        TelemetryTerminalEventPublisher publisher) {
+            TelemetryTerminalEventPublisher publisher) {
         return new TelemetryDeadLetterRecoverer(eventFactory, publisher);
     }
 }

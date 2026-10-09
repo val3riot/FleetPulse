@@ -16,8 +16,8 @@ class KafkaRetryObservabilityTest {
     void recordsFailedDeliveriesAndTerminalFailures() {
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         KafkaRetryObservability observability = new KafkaRetryObservability(registry);
-        ConsumerRecord<String, String> record =
-            new ConsumerRecord<>("telemetry.raw.v1", 1, 42L, "vehicle-id", "payload");
+        ConsumerRecord<String, String> record = new ConsumerRecord<>("telemetry.raw.v1", 1, 42L,
+                "vehicle-id", "payload");
         RuntimeException failure = new RuntimeException("database unavailable");
 
         observability.failedDelivery(record, failure, 1);
@@ -26,10 +26,10 @@ class KafkaRetryObservabilityTest {
 
         assertThat(registry.get("fleetpulse.processor.failures").counter().count()).isEqualTo(2.0);
         assertThat(
-            registry.get("fleetpulse.processor.failures.terminal").counter().count()).isEqualTo(
-            1.0);
+                registry.get("fleetpulse.processor.failures.terminal").counter().count()).isEqualTo(
+                        1.0);
         assertThat(registry.get("fleetpulse.processor.dead.letter").counter().count()).isEqualTo(
-            1.0);
+                1.0);
     }
     @Test
     void excludesRawPayloadAndExceptionMessageFromFailureLogs() {
@@ -40,13 +40,13 @@ class KafkaRetryObservabilityTest {
         try {
             var observability = new KafkaRetryObservability(new SimpleMeterRegistry());
             var record = new ConsumerRecord<>("telemetry.raw.v1", 1, 42L,
-                "private-key", "private-payload");
+                    "private-key", "private-payload");
             var failure = new RuntimeException("private-credentials");
             observability.failedDelivery(record, failure, 1);
             observability.recovered(record, failure);
             assertThat(appender.list).hasSize(2).allSatisfy(event -> {
                 assertThat(event.getFormattedMessage())
-                    .doesNotContain("private-key", "private-payload", "private-credentials");
+                        .doesNotContain("private-key", "private-payload", "private-credentials");
                 assertThat(event.getThrowableProxy()).isNull();
                 assertThat(event.getKeyValuePairs()).anySatisfy(pair -> {
                     assertThat(pair.key).isEqualTo("errorType");

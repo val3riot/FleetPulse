@@ -15,10 +15,11 @@ import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
 @Configuration(proxyBeanMethods = false)
 public class ReadinessConfiguration {
     @Bean
-    KafkaReadinessHealthIndicator kafkaHealthIndicator(KafkaAdmin admin, KafkaTopicsProperties topics,
+    KafkaReadinessHealthIndicator kafkaHealthIndicator(KafkaAdmin admin,
+            KafkaTopicsProperties topics,
             @Value("${fleetpulse.health.kafka-timeout:1s}") Duration timeout) {
         return new KafkaReadinessHealthIndicator(admin.getConfigurationProperties(),
-            List.of(topics.raw(), topics.rejected(), topics.deadLetter()), timeout);
+                List.of(topics.raw(), topics.rejected(), topics.deadLetter()), timeout);
     }
 
     @Bean
@@ -27,7 +28,8 @@ public class ReadinessConfiguration {
             var container = registry.getListenerContainer(RawTelemetryEventListener.LISTENER_ID);
             // Zero assigned partitions and temporary pause/rebalance are valid states.
             return container != null && container.isRunning()
-                ? Health.up().build() : Health.down().build();
+                    ? Health.up().build()
+                    : Health.down().build();
         };
     }
 }

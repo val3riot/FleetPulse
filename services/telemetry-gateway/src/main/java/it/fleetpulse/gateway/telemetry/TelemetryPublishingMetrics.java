@@ -17,16 +17,16 @@ public final class TelemetryPublishingMetrics {
         this.registry = Objects.requireNonNull(registry, "registry must not be null");
 
         this.publishFailures = Counter.builder("fleetpulse.gateway.publish.failures")
-            .description("Kafka publications not confirmed by the gateway").register(registry);
+                .description("Kafka publications not confirmed by the gateway").register(registry);
 
         this.acknowledgementLatency = Timer.builder("fleetpulse.gateway.ack.latency")
-            .description("ACK decision preparation, excluding socket write").register(registry);
+                .description("ACK decision preparation, excluding socket write").register(registry);
         confirmedPublication = Timer.builder("fleetpulse.gateway.publish.latency")
-            .description("Kafka publication until confirmation or failure")
-            .tag("outcome", "confirmed").register(registry);
+                .description("Kafka publication until confirmation or failure")
+                .tag("outcome", "confirmed").register(registry);
         failedPublication = Timer.builder("fleetpulse.gateway.publish.latency")
-            .description("Kafka publication until confirmation or failure")
-            .tag("outcome", "failed").register(registry);
+                .description("Kafka publication until confirmation or failure")
+                .tag("outcome", "failed").register(registry);
     }
 
     Timer.Sample startAcknowledgement() {

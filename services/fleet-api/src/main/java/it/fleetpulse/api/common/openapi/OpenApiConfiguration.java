@@ -13,7 +13,7 @@ public class OpenApiConfiguration {
     @Bean
     public OpenAPI fleetPulseOpenApi() {
         return new OpenAPI().info(new Info().title("FleetPulse API")
-            .description("API REST operative per la gestione dei veicoli di FleetPulse.")
-            .version("v1"));
+                .description("API REST operative per la gestione dei veicoli di FleetPulse.")
+                .version("v1"));
     }
 }

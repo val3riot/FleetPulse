@@ -4,6 +4,9 @@ import java.io.EOFException;
 
 public final class TruncatedFramePayloadException extends EOFException {
 
+    @java.io.Serial
+    private static final long serialVersionUID = 1L;
+
     private final int expectedBytes;
     private final int bytesRead;
 

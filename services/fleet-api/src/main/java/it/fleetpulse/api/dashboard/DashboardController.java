@@ -22,16 +22,13 @@ public class DashboardController {
         this.service = service;
     }
 
-    @Operation(summary = "Restituisce la panoramica della flotta",
-        description = "Snapshot PostgreSQL senza dipendenza Redis; " +
+    @Operation(summary = "Restituisce la panoramica della flotta", description = "Snapshot PostgreSQL senza dipendenza Redis; "
+            +
             "finestra e limite configurati dal servizio")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Panoramica della flotta",
-            content = @Content(schema = @Schema(implementation = DashboardResponse.class))),
-        @ApiResponse(responseCode = "500", description = "Errore interno",
-            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
-        @ApiResponse(responseCode = "503", description = "Servizio non disponibile",
-            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+            @ApiResponse(responseCode = "200", description = "Panoramica della flotta", content = @Content(schema = @Schema(implementation = DashboardResponse.class))),
+            @ApiResponse(responseCode = "500", description = "Errore interno", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "503", description = "Servizio non disponibile", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
     })
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public DashboardResponse getDashboard() {

@@ -26,15 +26,18 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class TelemetryHistoryServiceTest {
-    private static final UUID VEHICLE_ID =
-        UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0");
+    private static final UUID VEHICLE_ID = UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0");
     private static final Instant FROM = Instant.parse("2026-08-01T10:00:00Z");
     private static final Instant TO = Instant.parse("2026-08-01T11:00:00Z");
 
-    @Mock VehicleRepository vehicles;
-    @Mock TelemetrySampleRepository samples;
-    @Mock TelemetrySampleMapper mapper;
-    @Mock TelemetrySampleEntity entity;
+    @Mock
+    VehicleRepository vehicles;
+    @Mock
+    TelemetrySampleRepository samples;
+    @Mock
+    TelemetrySampleMapper mapper;
+    @Mock
+    TelemetrySampleEntity entity;
 
     private TelemetryHistoryPageableFactory pageableFactory;
     private TelemetryHistoryService service;
@@ -43,7 +46,7 @@ class TelemetryHistoryServiceTest {
     void setUp() {
         pageableFactory = new TelemetryHistoryPageableFactory();
         service = new TelemetryHistoryService(vehicles, samples, mapper, pageableFactory,
-            new TelemetryHistoryRequestValidator());
+                new TelemetryHistoryRequestValidator());
     }
 
     @Test
@@ -53,7 +56,7 @@ class TelemetryHistoryServiceTest {
         TelemetrySampleResponse response = response();
         when(vehicles.existsById(VEHICLE_ID)).thenReturn(true);
         when(samples.findAllByVehicleIdAndObservedAtBetween(VEHICLE_ID, FROM, TO, pageable))
-            .thenReturn(new PageImpl<>(List.of(entity), pageable, 1));
+                .thenReturn(new PageImpl<>(List.of(entity), pageable, 1));
         when(mapper.toResponse(entity)).thenReturn(response);
 
         TelemetryHistoryResponse result = service.findByVehicleId(VEHICLE_ID, request);
@@ -72,21 +75,21 @@ class TelemetryHistoryServiceTest {
         when(vehicles.existsById(VEHICLE_ID)).thenReturn(false);
 
         assertThatThrownBy(() -> service.findByVehicleId(VEHICLE_ID, request()))
-            .isInstanceOfSatisfying(ApplicationException.class,
-                exception -> assertThat(exception.getErrorCode())
-                    .isEqualTo(ErrorCode.VEHICLE_NOT_FOUND));
+                .isInstanceOfSatisfying(ApplicationException.class,
+                        exception -> assertThat(exception.getErrorCode())
+                                .isEqualTo(ErrorCode.VEHICLE_NOT_FOUND));
         verify(samples, never()).findAllByVehicleIdAndObservedAtBetween(any(), any(), any(), any());
     }
 
     @Test
     void rejectsInvertedRangeBeforeDatabaseAccess() {
-        TelemetryHistoryRequest request =
-            new TelemetryHistoryRequest(TO, FROM, 0, 50, "observedAt,desc");
+        TelemetryHistoryRequest request = new TelemetryHistoryRequest(TO, FROM, 0, 50,
+                "observedAt,desc");
 
         assertThatThrownBy(() -> service.findByVehicleId(VEHICLE_ID, request))
-            .isInstanceOfSatisfying(ApplicationException.class,
-                exception -> assertThat(exception.getErrorCode())
-                    .isEqualTo(ErrorCode.REQUEST_INVALID_TIME_RANGE));
+                .isInstanceOfSatisfying(ApplicationException.class,
+                        exception -> assertThat(exception.getErrorCode())
+                                .isEqualTo(ErrorCode.REQUEST_INVALID_TIME_RANGE));
         verify(vehicles, never()).existsById(any());
         verify(samples, never()).findAllByVehicleIdAndObservedAtBetween(any(), any(), any(), any());
     }
@@ -97,6 +100,6 @@ class TelemetryHistoryServiceTest {
 
     private TelemetrySampleResponse response() {
         return new TelemetrySampleResponse(1L, UUID.randomUUID(), VEHICLE_ID, 42, FROM,
-            FROM.plusMillis(10), FROM.plusMillis(20), 72.4, 91.8, 12.6, 85312, 41.9, 12.4);
+                FROM.plusMillis(10), FROM.plusMillis(20), 72.4, 91.8, 12.6, 85312, 41.9, 12.4);
     }
 }

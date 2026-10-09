@@ -67,13 +67,13 @@ import static org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTest
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = NONE)
 @Import({TelemetryEventProcessingService.class,
-    TelemetrySampleMapper.class,
-    TelemetryAggregateWriter.class,
-    MaintenanceAlertMapper.class,
-    PostgreSqlAlertVehicleQuery.class,
-    AlertTelemetryMapper.class,
-    TelemetryPersistenceFailureClassifier.class,
-    TelemetrySamplePersistenceIntegrationTest.TestClockConfiguration.class})
+        TelemetrySampleMapper.class,
+        TelemetryAggregateWriter.class,
+        MaintenanceAlertMapper.class,
+        PostgreSqlAlertVehicleQuery.class,
+        AlertTelemetryMapper.class,
+        TelemetryPersistenceFailureClassifier.class,
+        TelemetrySamplePersistenceIntegrationTest.TestClockConfiguration.class})
 @ActiveProfiles("test")
 class TelemetrySamplePersistenceIntegrationTest extends PostgreSqlIntegrationSupport {
 
@@ -143,7 +143,7 @@ class TelemetrySamplePersistenceIntegrationTest extends PostgreSqlIntegrationSup
                     created_at
                 ) values (?, ?, ?, 'ACTIVE', ?, ?, ?)
                 """, VEHICLE_ID, "VAN-PERSIST", "FP100AA", 15_000, 90_000L,
-            OffsetDateTime.ofInstant(Instant.parse("2026-08-01T08:00:00Z"), ZoneOffset.UTC));
+                OffsetDateTime.ofInstant(Instant.parse("2026-08-01T08:00:00Z"), ZoneOffset.UTC));
     }
 
     @Test
@@ -173,16 +173,17 @@ class TelemetrySamplePersistenceIntegrationTest extends PostgreSqlIntegrationSup
     @Test
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     void persistsTelemetryEventThroughApplicationService() {
-        TelemetryEvent event =
-            new TelemetryEvent(TelemetryEventVersions.V1, MESSAGE_ID, VEHICLE_ID, 42, OBSERVED_AT,
+        TelemetryEvent event = new TelemetryEvent(TelemetryEventVersions.V1, MESSAGE_ID, VEHICLE_ID,
+                42, OBSERVED_AT,
                 RECEIVED_AT, new TelemetryData(72.4, 91.8, 12.6, 85_312, 41.9028, 12.4964));
 
         when(latestStateProjection.updateIfNewer(any())).thenAnswer(invocation -> {
             assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
             // With no thread-bound transaction this query sees only committed PostgreSQL data.
             assertThat(jdbcTemplate.queryForObject(
-                "select count(*) from telemetry_samples where message_id = ?", Long.class, MESSAGE_ID))
-                .isEqualTo(1);
+                    "select count(*) from telemetry_samples where message_id = ?", Long.class,
+                    MESSAGE_ID))
+                    .isEqualTo(1);
             return ProjectionUpdateResult.UPDATED;
         });
 
@@ -204,17 +205,19 @@ class TelemetrySamplePersistenceIntegrationTest extends PostgreSqlIntegrationSup
     @Test
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     void persistsDerivedAlertBeforeUpdatingRedis() {
-        TelemetryEvent event = new TelemetryEvent(TelemetryEventVersions.V1, MESSAGE_ID, VEHICLE_ID, 42,
-            OBSERVED_AT, RECEIVED_AT,
-            new TelemetryData(72.4, 111.0, 12.6, 85_312, 41.9028, 12.4964));
+        TelemetryEvent event = new TelemetryEvent(TelemetryEventVersions.V1, MESSAGE_ID, VEHICLE_ID,
+                42,
+                OBSERVED_AT, RECEIVED_AT,
+                new TelemetryData(72.4, 111.0, 12.6, 85_312, 41.9028, 12.4964));
         when(latestStateProjection.updateIfNewer(any())).thenAnswer(invocation -> {
             assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
             assertThat(jdbcTemplate.queryForObject(
-                "select count(*) from telemetry_samples where message_id = ?", Long.class,
-                MESSAGE_ID)).isEqualTo(1);
+                    "select count(*) from telemetry_samples where message_id = ?", Long.class,
+                    MESSAGE_ID)).isEqualTo(1);
             assertThat(jdbcTemplate.queryForObject(
-                "select count(*) from maintenance_alerts where source_message_id = ?", Long.class,
-                MESSAGE_ID)).isEqualTo(1);
+                    "select count(*) from maintenance_alerts where source_message_id = ?",
+                    Long.class,
+                    MESSAGE_ID)).isEqualTo(1);
             return ProjectionUpdateResult.UPDATED;
         });
 
@@ -228,7 +231,7 @@ class TelemetrySamplePersistenceIntegrationTest extends PostgreSqlIntegrationSup
             });
         } finally {
             jdbcTemplate.update("delete from maintenance_alerts where source_message_id = ?",
-                MESSAGE_ID);
+                    MESSAGE_ID);
             jdbcTemplate.update("delete from telemetry_samples where message_id = ?", MESSAGE_ID);
             jdbcTemplate.update("delete from vehicles where id = ?", VEHICLE_ID);
         }
@@ -237,23 +240,24 @@ class TelemetrySamplePersistenceIntegrationTest extends PostgreSqlIntegrationSup
     @Test
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     void persistsAllAlertsDerivedFromSameSample() {
-        TelemetryEvent event = new TelemetryEvent(TelemetryEventVersions.V1, MESSAGE_ID, VEHICLE_ID, 42,
-            OBSERVED_AT, RECEIVED_AT,
-            new TelemetryData(72.4, 111.0, 11.7, 90_000, 41.9028, 12.4964));
+        TelemetryEvent event = new TelemetryEvent(TelemetryEventVersions.V1, MESSAGE_ID, VEHICLE_ID,
+                42,
+                OBSERVED_AT, RECEIVED_AT,
+                new TelemetryData(72.4, 111.0, 11.7, 90_000, 41.9028, 12.4964));
 
         try {
             service.handle(event, SOURCE);
 
             assertThat(repository.count()).isEqualTo(1);
             assertThat(alertRepository.findAll())
-                .extracting(MaintenanceAlertEntity::getType)
-                .containsExactlyInAnyOrder(
-                    AlertType.ENGINE_TEMPERATURE_HIGH,
-                    AlertType.BATTERY_VOLTAGE_LOW,
-                    AlertType.SERVICE_DUE);
+                    .extracting(MaintenanceAlertEntity::getType)
+                    .containsExactlyInAnyOrder(
+                            AlertType.ENGINE_TEMPERATURE_HIGH,
+                            AlertType.BATTERY_VOLTAGE_LOW,
+                            AlertType.SERVICE_DUE);
         } finally {
             jdbcTemplate.update("delete from maintenance_alerts where source_message_id = ?",
-                MESSAGE_ID);
+                    MESSAGE_ID);
             jdbcTemplate.update("delete from telemetry_samples where message_id = ?", MESSAGE_ID);
             jdbcTemplate.update("delete from vehicles where id = ?", VEHICLE_ID);
         }
@@ -262,10 +266,12 @@ class TelemetrySamplePersistenceIntegrationTest extends PostgreSqlIntegrationSup
     @Test
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     void redisFailureDoesNotUndoCommittedSample() {
-        TelemetryEvent event = new TelemetryEvent(TelemetryEventVersions.V1, MESSAGE_ID, VEHICLE_ID, 42,
-            OBSERVED_AT, RECEIVED_AT, new TelemetryData(72.4, 91.8, 12.6, 85312, 41.9028, 12.4964));
+        TelemetryEvent event = new TelemetryEvent(TelemetryEventVersions.V1, MESSAGE_ID, VEHICLE_ID,
+                42,
+                OBSERVED_AT, RECEIVED_AT,
+                new TelemetryData(72.4, 91.8, 12.6, 85312, 41.9028, 12.4964));
         when(latestStateProjection.updateIfNewer(any()))
-            .thenThrow(new LatestStateProjectionException("Redis unavailable"));
+                .thenThrow(new LatestStateProjectionException("Redis unavailable"));
         try {
             assertDoesNotThrow(() -> service.handle(event, SOURCE));
             assertThat(repository.count()).isEqualTo(1);
@@ -280,11 +286,13 @@ class TelemetrySamplePersistenceIntegrationTest extends PostgreSqlIntegrationSup
     @Test
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     void persistsDuringRedisOutageAndProjectsNewEventAfterRedisRestart() throws Exception {
-        TelemetryEvent event = new TelemetryEvent(TelemetryEventVersions.V1, MESSAGE_ID, VEHICLE_ID, 42,
-            OBSERVED_AT, RECEIVED_AT, new TelemetryData(72.4, 91.8, 12.6, 85312, 41.9028, 12.4964));
+        TelemetryEvent event = new TelemetryEvent(TelemetryEventVersions.V1, MESSAGE_ID, VEHICLE_ID,
+                42,
+                OBSERVED_AT, RECEIVED_AT,
+                new TelemetryData(72.4, 91.8, 12.6, 85312, 41.9028, 12.4964));
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
-        try (GenericContainer<?> container =
-            new GenericContainer<>("redis:8.2.8-alpine").withExposedPorts(6379)
+        try (GenericContainer<?> container = new GenericContainer<>("redis:8.2.8-alpine")
+                .withExposedPorts(6379)
                 .withCommand("redis-server", "--save", "", "--appendonly", "no")) {
             // Docker can reassign an ephemeral published port on start; pin a dynamically
             // selected free port so this test exercises recovery at an unchanged endpoint.
@@ -293,54 +301,63 @@ class TelemetrySamplePersistenceIntegrationTest extends PostgreSqlIntegrationSup
             }
             container.start();
             LettuceClientConfiguration client = LettuceClientConfiguration.builder()
-                .commandTimeout(Duration.ofMillis(500))
-                .shutdownTimeout(Duration.ZERO).build();
+                    .commandTimeout(Duration.ofMillis(500))
+                    .shutdownTimeout(Duration.ZERO).build();
             LettuceConnectionFactory factory = new LettuceConnectionFactory(
-                new RedisStandaloneConfiguration(container.getHost(), container.getMappedPort(6379)), client);
+                    new RedisStandaloneConfiguration(container.getHost(),
+                            container.getMappedPort(6379)),
+                    client);
             try {
                 factory.afterPropertiesSet();
                 StringRedisTemplate template = new StringRedisTemplate(factory);
                 RedisLatestStateProjection adapter = new RedisLatestStateProjection(
-                    template, new RedisLatestStateCodec(),
-                    new LatestStateProjectionProperties(Duration.ofMinutes(5), 1));
+                        template, new RedisLatestStateCodec(),
+                        new LatestStateProjectionProperties(Duration.ofMinutes(5), 1));
                 assertThat(adapter.findByVehicleId(VEHICLE_ID)).isEmpty();
                 String containerId = container.getContainerId();
                 container.getDockerClient().stopContainerCmd(containerId).withTimeout(2).exec();
 
                 TelemetryEventProcessingService processor = new TelemetryEventProcessingService(
-                    writer, mapper, clock,
-                    failureClassifier, eligibilityGuard, adapter,
-                    new LatestStateProjectionObservability(registry), alertVehicleQuery,
-                    alertTelemetryMapper, alertEvaluator,
-                    new TelemetryProcessingMetrics(registry));
+                        writer, mapper, clock,
+                        failureClassifier, eligibilityGuard, adapter,
+                        new LatestStateProjectionObservability(registry), alertVehicleQuery,
+                        alertTelemetryMapper, alertEvaluator,
+                        new TelemetryProcessingMetrics(registry));
 
                 assertDoesNotThrow(() -> processor.handle(event, SOURCE));
                 assertThat(repository.findAll()).singleElement()
-                    .extracting(TelemetrySampleEntity::getMessageId).isEqualTo(MESSAGE_ID);
-                assertThat(registry.get("fleetpulse.redis.update.failures").counter().count()).isEqualTo(1);
+                        .extracting(TelemetrySampleEntity::getMessageId).isEqualTo(MESSAGE_ID);
+                assertThat(registry.get("fleetpulse.redis.update.failures").counter().count())
+                        .isEqualTo(1);
                 assertThat(registry.get("fleetpulse.telemetry.latest_state.updates")
-                    .tag("outcome", "failed").counter().count()).isEqualTo(1);
+                        .tag("outcome", "failed").counter().count()).isEqualTo(1);
                 container.getDockerClient().startContainerCmd(containerId).exec();
                 assertThat(container.getDockerClient().inspectContainerCmd(containerId).exec()
-                    .getNetworkSettings().getPorts().getBindings()
-                    .get(new com.github.dockerjava.api.model.ExposedPort(6379))[0].getHostPortSpec())
-                    .isEqualTo(Integer.toString(container.getMappedPort(6379)));
+                        .getNetworkSettings().getPorts().getBindings()
+                        .get(new com.github.dockerjava.api.model.ExposedPort(6379))[0]
+                        .getHostPortSpec())
+                        .isEqualTo(Integer.toString(container.getMappedPort(6379)));
                 org.awaitility.Awaitility.await().atMost(Duration.ofSeconds(10))
-                    .ignoreExceptions().until(() -> adapter.findByVehicleId(VEHICLE_ID).isEmpty());
-                TelemetryEvent next = new TelemetryEvent(TelemetryEventVersions.V1, UUID.randomUUID(),
-                    VEHICLE_ID, 43, OBSERVED_AT.plusSeconds(1), RECEIVED_AT.plusSeconds(1),
-                    new TelemetryData(75, 92, 12.6, 85313, 41.9028, 12.4964));
+                        .ignoreExceptions()
+                        .until(() -> adapter.findByVehicleId(VEHICLE_ID).isEmpty());
+                TelemetryEvent next = new TelemetryEvent(TelemetryEventVersions.V1,
+                        UUID.randomUUID(),
+                        VEHICLE_ID, 43, OBSERVED_AT.plusSeconds(1), RECEIVED_AT.plusSeconds(1),
+                        new TelemetryData(75, 92, 12.6, 85313, 41.9028, 12.4964));
                 processor.handle(next, new TelemetrySource(SOURCE.topic(), SOURCE.partition(), 43));
                 assertThat(repository.count()).isEqualTo(2);
                 assertThat(adapter.findByVehicleId(VEHICLE_ID)).get()
-                    .extracting(it.fleetpulse.processor.telemetry.projection.LatestVehicleState::lastSequenceNumber)
-                    .isEqualTo(43L);
+                        .extracting(
+                                it.fleetpulse.processor.telemetry.projection.LatestVehicleState::lastSequenceNumber)
+                        .isEqualTo(43L);
                 assertThat(template.getExpire("vehicle:last:" + VEHICLE_ID, TimeUnit.MILLISECONDS))
-                    .isBetween(1L, 300_000L);
-                assertThat(registry.get("fleetpulse.processor.persisted").counter().count()).isEqualTo(2);
+                        .isBetween(1L, 300_000L);
+                assertThat(registry.get("fleetpulse.processor.persisted").counter().count())
+                        .isEqualTo(2);
                 assertThat(registry.get("fleetpulse.telemetry.latest_state.updates")
-                    .tag("outcome", "updated").counter().count()).isEqualTo(1);
-                assertThat(registry.get("fleetpulse.redis.update.failures").counter().count()).isEqualTo(1);
+                        .tag("outcome", "updated").counter().count()).isEqualTo(1);
+                assertThat(registry.get("fleetpulse.redis.update.failures").counter().count())
+                        .isEqualTo(1);
             } finally {
                 factory.destroy();
             }
@@ -354,8 +371,8 @@ class TelemetrySamplePersistenceIntegrationTest extends PostgreSqlIntegrationSup
     @Test
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     void treatsRepeatedMessageIdAsSingleAggregate() {
-        TelemetryEvent event =
-            new TelemetryEvent(TelemetryEventVersions.V1, MESSAGE_ID, VEHICLE_ID, 42, OBSERVED_AT,
+        TelemetryEvent event = new TelemetryEvent(TelemetryEventVersions.V1, MESSAGE_ID, VEHICLE_ID,
+                42, OBSERVED_AT,
                 RECEIVED_AT, new TelemetryData(72.4, 111.0, 12.6, 85_312, 41.9028, 12.4964));
 
         try {
@@ -364,11 +381,11 @@ class TelemetrySamplePersistenceIntegrationTest extends PostgreSqlIntegrationSup
 
             assertThat(repository.count()).isEqualTo(1);
             assertThat(repository.findAll()).singleElement()
-                .extracting(TelemetrySampleEntity::getMessageId).isEqualTo(MESSAGE_ID);
+                    .extracting(TelemetrySampleEntity::getMessageId).isEqualTo(MESSAGE_ID);
             assertThat(alertRepository.count()).isEqualTo(1);
         } finally {
             jdbcTemplate.update("delete from maintenance_alerts where source_message_id = ?",
-                MESSAGE_ID);
+                    MESSAGE_ID);
             jdbcTemplate.update("delete from telemetry_samples where message_id = ?", MESSAGE_ID);
             jdbcTemplate.update("delete from vehicles where id = ?", VEHICLE_ID);
         }
@@ -377,8 +394,8 @@ class TelemetrySamplePersistenceIntegrationTest extends PostgreSqlIntegrationSup
     @Test
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     void concurrentDeliveryCreatesSingleAggregate() throws Exception {
-        TelemetryEvent event =
-            new TelemetryEvent(TelemetryEventVersions.V1, MESSAGE_ID, VEHICLE_ID, 42, OBSERVED_AT,
+        TelemetryEvent event = new TelemetryEvent(TelemetryEventVersions.V1, MESSAGE_ID, VEHICLE_ID,
+                42, OBSERVED_AT,
                 RECEIVED_AT, new TelemetryData(72.4, 111.0, 12.6, 85_312, 41.9028, 12.4964));
 
         ExecutorService executor = Executors.newFixedThreadPool(2);
@@ -410,7 +427,7 @@ class TelemetrySamplePersistenceIntegrationTest extends PostgreSqlIntegrationSup
             executor.shutdownNow();
 
             jdbcTemplate.update("delete from maintenance_alerts where source_message_id = ?",
-                MESSAGE_ID);
+                    MESSAGE_ID);
             jdbcTemplate.update("delete from telemetry_samples where message_id = ?", MESSAGE_ID);
             jdbcTemplate.update("delete from vehicles where id = ?", VEHICLE_ID);
         }
@@ -419,15 +436,15 @@ class TelemetrySamplePersistenceIntegrationTest extends PostgreSqlIntegrationSup
     @Test
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     void replayAfterServiceRestartCreatesSingleAggregate() {
-        TelemetryEvent event =
-            new TelemetryEvent(TelemetryEventVersions.V1, MESSAGE_ID, VEHICLE_ID, 42, OBSERVED_AT,
+        TelemetryEvent event = new TelemetryEvent(TelemetryEventVersions.V1, MESSAGE_ID, VEHICLE_ID,
+                42, OBSERVED_AT,
                 RECEIVED_AT, new TelemetryData(72.4, 111.0, 12.6, 85_312, 41.9028, 12.4964));
 
-        TelemetryEventProcessingService restartedService =
-            new TelemetryEventProcessingService(writer, mapper, clock, failureClassifier,
+        TelemetryEventProcessingService restartedService = new TelemetryEventProcessingService(
+                writer, mapper, clock, failureClassifier,
                 eligibilityGuard, latestStateProjection, projectionObservability,
                 alertVehicleQuery, alertTelemetryMapper, alertEvaluator,
-                    new TelemetryProcessingMetrics(
+                new TelemetryProcessingMetrics(
                         new SimpleMeterRegistry()));
 
         try {
@@ -436,11 +453,11 @@ class TelemetrySamplePersistenceIntegrationTest extends PostgreSqlIntegrationSup
 
             assertThat(repository.count()).isEqualTo(1);
             assertThat(repository.findAll()).singleElement()
-                .extracting(TelemetrySampleEntity::getMessageId).isEqualTo(MESSAGE_ID);
+                    .extracting(TelemetrySampleEntity::getMessageId).isEqualTo(MESSAGE_ID);
             assertThat(alertRepository.count()).isEqualTo(1);
         } finally {
             jdbcTemplate.update("delete from maintenance_alerts where source_message_id = ?",
-                MESSAGE_ID);
+                    MESSAGE_ID);
             jdbcTemplate.update("delete from telemetry_samples where message_id = ?", MESSAGE_ID);
             jdbcTemplate.update("delete from vehicles where id = ?", VEHICLE_ID);
         }
@@ -448,7 +465,7 @@ class TelemetrySamplePersistenceIntegrationTest extends PostgreSqlIntegrationSup
 
     private static TelemetrySampleEntity entity() {
         return new TelemetrySampleEntity(MESSAGE_ID, VEHICLE_ID, 42, OBSERVED_AT, RECEIVED_AT,
-            PROCESSED_AT, 72.4, 91.8, 12.6, 85_312, 41.9028, 12.4964);
+                PROCESSED_AT, 72.4, 91.8, 12.6, 85_312, 41.9028, 12.4964);
     }
 
     @TestConfiguration
@@ -458,7 +475,6 @@ class TelemetrySamplePersistenceIntegrationTest extends PostgreSqlIntegrationSup
         TelemetryProcessingMetrics telemetryProcessingMetrics() {
             return new TelemetryProcessingMetrics(new SimpleMeterRegistry());
         }
-
 
         @Bean
         LatestStateProjectionObservability projectionObservability() {
@@ -478,7 +494,7 @@ class TelemetrySamplePersistenceIntegrationTest extends PostgreSqlIntegrationSup
         @Bean
         AlertEvaluator alertEvaluator() {
             return new AlertEvaluator(List.of(new EngineTemperatureRule(110.0),
-                new BatteryVoltageRule(11.8), new ServiceDueRule()));
+                    new BatteryVoltageRule(11.8), new ServiceDueRule()));
         }
     }
 }

@@ -13,7 +13,6 @@ import jakarta.validation.constraints.NotNull;
 @Validated
 public record LatestStateProjectionProperties(
         @NotNull @DurationMin(millis = 1) Duration ttl,
-        @Min(1) int maxAttempts
-) {
+        @Min(1) int maxAttempts) {
 
 }

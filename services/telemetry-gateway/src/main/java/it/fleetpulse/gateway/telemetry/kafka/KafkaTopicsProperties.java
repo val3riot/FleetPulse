@@ -7,6 +7,5 @@ import org.springframework.validation.annotation.Validated;
 @ConfigurationProperties(prefix = "fleetpulse.kafka.topics")
 @Validated
 public record KafkaTopicsProperties(
-        @NotBlank String raw
-) {
+        @NotBlank String raw) {
 }

@@ -38,12 +38,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(MaintenanceAlertController.class)
 @Import({GlobalExceptionHandler.class, DatabaseConstraintErrorResolver.class,
-    DatabaseAvailabilityClassifier.class, MaintenanceAlertControllerTest.FixedClock.class})
+        DatabaseAvailabilityClassifier.class, MaintenanceAlertControllerTest.FixedClock.class})
 class MaintenanceAlertControllerTest {
-    private static final UUID VEHICLE_ID =
-        UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0");
-    private static final UUID ALERT_ID =
-        UUID.fromString("f2607610-5100-4723-93d0-e6bbdcf00da0");
+    private static final UUID VEHICLE_ID = UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0");
+    private static final UUID ALERT_ID = UUID.fromString("f2607610-5100-4723-93d0-e6bbdcf00da0");
     private static final Instant FROM = Instant.parse("2026-08-01T10:00:00Z");
     private static final Instant TO = Instant.parse("2026-08-01T11:00:00Z");
     private static final Instant NOW = Instant.parse("2026-08-02T08:00:00Z");
@@ -60,8 +58,8 @@ class MaintenanceAlertControllerTest {
     @Test
     void returnsGlobalFilteredPage() throws Exception {
         MaintenanceAlertSearchRequest request = new MaintenanceAlertSearchRequest(
-            AlertStatus.OPEN, AlertType.ENGINE_TEMPERATURE_HIGH, AlertSeverity.HIGH,
-            FROM, TO, 1, 20, "createdAt,asc");
+                AlertStatus.OPEN, AlertType.ENGINE_TEMPERATURE_HIGH, AlertSeverity.HIGH,
+                FROM, TO, 1, 20, "createdAt,asc");
         when(service.search(VEHICLE_ID, request)).thenReturn(page());
 
         mockMvc.perform(get("/api/v1/alerts")
@@ -74,16 +72,16 @@ class MaintenanceAlertControllerTest {
                 .param("page", "1")
                 .param("size", "20")
                 .param("sort", "createdAt,asc"))
-            .andExpect(status().isOk())
-            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.content[0].id").value(ALERT_ID.toString()))
-            .andExpect(jsonPath("$.content[0].vehicleId").value(VEHICLE_ID.toString()))
-            .andExpect(jsonPath("$.content[0].type").value("ENGINE_TEMPERATURE_HIGH"))
-            .andExpect(jsonPath("$.content[0].severity").value("HIGH"))
-            .andExpect(jsonPath("$.content[0].status").value("OPEN"))
-            .andExpect(jsonPath("$.content[0].acknowledgedAt").isEmpty())
-            .andExpect(jsonPath("$.page").value(0))
-            .andExpect(jsonPath("$.totalElements").value(1));
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.content[0].id").value(ALERT_ID.toString()))
+                .andExpect(jsonPath("$.content[0].vehicleId").value(VEHICLE_ID.toString()))
+                .andExpect(jsonPath("$.content[0].type").value("ENGINE_TEMPERATURE_HIGH"))
+                .andExpect(jsonPath("$.content[0].severity").value("HIGH"))
+                .andExpect(jsonPath("$.content[0].status").value("OPEN"))
+                .andExpect(jsonPath("$.content[0].acknowledgedAt").isEmpty())
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.totalElements").value(1));
 
         verify(service).search(VEHICLE_ID, request);
     }
@@ -94,8 +92,8 @@ class MaintenanceAlertControllerTest {
         when(service.findByVehicleId(VEHICLE_ID, request)).thenReturn(page());
 
         mockMvc.perform(get("/api/v1/vehicles/{vehicleId}/alerts", VEHICLE_ID))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.content.length()").value(1));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1));
 
         verify(service).findByVehicleId(VEHICLE_ID, request);
     }
@@ -105,154 +103,154 @@ class MaintenanceAlertControllerTest {
         when(service.findById(ALERT_ID)).thenReturn(response());
 
         mockMvc.perform(get("/api/v1/alerts/{alertId}", ALERT_ID))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.id").value(ALERT_ID.toString()))
-            .andExpect(jsonPath("$.sourceMessageId")
-                .value("dc0fc799-0913-4e72-bd2d-8ee8ccf52e22"))
-            .andExpect(jsonPath("$.createdAt").value("2026-08-01T10:16:00Z"));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(ALERT_ID.toString()))
+                .andExpect(jsonPath("$.sourceMessageId")
+                        .value("dc0fc799-0913-4e72-bd2d-8ee8ccf52e22"))
+                .andExpect(jsonPath("$.createdAt").value("2026-08-01T10:16:00Z"));
     }
 
     @Test
     void changesAlertStatus() throws Exception {
-        ChangeAlertStatusRequest request =
-            new ChangeAlertStatusRequest(AlertStatusTarget.ACKNOWLEDGED);
+        ChangeAlertStatusRequest request = new ChangeAlertStatusRequest(
+                AlertStatusTarget.ACKNOWLEDGED);
         MaintenanceAlertResponse response = new MaintenanceAlertResponse(ALERT_ID, VEHICLE_ID,
-            UUID.fromString("dc0fc799-0913-4e72-bd2d-8ee8ccf52e22"),
-            AlertType.ENGINE_TEMPERATURE_HIGH, AlertSeverity.HIGH,
-            "Temperatura motore oltre soglia", AlertStatus.ACKNOWLEDGED,
-            Instant.parse("2026-08-01T10:16:00Z"), NOW, null);
+                UUID.fromString("dc0fc799-0913-4e72-bd2d-8ee8ccf52e22"),
+                AlertType.ENGINE_TEMPERATURE_HIGH, AlertSeverity.HIGH,
+                "Temperatura motore oltre soglia", AlertStatus.ACKNOWLEDGED,
+                Instant.parse("2026-08-01T10:16:00Z"), NOW, null);
         when(commandService.changeStatus(ALERT_ID, request)).thenReturn(response);
 
         mockMvc.perform(patch("/api/v1/alerts/{alertId}", ALERT_ID)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"status\":\"ACKNOWLEDGED\"}"))
-            .andExpect(status().isOk())
-            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.id").value(ALERT_ID.toString()))
-            .andExpect(jsonPath("$.status").value("ACKNOWLEDGED"))
-            .andExpect(jsonPath("$.acknowledgedAt").value(NOW.toString()))
-            .andExpect(jsonPath("$.closedAt").isEmpty());
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.id").value(ALERT_ID.toString()))
+                .andExpect(jsonPath("$.status").value("ACKNOWLEDGED"))
+                .andExpect(jsonPath("$.acknowledgedAt").value(NOW.toString()))
+                .andExpect(jsonPath("$.closedAt").isEmpty());
 
         verify(commandService).changeStatus(ALERT_ID, request);
     }
 
     @ParameterizedTest
     @CsvSource(delimiter = '|', value = {
-        "{invalid|malformed JSON",
-        "{\"status\":\"OPEN\"}|unsupported target",
-        "{\"status\":\"INVALID\"}|unknown target"
+            "{invalid|malformed JSON",
+            "{\"status\":\"OPEN\"}|unsupported target",
+            "{\"status\":\"INVALID\"}|unknown target"
     })
     void rejectsUnreadableStatusBodies(String body, String description) throws Exception {
         expectError(mockMvc.perform(patch("/api/v1/alerts/{alertId}", ALERT_ID)
                 .contentType(MediaType.APPLICATION_JSON).content(body)),
-            400, ErrorCode.REQUEST_MALFORMED_JSON);
+                400, ErrorCode.REQUEST_MALFORMED_JSON);
     }
 
     @Test
     void rejectsMissingAndNullStatusBodies() throws Exception {
         expectError(mockMvc.perform(patch("/api/v1/alerts/{alertId}", ALERT_ID)
                 .contentType(MediaType.APPLICATION_JSON)),
-            400, ErrorCode.REQUEST_MALFORMED_JSON);
+                400, ErrorCode.REQUEST_MALFORMED_JSON);
         expectError(mockMvc.perform(patch("/api/v1/alerts/{alertId}", ALERT_ID)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"status\":null}")),
-            400, ErrorCode.REQUEST_INVALID);
+                400, ErrorCode.REQUEST_INVALID);
     }
 
     @Test
     void mapsStatusChangeNotFoundAndConflict() throws Exception {
-        ChangeAlertStatusRequest acknowledge =
-            new ChangeAlertStatusRequest(AlertStatusTarget.ACKNOWLEDGED);
+        ChangeAlertStatusRequest acknowledge = new ChangeAlertStatusRequest(
+                AlertStatusTarget.ACKNOWLEDGED);
         ChangeAlertStatusRequest close = new ChangeAlertStatusRequest(AlertStatusTarget.CLOSED);
         when(commandService.changeStatus(ALERT_ID, acknowledge))
-            .thenThrow(new ApplicationException(ErrorCode.ALERT_NOT_FOUND));
+                .thenThrow(new ApplicationException(ErrorCode.ALERT_NOT_FOUND));
         when(commandService.changeStatus(ALERT_ID, close))
-            .thenThrow(new ApplicationException(ErrorCode.ALERT_STATUS_TRANSITION_CONFLICT));
+                .thenThrow(new ApplicationException(ErrorCode.ALERT_STATUS_TRANSITION_CONFLICT));
 
         expectError(mockMvc.perform(patch("/api/v1/alerts/{alertId}", ALERT_ID)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"status\":\"ACKNOWLEDGED\"}")),
-            404, ErrorCode.ALERT_NOT_FOUND);
+                404, ErrorCode.ALERT_NOT_FOUND);
         expectError(mockMvc.perform(patch("/api/v1/alerts/{alertId}", ALERT_ID)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"status\":\"CLOSED\"}")),
-            409, ErrorCode.ALERT_STATUS_TRANSITION_CONFLICT);
+                409, ErrorCode.ALERT_STATUS_TRANSITION_CONFLICT);
     }
 
     @Test
     void validatesStatusChangeUuidAndMapsDatabaseFailure() throws Exception {
         ChangeAlertStatusRequest close = new ChangeAlertStatusRequest(AlertStatusTarget.CLOSED);
         when(commandService.changeStatus(ALERT_ID, close)).thenThrow(
-            new DataAccessResourceFailureException("database unavailable",
-                new SQLException("connection refused", "08006")));
+                new DataAccessResourceFailureException("database unavailable",
+                        new SQLException("connection refused", "08006")));
 
         expectError(mockMvc.perform(patch("/api/v1/alerts/invalid")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"status\":\"CLOSED\"}")),
-            400, ErrorCode.REQUEST_INVALID);
+                400, ErrorCode.REQUEST_INVALID);
         expectError(mockMvc.perform(patch("/api/v1/alerts/{alertId}", ALERT_ID)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"status\":\"CLOSED\"}")),
-            503, ErrorCode.SERVICE_UNAVAILABLE);
+                503, ErrorCode.SERVICE_UNAVAILABLE);
     }
 
     @ParameterizedTest
     @CsvSource(delimiter = '|', value = {
-        "status|INVALID", "type|INVALID", "severity|INVALID", "from|not-an-instant",
-        "page|-1", "size|0", "size|101", "sort|status,desc", "sort|createdAt,up"
+            "status|INVALID", "type|INVALID", "severity|INVALID", "from|not-an-instant",
+            "page|-1", "size|0", "size|101", "sort|status,desc", "sort|createdAt,up"
     })
     void rejectsInvalidCollectionParameters(String name, String value) throws Exception {
         expectError(mockMvc.perform(get("/api/v1/alerts").param(name, value)), 400,
-            ErrorCode.REQUEST_INVALID);
+                ErrorCode.REQUEST_INVALID);
     }
 
     @Test
     void rejectsInvalidVehicleAndAlertUuids() throws Exception {
         expectError(mockMvc.perform(get("/api/v1/alerts").param("vehicleId", "invalid")),
-            400, ErrorCode.REQUEST_INVALID);
+                400, ErrorCode.REQUEST_INVALID);
         expectError(mockMvc.perform(get("/api/v1/vehicles/invalid/alerts")),
-            400, ErrorCode.REQUEST_INVALID);
+                400, ErrorCode.REQUEST_INVALID);
         expectError(mockMvc.perform(get("/api/v1/alerts/invalid")),
-            400, ErrorCode.REQUEST_INVALID);
+                400, ErrorCode.REQUEST_INVALID);
     }
 
     @Test
     void mapsInvertedRangeToDedicatedError() throws Exception {
         MaintenanceAlertSearchRequest request = new MaintenanceAlertSearchRequest(null, null,
-            null, TO, FROM, 0, 50, "createdAt,desc");
+                null, TO, FROM, 0, 50, "createdAt,desc");
         when(service.search(null, request))
-            .thenThrow(new ApplicationException(ErrorCode.REQUEST_INVALID_TIME_RANGE));
+                .thenThrow(new ApplicationException(ErrorCode.REQUEST_INVALID_TIME_RANGE));
 
         expectError(mockMvc.perform(get("/api/v1/alerts")
                 .param("from", TO.toString()).param("to", FROM.toString())),
-            400, ErrorCode.REQUEST_INVALID_TIME_RANGE);
+                400, ErrorCode.REQUEST_INVALID_TIME_RANGE);
     }
 
     @Test
     void mapsMissingScopedVehicleAndAlert() throws Exception {
         when(service.findByVehicleId(VEHICLE_ID, request()))
-            .thenThrow(new ApplicationException(ErrorCode.VEHICLE_NOT_FOUND));
+                .thenThrow(new ApplicationException(ErrorCode.VEHICLE_NOT_FOUND));
         when(service.findById(ALERT_ID))
-            .thenThrow(new ApplicationException(ErrorCode.ALERT_NOT_FOUND));
+                .thenThrow(new ApplicationException(ErrorCode.ALERT_NOT_FOUND));
 
         expectError(mockMvc.perform(get("/api/v1/vehicles/{vehicleId}/alerts", VEHICLE_ID)),
-            404, ErrorCode.VEHICLE_NOT_FOUND);
+                404, ErrorCode.VEHICLE_NOT_FOUND);
         expectError(mockMvc.perform(get("/api/v1/alerts/{alertId}", ALERT_ID)),
-            404, ErrorCode.ALERT_NOT_FOUND);
+                404, ErrorCode.ALERT_NOT_FOUND);
     }
 
     @Test
     void mapsDatabaseConnectionFailureToServiceUnavailable() throws Exception {
         when(service.search(null, request())).thenThrow(
-            new DataAccessResourceFailureException("database unavailable",
-                new SQLException("connection refused", "08006")));
+                new DataAccessResourceFailureException("database unavailable",
+                        new SQLException("connection refused", "08006")));
 
         expectError(mockMvc.perform(get("/api/v1/alerts")), 503,
-            ErrorCode.SERVICE_UNAVAILABLE);
+                ErrorCode.SERVICE_UNAVAILABLE);
     }
 
     private MaintenanceAlertSearchRequest request() {
         return new MaintenanceAlertSearchRequest(null, null, null, null, null, 0, 50,
-            "createdAt,desc");
+                "createdAt,desc");
     }
 
     private PagedResponse<MaintenanceAlertResponse> page() {
@@ -261,20 +259,20 @@ class MaintenanceAlertControllerTest {
 
     private MaintenanceAlertResponse response() {
         return new MaintenanceAlertResponse(ALERT_ID, VEHICLE_ID,
-            UUID.fromString("dc0fc799-0913-4e72-bd2d-8ee8ccf52e22"),
-            AlertType.ENGINE_TEMPERATURE_HIGH, AlertSeverity.HIGH,
-            "Temperatura motore oltre soglia", AlertStatus.OPEN,
-            Instant.parse("2026-08-01T10:16:00Z"), null, null);
+                UUID.fromString("dc0fc799-0913-4e72-bd2d-8ee8ccf52e22"),
+                AlertType.ENGINE_TEMPERATURE_HIGH, AlertSeverity.HIGH,
+                "Temperatura motore oltre soglia", AlertStatus.OPEN,
+                Instant.parse("2026-08-01T10:16:00Z"), null, null);
     }
 
     private ResultActions expectError(ResultActions result, int statusCode, ErrorCode code)
-        throws Exception {
+            throws Exception {
         return result.andExpect(status().is(statusCode))
-            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.timestamp").value(NOW.toString()))
-            .andExpect(jsonPath("$.status").value(statusCode))
-            .andExpect(jsonPath("$.code").value(code.getCode()))
-            .andExpect(jsonPath("$.message").value(code.getDefaultMessage()));
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.timestamp").value(NOW.toString()))
+                .andExpect(jsonPath("$.status").value(statusCode))
+                .andExpect(jsonPath("$.code").value(code.getCode()))
+                .andExpect(jsonPath("$.message").value(code.getDefaultMessage()));
     }
 
     @TestConfiguration(proxyBeanMethods = false)

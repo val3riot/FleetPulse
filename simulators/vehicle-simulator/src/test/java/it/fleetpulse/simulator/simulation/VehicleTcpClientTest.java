@@ -32,8 +32,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class VehicleTcpClientTest {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-    private static final TelemetryMessage MESSAGE =
-        new TelemetryMessage(ProtocolConstants.PROTOCOL_VERSION,
+    private static final TelemetryMessage MESSAGE = new TelemetryMessage(
+            ProtocolConstants.PROTOCOL_VERSION,
             UUID.fromString("dc0fc799-0913-4e72-bd2d-8ee8ccf52e22"),
             UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0"), 42,
             Instant.parse("2026-08-01T10:15:30Z"), 72.4, 91.8, 12.6, 85_312, 41.9028, 12.4964);
@@ -42,8 +42,8 @@ class VehicleTcpClientTest {
     void keepsOneConnectionOpenAcrossMultipleMessages() throws Exception {
         RecordingSocket socket = new RecordingSocket();
         RecordingSocketFactory socketFactory = new RecordingSocketFactory(socket);
-        VehicleTcpClient client =
-            new VehicleTcpClient("gateway", 7000, new TelemetryFrameEncoder(OBJECT_MAPPER),
+        VehicleTcpClient client = new VehicleTcpClient("gateway", 7000,
+                new TelemetryFrameEncoder(OBJECT_MAPPER),
                 socketFactory);
 
         client.connect();
@@ -61,8 +61,8 @@ class VehicleTcpClientTest {
 
     @Test
     void rejectsSendBeforeConnection() {
-        VehicleTcpClient client =
-            new VehicleTcpClient("gateway", 7000, new TelemetryFrameEncoder(OBJECT_MAPPER),
+        VehicleTcpClient client = new VehicleTcpClient("gateway", 7000,
+                new TelemetryFrameEncoder(OBJECT_MAPPER),
                 new RecordingSocketFactory(new RecordingSocket()));
 
         assertThrows(SocketException.class, () -> client.send(MESSAGE));
@@ -73,8 +73,8 @@ class VehicleTcpClientTest {
         RecordingSocket first = new RecordingSocket();
         RecordingSocket second = new RecordingSocket();
         RecordingSocketFactory socketFactory = new RecordingSocketFactory(first, second);
-        VehicleTcpClient client =
-            new VehicleTcpClient("gateway", 7000, new TelemetryFrameEncoder(OBJECT_MAPPER),
+        VehicleTcpClient client = new VehicleTcpClient("gateway", 7000,
+                new TelemetryFrameEncoder(OBJECT_MAPPER),
                 socketFactory);
 
         client.connect();
@@ -97,20 +97,20 @@ class VehicleTcpClientTest {
         SocketFactory socketFactory = new RecordingSocketFactory(new RecordingSocket());
 
         assertThrows(IllegalArgumentException.class,
-            () -> new VehicleTcpClient(" ", 7000, encoder, socketFactory));
+                () -> new VehicleTcpClient(" ", 7000, encoder, socketFactory));
         assertThrows(IllegalArgumentException.class,
-            () -> new VehicleTcpClient("gateway", 0, encoder, socketFactory));
+                () -> new VehicleTcpClient("gateway", 0, encoder, socketFactory));
         assertThrows(NullPointerException.class,
-            () -> new VehicleTcpClient("gateway", 7000, null, socketFactory));
+                () -> new VehicleTcpClient("gateway", 7000, null, socketFactory));
         assertThrows(NullPointerException.class,
-            () -> new VehicleTcpClient("gateway", 7000, encoder, null));
+                () -> new VehicleTcpClient("gateway", 7000, encoder, null));
     }
 
     @Test
     void closeUnblocksAnInFlightWrite() throws Exception {
         BlockingSocket socket = new BlockingSocket();
-        VehicleTcpClient client =
-            new VehicleTcpClient("gateway", 7000, new TelemetryFrameEncoder(OBJECT_MAPPER),
+        VehicleTcpClient client = new VehicleTcpClient("gateway", 7000,
+                new TelemetryFrameEncoder(OBJECT_MAPPER),
                 new RecordingSocketFactory(socket));
         client.connect();
 
@@ -131,7 +131,7 @@ class VehicleTcpClientTest {
 
     private static TelemetryMessage decodeFrame(InputStream input) throws IOException {
         return OBJECT_MAPPER.readValue(LengthPrefixedFrameCodec.read(input),
-            TelemetryMessage.class);
+                TelemetryMessage.class);
     }
 
     private static final class RecordingSocketFactory extends SocketFactory {
@@ -167,7 +167,7 @@ class VehicleTcpClientTest {
 
         @Override
         public Socket createSocket(InetAddress address, int port, InetAddress localAddress,
-            int localPort) {
+                int localPort) {
             throw new UnsupportedOperationException();
         }
     }

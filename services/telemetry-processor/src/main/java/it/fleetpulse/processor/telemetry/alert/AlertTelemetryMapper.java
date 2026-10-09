@@ -11,10 +11,10 @@ public final class AlertTelemetryMapper {
 
     public AlertTelemetrySample toSample(TelemetryEvent event) {
         Objects.requireNonNull(event, "event must not be null");
-        TelemetryData telemetry =
-            Objects.requireNonNull(event.telemetry(), "event telemetry must not be null");
+        TelemetryData telemetry = Objects.requireNonNull(event.telemetry(),
+                "event telemetry must not be null");
 
         return new AlertTelemetrySample(event.messageId(), event.vehicleId(),
-            telemetry.engineTemperatureC(), telemetry.batteryVoltage(), telemetry.odometerKm());
+                telemetry.engineTemperatureC(), telemetry.batteryVoltage(), telemetry.odometerKm());
     }
 }

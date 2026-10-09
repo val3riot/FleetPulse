@@ -6,8 +6,7 @@ import java.util.UUID;
 public record FleetVehicle(
         UUID id,
         String externalCode,
-        String plate
-) {
+        String plate) {
     public FleetVehicle {
         Objects.requireNonNull(id, "id must not be null");
         if (externalCode == null || externalCode.isBlank()) {

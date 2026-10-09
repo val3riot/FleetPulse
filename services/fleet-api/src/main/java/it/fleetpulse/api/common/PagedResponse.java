@@ -13,14 +13,13 @@ public record PagedResponse<T>(
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) long totalElements,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) int totalPages,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) boolean first,
-        @Schema(requiredMode = Schema.RequiredMode.REQUIRED) boolean last
-) {
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED) boolean last) {
     /**
      * Converte una pagina Spring Data nella risposta paginata dell'API.
      */
     public static <T> PagedResponse<T> from(Page<T> page) {
         return new PagedResponse<>(page.getContent(), page.getNumber(), page.getSize(),
-            page.getTotalElements(), page.getTotalPages(), page.isFirst(), page.isLast());
+                page.getTotalElements(), page.getTotalPages(), page.isFirst(), page.isLast());
     }
 
     /**

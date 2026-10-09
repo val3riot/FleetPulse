@@ -22,8 +22,8 @@ class RedisLatestStateTimeoutTest {
         var timeout = new QueryTimeoutException("command timed out");
         when(values.get("vehicle:last:" + id)).thenThrow(timeout);
         var projection = new RedisLatestStateProjection(redis, new RedisLatestStateCodec(),
-            new LatestStateProjectionProperties(Duration.ofMinutes(5), 1));
+                new LatestStateProjectionProperties(Duration.ofMinutes(5), 1));
         assertThatThrownBy(() -> projection.findByVehicleId(id))
-            .isInstanceOf(LatestStateProjectionException.class).hasCause(timeout);
+                .isInstanceOf(LatestStateProjectionException.class).hasCause(timeout);
     }
 }

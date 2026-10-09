@@ -23,24 +23,25 @@ public class MaintenanceAlertCommandService {
     public MaintenanceAlertResponse changeStatus(UUID alertId, ChangeAlertStatusRequest request) {
         for (int attemptNumber = 1; attemptNumber <= MAX_ATTEMPTS; attemptNumber++) {
             try {
-                MaintenanceAlertResponse response =
-                    transitionAttempt.execute(alertId, request.status());
+                MaintenanceAlertResponse response = transitionAttempt.execute(alertId,
+                        request.status());
                 log.atInfo().addKeyValue("event.action",
-                    "maintenance.alert.status.command.completed")
-                    .addKeyValue("alertId", alertId)
-                    .addKeyValue("status", response.status())
-                    .addKeyValue("attempt", attemptNumber)
-                    .log("Maintenance alert status command completed: alertId={}, status={}, " +
-                        "attempt={}", alertId, response.status(), attemptNumber);
+                        "maintenance.alert.status.command.completed")
+                        .addKeyValue("alertId", alertId)
+                        .addKeyValue("status", response.status())
+                        .addKeyValue("attempt", attemptNumber)
+                        .log("Maintenance alert status command completed: alertId={}, status={}, " +
+                                "attempt={}", alertId, response.status(), attemptNumber);
                 return response;
             } catch (OptimisticLockingFailureException exception) {
                 log.atDebug().addKeyValue("event.action",
-                    "concurrent.maintenance.alert.update.detected")
-                    .addKeyValue("alertId", alertId)
-                    .addKeyValue("target", request.status())
-                    .addKeyValue("attempt", attemptNumber)
-                    .log("Concurrent maintenance alert update detected: alertId={}, target={}, " +
-                    "attempt={}", alertId, request.status(), attemptNumber);
+                        "concurrent.maintenance.alert.update.detected")
+                        .addKeyValue("alertId", alertId)
+                        .addKeyValue("target", request.status())
+                        .addKeyValue("attempt", attemptNumber)
+                        .log("Concurrent maintenance alert update detected: alertId={}, target={}, "
+                                +
+                                "attempt={}", alertId, request.status(), attemptNumber);
                 if (attemptNumber == MAX_ATTEMPTS) {
                     throw new ApplicationException(ErrorCode.ALERT_STATUS_TRANSITION_CONFLICT);
                 }

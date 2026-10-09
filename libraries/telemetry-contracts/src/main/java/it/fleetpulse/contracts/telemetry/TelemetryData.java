@@ -6,6 +6,5 @@ public record TelemetryData(
         double batteryVoltage,
         long odometerKm,
         double latitude,
-        double longitude
-) {
+        double longitude) {
 }

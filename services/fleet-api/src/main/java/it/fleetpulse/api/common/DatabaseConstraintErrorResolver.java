@@ -11,8 +11,8 @@ import java.util.Optional;
 
 @Component
 public class DatabaseConstraintErrorResolver {
-    private static final Map<String, ErrorCode> ERROR_BY_CONSTRAINT =
-        Map.of("uq_vehicles_external_code", ErrorCode.VEHICLE_EXTERNAL_CODE_CONFLICT,
+    private static final Map<String, ErrorCode> ERROR_BY_CONSTRAINT = Map.of(
+            "uq_vehicles_external_code", ErrorCode.VEHICLE_EXTERNAL_CODE_CONFLICT,
 
             "uq_vehicles_plate", ErrorCode.VEHICLE_PLATE_CONFLICT);
 

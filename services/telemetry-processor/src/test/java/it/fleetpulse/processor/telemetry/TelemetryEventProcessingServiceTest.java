@@ -65,21 +65,23 @@ class TelemetryEventProcessingServiceTest {
 
     private final TelemetryAggregateWriter writer = mock(TelemetryAggregateWriter.class);
 
-    private final TelemetryPersistenceFailureClassifier failureClassifier =
-        mock(TelemetryPersistenceFailureClassifier.class);
+    private final TelemetryPersistenceFailureClassifier failureClassifier = mock(
+            TelemetryPersistenceFailureClassifier.class);
     private final VehicleEligibilityGuard eligibilityGuard = mock(VehicleEligibilityGuard.class);
     private final LatestStateProjection projection = mock(LatestStateProjection.class);
-    private final LatestStateProjectionObservability observability = mock(LatestStateProjectionObservability.class);
+    private final LatestStateProjectionObservability observability = mock(
+            LatestStateProjectionObservability.class);
     private final AlertVehicleQuery alertVehicleQuery = mock(AlertVehicleQuery.class);
     private final AlertEvaluator alertEvaluator = mock(AlertEvaluator.class);
 
     private final MockClock metricsClock = new MockClock();
-    private final SimpleMeterRegistry registry =
-        new SimpleMeterRegistry(SimpleConfig.DEFAULT, metricsClock);
-    private final TelemetryEventProcessingService service =
-        new TelemetryEventProcessingService(writer, new TelemetrySampleMapper(),
+    private final SimpleMeterRegistry registry = new SimpleMeterRegistry(SimpleConfig.DEFAULT,
+            metricsClock);
+    private final TelemetryEventProcessingService service = new TelemetryEventProcessingService(
+            writer, new TelemetrySampleMapper(),
             Clock.fixed(PROCESSED_AT, ZoneOffset.UTC), failureClassifier, eligibilityGuard,
-            projection, observability, alertVehicleQuery, new AlertTelemetryMapper(), alertEvaluator,
+            projection, observability, alertVehicleQuery, new AlertTelemetryMapper(),
+            alertEvaluator,
             new TelemetryProcessingMetrics(registry));
 
     @Test
@@ -87,21 +89,24 @@ class TelemetryEventProcessingServiceTest {
         Clock clock = mock(Clock.class);
         when(clock.instant()).thenReturn(PROCESSED_AT, PROCESSED_AT.plusMillis(300));
         var measured = new TelemetryEventProcessingService(writer, new TelemetrySampleMapper(),
-            clock, failureClassifier, eligibilityGuard, projection, observability,
-            alertVehicleQuery, new AlertTelemetryMapper(), alertEvaluator,
-            new TelemetryProcessingMetrics(registry));
+                clock, failureClassifier, eligibilityGuard, projection, observability,
+                alertVehicleQuery, new AlertTelemetryMapper(), alertEvaluator,
+                new TelemetryProcessingMetrics(registry));
         when(writer.insert(any(), anyList(), eq(PROCESSED_AT))).thenAnswer(invocation -> {
-            verify(clock).instant(); // The completion instant must not be captured before the write.
-            assertEquals(0, registry.get("fleetpulse.pipeline.persistence.latency").timer().count());
+            verify(clock).instant(); // The completion instant must not be captured before the
+                                     // write.
+            assertEquals(0,
+                    registry.get("fleetpulse.pipeline.persistence.latency").timer().count());
             return new TelemetryAggregateWriteResult(invocation.getArgument(0), List.of());
         });
         when(projection.updateIfNewer(any())).thenAnswer(invocation -> {
-            assertEquals(1, registry.get("fleetpulse.pipeline.persistence.latency").timer().count());
+            assertEquals(1,
+                    registry.get("fleetpulse.pipeline.persistence.latency").timer().count());
             return ProjectionUpdateResult.UPDATED;
         });
         measured.handle(event(TelemetryEventVersions.V1), SOURCE);
         assertEquals(367, registry.get("fleetpulse.pipeline.persistence.latency")
-            .timer().totalTime(TimeUnit.MILLISECONDS), .001);
+                .timer().totalTime(TimeUnit.MILLISECONDS), .001);
     }
 
     @Test
@@ -109,7 +114,8 @@ class TelemetryEventProcessingServiceTest {
         var metrics = new TelemetryProcessingMetrics(registry);
         assertEquals(null, metrics.recordPersistence(PROCESSED_AT, PROCESSED_AT.minusMillis(1)));
         assertEquals(0, registry.get("fleetpulse.pipeline.persistence.latency").timer().count());
-        assertEquals(1, registry.get("fleetpulse.pipeline.persistence.clock.invalid").counter().count());
+        assertEquals(1,
+                registry.get("fleetpulse.pipeline.persistence.clock.invalid").counter().count());
     }
 
     @Test
@@ -124,9 +130,9 @@ class TelemetryEventProcessingServiceTest {
         });
         service.handle(event(TelemetryEventVersions.V1), SOURCE);
         assertEquals(100, registry.get("fleetpulse.processing.latency")
-            .tag("outcome", "persisted").timer().totalTime(TimeUnit.MILLISECONDS), 0.01);
+                .tag("outcome", "persisted").timer().totalTime(TimeUnit.MILLISECONDS), 0.01);
         assertEquals(900, registry.get("fleetpulse.processor.projection.latency")
-            .tag("outcome", "completed").timer().totalTime(TimeUnit.MILLISECONDS), 0.01);
+                .tag("outcome", "completed").timer().totalTime(TimeUnit.MILLISECONDS), 0.01);
         assertEquals(1, registry.get("fleetpulse.processor.persisted").counter().count());
     }
 
@@ -136,10 +142,10 @@ class TelemetryEventProcessingServiceTest {
         var duplicate = new DataIntegrityViolationException("duplicate");
         when(failureClassifier.isDuplicateMessageId(duplicate)).thenReturn(true);
         when(writer.insert(any(), anyList(), eq(PROCESSED_AT)))
-            .thenThrow(transientFailure)
-            .thenAnswer(invocation ->
-                new TelemetryAggregateWriteResult(invocation.getArgument(0), List.of()))
-            .thenThrow(duplicate);
+                .thenThrow(transientFailure)
+                .thenAnswer(invocation -> new TelemetryAggregateWriteResult(
+                        invocation.getArgument(0), List.of()))
+                .thenThrow(duplicate);
         when(projection.updateIfNewer(any())).thenReturn(ProjectionUpdateResult.UPDATED);
         var event = event(TelemetryEventVersions.V1);
         assertThrows(DataAccessResourceFailureException.class, () -> service.handle(event, SOURCE));
@@ -151,22 +157,22 @@ class TelemetryEventProcessingServiceTest {
         assertEquals(1, registry.get("fleetpulse.processor.duplicates").counter().count());
         for (String outcome : List.of("failed", "persisted", "duplicate")) {
             assertEquals(1, registry.get("fleetpulse.processing.latency")
-                .tag("outcome", outcome).timer().count());
+                    .tag("outcome", outcome).timer().count());
         }
         assertEquals(1, registry.get("fleetpulse.processor.projection.latency")
-            .tag("outcome", "completed").timer().count());
+                .tag("outcome", "completed").timer().count());
         assertEquals(0, registry.get("fleetpulse.processor.projection.latency")
-            .tag("outcome", "failed").timer().count());
+                .tag("outcome", "failed").timer().count());
     }
 
     @BeforeEach
     void returnEntityBeingSaved() {
-        when(alertVehicleQuery.findById(any())).thenAnswer(invocation ->
-            Optional.of(new AlertVehicle(invocation.getArgument(0), 90_000)));
+        when(alertVehicleQuery.findById(any())).thenAnswer(
+                invocation -> Optional.of(new AlertVehicle(invocation.getArgument(0), 90_000)));
         when(alertEvaluator.evaluate(any(), any())).thenReturn(List.of());
         when(writer.insert(any(TelemetrySampleEntity.class), anyList(), eq(PROCESSED_AT)))
-            .thenAnswer(invocation ->
-                new TelemetryAggregateWriteResult(invocation.getArgument(0), List.of()));
+                .thenAnswer(invocation -> new TelemetryAggregateWriteResult(
+                        invocation.getArgument(0), List.of()));
     }
 
     @Test
@@ -175,10 +181,10 @@ class TelemetryEventProcessingServiceTest {
         when(invalidResult.sample()).thenReturn(null);
         when(writer.insert(any(), anyList(), any())).thenReturn(invalidResult);
         assertThrows(IllegalArgumentException.class,
-            () -> service.handle(event(TelemetryEventVersions.V1), SOURCE));
+                () -> service.handle(event(TelemetryEventVersions.V1), SOURCE));
         assertEquals(0, registry.get("fleetpulse.processor.persisted").counter().count());
         assertEquals(1, registry.get("fleetpulse.processing.latency")
-            .tag("outcome", "failed").timer().count());
+                .tag("outcome", "failed").timer().count());
         verifyNoInteractions(projection, observability);
     }
 
@@ -188,8 +194,8 @@ class TelemetryEventProcessingServiceTest {
 
         service.handle(event, SOURCE);
 
-        ArgumentCaptor<TelemetrySampleEntity> captor =
-            ArgumentCaptor.forClass(TelemetrySampleEntity.class);
+        ArgumentCaptor<TelemetrySampleEntity> captor = ArgumentCaptor
+                .forClass(TelemetrySampleEntity.class);
 
         verify(writer).insert(captor.capture(), eq(List.of()), eq(PROCESSED_AT));
 
@@ -203,16 +209,19 @@ class TelemetryEventProcessingServiceTest {
     @Test
     void projectsCompleteSampleAfterWriterReturnsAndRecordsOutcome() {
         TelemetryEvent event = event(TelemetryEventVersions.V1);
-        LatestVehicleState expected = new LatestVehicleState(event.vehicleId(), event.sequenceNumber(), event.observedAt(),
-            72.4, 91.8, 12.6, 85312, 41.9028, 12.4964);
+        LatestVehicleState expected = new LatestVehicleState(event.vehicleId(),
+                event.sequenceNumber(), event.observedAt(),
+                72.4, 91.8, 12.6, 85312, 41.9028, 12.4964);
         when(projection.updateIfNewer(expected)).thenReturn(ProjectionUpdateResult.UPDATED);
 
         service.handle(event, SOURCE);
 
         InOrder order = inOrder(writer, projection, observability);
-        order.verify(writer).insert(any(TelemetrySampleEntity.class), eq(List.of()), eq(PROCESSED_AT));
+        order.verify(writer).insert(any(TelemetrySampleEntity.class), eq(List.of()),
+                eq(PROCESSED_AT));
         order.verify(projection).updateIfNewer(expected);
-        order.verify(observability).completed(event.messageId(), expected, ProjectionUpdateResult.UPDATED);
+        order.verify(observability).completed(event.messageId(), expected,
+                ProjectionUpdateResult.UPDATED);
     }
 
     @Test
@@ -223,23 +232,23 @@ class TelemetryEventProcessingServiceTest {
         service.handle(event, SOURCE);
 
         verify(observability).completed(eq(event.messageId()), any(),
-            eq(ProjectionUpdateResult.SKIPPED));
+                eq(ProjectionUpdateResult.SKIPPED));
     }
 
     @Test
     void projectionFailureIsObservedWithoutReachingCaller() {
         TelemetryEvent event = event(TelemetryEventVersions.V1);
-        LatestStateProjectionException failure =
-            new LatestStateProjectionException("Redis unavailable");
+        LatestStateProjectionException failure = new LatestStateProjectionException(
+                "Redis unavailable");
         when(projection.updateIfNewer(any())).thenThrow(failure);
 
         assertDoesNotThrow(() -> service.handle(event, SOURCE));
 
         verify(observability).failed(eq(event.messageId()), any(),
-            same(failure));
+                same(failure));
         assertEquals(1, registry.get("fleetpulse.processor.persisted").counter().count());
         assertEquals(1, registry.get("fleetpulse.processor.projection.latency")
-            .tag("outcome", "failed").timer().count());
+                .tag("outcome", "failed").timer().count());
         verify(writer).insert(any(TelemetrySampleEntity.class), eq(List.of()), eq(PROCESSED_AT));
     }
 
@@ -249,12 +258,12 @@ class TelemetryEventProcessingServiceTest {
         when(writer.insert(any(), anyList(), any())).thenThrow(failure);
 
         assertSame(failure, assertThrows(TransactionSystemException.class,
-            () -> service.handle(event(TelemetryEventVersions.V1), SOURCE)));
+                () -> service.handle(event(TelemetryEventVersions.V1), SOURCE)));
 
         verifyNoInteractions(projection, observability);
         assertEquals(0, registry.get("fleetpulse.processor.persisted").counter().count());
         assertEquals(1, registry.get("fleetpulse.processing.latency")
-            .tag("outcome", "failed").timer().count());
+                .tag("outcome", "failed").timer().count());
     }
 
     @Test
@@ -269,13 +278,13 @@ class TelemetryEventProcessingServiceTest {
         verifyNoInteractions(projection, observability);
         assertEquals(0, registry.get("fleetpulse.processor.persisted").counter().count());
         assertEquals(1, registry.get("fleetpulse.processing.latency")
-            .tag("outcome", "rejected").timer().count());
+                .tag("outcome", "rejected").timer().count());
     }
 
     @Test
     void rejectsUnsupportedVersion() {
-        UnsupportedTelemetryEventVersionException exception =
-            assertThrows(UnsupportedTelemetryEventVersionException.class,
+        UnsupportedTelemetryEventVersionException exception = assertThrows(
+                UnsupportedTelemetryEventVersionException.class,
                 () -> service.handle(event(99), SOURCE));
 
         assertEquals(99, exception.actualVersion());
@@ -316,7 +325,7 @@ class TelemetryEventProcessingServiceTest {
         doReturn(Optional.empty()).when(alertVehicleQuery).findById(any());
 
         assertThrows(IllegalStateException.class,
-            () -> service.handle(event(TelemetryEventVersions.V1), SOURCE));
+                () -> service.handle(event(TelemetryEventVersions.V1), SOURCE));
 
         verify(writer, never()).insert(any(), anyList(), any());
         verifyNoInteractions(projection, observability);
@@ -324,15 +333,15 @@ class TelemetryEventProcessingServiceTest {
 
     @Test
     void propagatesNonDuplicateIntegrityFailure() {
-        DataIntegrityViolationException failure =
-            new DataIntegrityViolationException("foreign key");
+        DataIntegrityViolationException failure = new DataIntegrityViolationException(
+                "foreign key");
 
         when(writer.insert(any(TelemetrySampleEntity.class), anyList(), any())).thenThrow(failure);
         when(failureClassifier.isDuplicateMessageId(failure)).thenReturn(false);
         when(failureClassifier.isDuplicateAlertSourceType(failure)).thenReturn(false);
 
         DataIntegrityViolationException thrown = assertThrows(DataIntegrityViolationException.class,
-            () -> service.handle(event(TelemetryEventVersions.V1), SOURCE));
+                () -> service.handle(event(TelemetryEventVersions.V1), SOURCE));
 
         assertSame(failure, thrown);
         verifyNoInteractions(projection, observability);
@@ -342,22 +351,23 @@ class TelemetryEventProcessingServiceTest {
     void evaluatesAndWritesAllAlertCandidates() {
         TelemetryEvent event = event(TelemetryEventVersions.V1);
         AlertCandidate candidate = new AlertCandidate(event.vehicleId(), event.messageId(),
-            AlertType.ENGINE_TEMPERATURE_HIGH, AlertSeverity.HIGH,
-            "Temperatura motore oltre soglia");
+                AlertType.ENGINE_TEMPERATURE_HIGH, AlertSeverity.HIGH,
+                "Temperatura motore oltre soglia");
         when(alertEvaluator.evaluate(any(), any())).thenReturn(List.of(candidate));
-        when(writer.insert(any(), eq(List.of(candidate)), eq(PROCESSED_AT))).thenAnswer(invocation ->
-            new TelemetryAggregateWriteResult(invocation.getArgument(0), List.of()));
+        when(writer.insert(any(), eq(List.of(candidate)), eq(PROCESSED_AT))).thenAnswer(
+                invocation -> new TelemetryAggregateWriteResult(invocation.getArgument(0),
+                        List.of()));
 
         service.handle(event, SOURCE);
 
         verify(writer).insert(any(TelemetrySampleEntity.class), eq(List.of(candidate)),
-            eq(PROCESSED_AT));
+                eq(PROCESSED_AT));
     }
 
     private static TelemetryEvent event(int version) {
         return new TelemetryEvent(version, UUID.fromString("dc0fc799-0913-4e72-bd2d-8ee8ccf52e22"),
-            UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0"), 42,
-            Instant.parse("2026-08-01T10:15:30Z"), Instant.parse("2026-08-01T10:15:30.083Z"),
-            new TelemetryData(72.4, 91.8, 12.6, 85312, 41.9028, 12.4964));
+                UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0"), 42,
+                Instant.parse("2026-08-01T10:15:30Z"), Instant.parse("2026-08-01T10:15:30.083Z"),
+                new TelemetryData(72.4, 91.8, 12.6, 85312, 41.9028, 12.4964));
     }
 }

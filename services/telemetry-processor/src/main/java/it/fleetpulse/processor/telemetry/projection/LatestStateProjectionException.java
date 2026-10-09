@@ -1,11 +1,14 @@
 package it.fleetpulse.processor.telemetry.projection;
 
 public class LatestStateProjectionException extends RuntimeException {
-      public LatestStateProjectionException(String message) {
-          super(message);
-      }
 
-      public LatestStateProjectionException(String message, Throwable cause) {
-          super(message, cause);
-      }
+    @java.io.Serial
+    private static final long serialVersionUID = 1L;
+    public LatestStateProjectionException(String message) {
+        super(message);
+    }
+
+    public LatestStateProjectionException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }

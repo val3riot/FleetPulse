@@ -4,6 +4,9 @@ import java.io.IOException;
 
 public final class MalformedAcknowledgementException extends IOException {
 
+    @java.io.Serial
+    private static final long serialVersionUID = 1L;
+
     public MalformedAcknowledgementException(String message) {
         super(message);
     }

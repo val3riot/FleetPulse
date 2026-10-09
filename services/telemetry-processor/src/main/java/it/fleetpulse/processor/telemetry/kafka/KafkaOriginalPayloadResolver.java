@@ -15,8 +15,8 @@ import java.util.Objects;
 
 public final class KafkaOriginalPayloadResolver {
 
-    private static final LogAccessor log =
-        new LogAccessor(LogFactory.getLog(KafkaOriginalPayloadResolver.class));
+    private static final LogAccessor log = new LogAccessor(
+            LogFactory.getLog(KafkaOriginalPayloadResolver.class));
 
     private final ObjectMapper objectMapper;
 
@@ -29,12 +29,12 @@ public final class KafkaOriginalPayloadResolver {
 
         if (record.value() != null) {
             return objectMapper.convertValue(record.value(),
-                new TypeReference<Map<String, Object>>() {
-                });
+                    new TypeReference<Map<String, Object>>() {
+                    });
         }
 
         DeserializationException failure = SerializationUtils.getExceptionFromHeader(record,
-            KafkaUtils.VALUE_DESERIALIZER_EXCEPTION_HEADER, log);
+                KafkaUtils.VALUE_DESERIALIZER_EXCEPTION_HEADER, log);
 
         if (failure == null || failure.getData() == null) {
             return Map.of();

@@ -10,7 +10,7 @@ public final class EngineTemperatureRule implements AlertRule {
     public EngineTemperatureRule(double maximumTemperatureC) {
         if (!Double.isFinite(maximumTemperatureC) || maximumTemperatureC < -273.15) {
             throw new IllegalArgumentException(
-                "maximumTemperatureC must be finite and not below absolute zero");
+                    "maximumTemperatureC must be finite and not below absolute zero");
         }
         this.maximumTemperatureC = maximumTemperatureC;
     }
@@ -22,7 +22,7 @@ public final class EngineTemperatureRule implements AlertRule {
             return Optional.empty();
         }
         return Optional.of(new AlertCandidate(vehicle.id(), sample.messageId(),
-            AlertType.ENGINE_TEMPERATURE_HIGH, AlertSeverity.HIGH, DESCRIPTION));
+                AlertType.ENGINE_TEMPERATURE_HIGH, AlertSeverity.HIGH, DESCRIPTION));
     }
 
 }

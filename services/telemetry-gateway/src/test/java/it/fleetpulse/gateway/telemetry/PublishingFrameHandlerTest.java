@@ -44,8 +44,8 @@ public class PublishingFrameHandlerTest {
             return publication;
         }, Duration.ofSeconds(1));
 
-        CompletableFuture<TelemetryAck> handling =
-            CompletableFuture.supplyAsync(() -> handler.handle(message()));
+        CompletableFuture<TelemetryAck> handling = CompletableFuture
+                .supplyAsync(() -> handler.handle(message()));
 
         assertTrue(publisherInvoked.await(1, TimeUnit.SECONDS));
         assertFalse(handling.isDone());
@@ -55,15 +55,16 @@ public class PublishingFrameHandlerTest {
         TelemetryAck result = handling.get(1, TimeUnit.SECONDS);
 
         assertEquals(
-            new TelemetryAck(ProtocolConstants.PROTOCOL_VERSION, MESSAGE_ID, AckStatus.ACCEPTED,
-                RECEIVED_AT, null), result);
+                new TelemetryAck(ProtocolConstants.PROTOCOL_VERSION, MESSAGE_ID, AckStatus.ACCEPTED,
+                        RECEIVED_AT, null),
+                result);
     }
 
     @Test
     void rejectsAsynchronousPublicationFailure() {
         PublishingFrameHandler handler = handler(
-            event -> CompletableFuture.failedFuture(new RuntimeException("Kafka unavailable")),
-            Duration.ofSeconds(1));
+                event -> CompletableFuture.failedFuture(new RuntimeException("Kafka unavailable")),
+                Duration.ofSeconds(1));
 
         TelemetryAck result = handler.handle(message());
 
@@ -72,8 +73,8 @@ public class PublishingFrameHandlerTest {
 
     @Test
     void rejectsPublicationTimeout() {
-        PublishingFrameHandler handler =
-            handler(event -> new CompletableFuture<>(), Duration.ofMillis(10));
+        PublishingFrameHandler handler = handler(event -> new CompletableFuture<>(),
+                Duration.ofMillis(10));
 
         TelemetryAck result = handler.handle(message());
 
@@ -95,8 +96,8 @@ public class PublishingFrameHandlerTest {
         Clock clock = Clock.fixed(RECEIVED_AT, ZoneOffset.UTC);
 
         return new PublishingFrameHandler(new TelemetryEventMapper(clock), publisher,
-            new KafkaPublisherProperties(timeout),
-            new TelemetryPublishingMetrics(new SimpleMeterRegistry()));
+                new KafkaPublisherProperties(timeout),
+                new TelemetryPublishingMetrics(new SimpleMeterRegistry()));
     }
 
     @Test
@@ -104,13 +105,13 @@ public class PublishingFrameHandlerTest {
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         TelemetryPublishingMetrics metrics = new TelemetryPublishingMetrics(registry);
         PublishingFrameHandler failingHandler = new PublishingFrameHandler(
-            new TelemetryEventMapper(Clock.fixed(RECEIVED_AT, ZoneOffset.UTC)),
-            event -> CompletableFuture.failedFuture(new RuntimeException("Kafka unavailable")),
-            new KafkaPublisherProperties(Duration.ofSeconds(1)), metrics);
+                new TelemetryEventMapper(Clock.fixed(RECEIVED_AT, ZoneOffset.UTC)),
+                event -> CompletableFuture.failedFuture(new RuntimeException("Kafka unavailable")),
+                new KafkaPublisherProperties(Duration.ofSeconds(1)), metrics);
         PublishingFrameHandler successfulHandler = new PublishingFrameHandler(
-            new TelemetryEventMapper(Clock.fixed(RECEIVED_AT, ZoneOffset.UTC)),
-            event -> CompletableFuture.completedFuture(null),
-            new KafkaPublisherProperties(Duration.ofSeconds(1)), metrics);
+                new TelemetryEventMapper(Clock.fixed(RECEIVED_AT, ZoneOffset.UTC)),
+                event -> CompletableFuture.completedFuture(null),
+                new KafkaPublisherProperties(Duration.ofSeconds(1)), metrics);
 
         failingHandler.handle(message());
         successfulHandler.handle(message());
@@ -118,9 +119,9 @@ public class PublishingFrameHandlerTest {
         assertEquals(1.0, registry.get("fleetpulse.gateway.publish.failures").counter().count());
         assertEquals(2, registry.get("fleetpulse.gateway.ack.latency").timer().count());
         assertEquals(1, registry.get("fleetpulse.gateway.publish.latency")
-            .tag("outcome", "confirmed").timer().count());
+                .tag("outcome", "confirmed").timer().count());
         assertEquals(1, registry.get("fleetpulse.gateway.publish.latency")
-            .tag("outcome", "failed").timer().count());
+                .tag("outcome", "failed").timer().count());
     }
 
     @ParameterizedTest
@@ -134,13 +135,13 @@ public class PublishingFrameHandlerTest {
             }
             if (scenario.equals("asynchronous")) {
                 return CompletableFuture.failedFuture(
-                    new IllegalStateException("private-payload-marker"));
+                        new IllegalStateException("private-payload-marker"));
             }
             return new CompletableFuture<>();
         };
         var handler = new PublishingFrameHandler(
-            new TelemetryEventMapper(Clock.fixed(RECEIVED_AT, ZoneOffset.UTC)), publisher,
-            new KafkaPublisherProperties(Duration.ofMillis(10)), metrics);
+                new TelemetryEventMapper(Clock.fixed(RECEIVED_AT, ZoneOffset.UTC)), publisher,
+                new KafkaPublisherProperties(Duration.ofMillis(10)), metrics);
         try {
             if (scenario.equals("interrupted")) {
                 Thread.currentThread().interrupt();
@@ -151,9 +152,9 @@ public class PublishingFrameHandlerTest {
             }
             assertEquals(1, registry.get("fleetpulse.gateway.publish.failures").counter().count());
             assertEquals(1, registry.get("fleetpulse.gateway.publish.latency")
-                .tag("outcome", "failed").timer().count());
+                    .tag("outcome", "failed").timer().count());
             assertEquals(0, registry.get("fleetpulse.gateway.publish.latency")
-                .tag("outcome", "confirmed").timer().count());
+                    .tag("outcome", "confirmed").timer().count());
             assertEquals(1, registry.get("fleetpulse.gateway.ack.latency").timer().count());
         } finally {
             Thread.interrupted();
@@ -173,20 +174,21 @@ public class PublishingFrameHandlerTest {
         clock.add(Duration.ofMillis(20));
         metrics.completeAcknowledgement(acknowledgement);
         assertEquals(100, registry.get("fleetpulse.gateway.publish.latency")
-            .tag("outcome", "confirmed").timer().totalTime(TimeUnit.MILLISECONDS), 0.01);
+                .tag("outcome", "confirmed").timer().totalTime(TimeUnit.MILLISECONDS), 0.01);
         assertEquals(120, registry.get("fleetpulse.gateway.ack.latency")
-            .timer().totalTime(TimeUnit.MILLISECONDS), 0.01);
+                .timer().totalTime(TimeUnit.MILLISECONDS), 0.01);
     }
 
     private static void assertRejected(TelemetryAck result) {
         assertEquals(
-            new TelemetryAck(ProtocolConstants.PROTOCOL_VERSION, MESSAGE_ID, AckStatus.REJECTED,
-                RECEIVED_AT, ProtocolErrorCode.UPSTREAM_UNAVAILABLE), result);
+                new TelemetryAck(ProtocolConstants.PROTOCOL_VERSION, MESSAGE_ID, AckStatus.REJECTED,
+                        RECEIVED_AT, ProtocolErrorCode.UPSTREAM_UNAVAILABLE),
+                result);
     }
 
     private static TelemetryMessage message() {
         return new TelemetryMessage(ProtocolConstants.PROTOCOL_VERSION, MESSAGE_ID, VEHICLE_ID, 42,
-            Instant.parse("2026-08-01T10:15:30Z"), 72.4, 91.8, 12.6, 85312, 41.9028, 12.4964);
+                Instant.parse("2026-08-01T10:15:30Z"), 72.4, 91.8, 12.6, 85312, 41.9028, 12.4964);
     }
 
 }

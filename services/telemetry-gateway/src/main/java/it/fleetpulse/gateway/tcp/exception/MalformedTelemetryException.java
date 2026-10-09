@@ -4,6 +4,9 @@ import java.io.IOException;
 
 public final class MalformedTelemetryException extends IOException {
 
+    @java.io.Serial
+    private static final long serialVersionUID = 1L;
+
     public MalformedTelemetryException(String message) {
         super(message);
     }

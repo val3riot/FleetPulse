@@ -51,7 +51,7 @@ public class VehicleEntity {
      * Crea un veicolo con i dati persistibili assegnati dal servizio.
      */
     public VehicleEntity(String externalCode, String plate, VehicleStatus status,
-        int serviceIntervalKm, long nextServiceAtKm, Instant createdAt) {
+            int serviceIntervalKm, long nextServiceAtKm, Instant createdAt) {
         this.externalCode = externalCode;
         this.plate = plate;
         this.status = status;

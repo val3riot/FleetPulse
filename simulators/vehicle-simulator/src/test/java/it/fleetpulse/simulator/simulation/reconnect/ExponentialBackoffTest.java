@@ -11,8 +11,8 @@ class ExponentialBackoffTest {
 
     @Test
     void doublesDelayAndSaturatesAtMaximum() {
-        ExponentialBackoff backoff =
-            new ExponentialBackoff(Duration.ofMillis(250), Duration.ofSeconds(5));
+        ExponentialBackoff backoff = new ExponentialBackoff(Duration.ofMillis(250),
+                Duration.ofSeconds(5));
 
         assertEquals(Duration.ofMillis(250), backoff.nextDelay());
         assertEquals(Duration.ofMillis(500), backoff.nextDelay());
@@ -25,8 +25,8 @@ class ExponentialBackoffTest {
 
     @Test
     void resetsToInitialDelay() {
-        ExponentialBackoff backoff =
-            new ExponentialBackoff(Duration.ofMillis(100), Duration.ofSeconds(1));
+        ExponentialBackoff backoff = new ExponentialBackoff(Duration.ofMillis(100),
+                Duration.ofSeconds(1));
 
         backoff.nextDelay();
         backoff.nextDelay();
@@ -38,10 +38,10 @@ class ExponentialBackoffTest {
     @Test
     void rejectsInvalidBounds() {
         assertThrows(NullPointerException.class,
-            () -> new ExponentialBackoff(null, Duration.ofSeconds(1)));
+                () -> new ExponentialBackoff(null, Duration.ofSeconds(1)));
         assertThrows(IllegalArgumentException.class,
-            () -> new ExponentialBackoff(Duration.ZERO, Duration.ofSeconds(1)));
+                () -> new ExponentialBackoff(Duration.ZERO, Duration.ofSeconds(1)));
         assertThrows(IllegalArgumentException.class,
-            () -> new ExponentialBackoff(Duration.ofSeconds(2), Duration.ofSeconds(1)));
+                () -> new ExponentialBackoff(Duration.ofSeconds(2), Duration.ofSeconds(1)));
     }
 }

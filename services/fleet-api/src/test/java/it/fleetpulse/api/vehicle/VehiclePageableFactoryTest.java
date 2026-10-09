@@ -27,7 +27,7 @@ class VehiclePageableFactoryTest {
         assertThat(pageable.getPageNumber()).isEqualTo(2);
         assertThat(pageable.getPageSize()).isEqualTo(50);
         assertThat(pageable.getSort()).isEqualTo(
-            Sort.by(Sort.Direction.ASC, "plate").and(Sort.by(Sort.Direction.ASC, "id")));
+                Sort.by(Sort.Direction.ASC, "plate").and(Sort.by(Sort.Direction.ASC, "id")));
     }
 
     /**
@@ -39,7 +39,7 @@ class VehiclePageableFactoryTest {
         Pageable pageable = factory.create(0, 20, null);
 
         assertThat(pageable.getSort()).isEqualTo(
-            Sort.by(Sort.Direction.DESC, "createdAt").and(Sort.by(Sort.Direction.ASC, "id")));
+                Sort.by(Sort.Direction.DESC, "createdAt").and(Sort.by(Sort.Direction.ASC, "id")));
     }
 
     /**
@@ -64,7 +64,7 @@ class VehiclePageableFactoryTest {
         String[] parts = values.split(",");
 
         assertInvalid(() -> factory.create(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]),
-            "createdAt,desc"));
+                "createdAt,desc"));
     }
 
     /**
@@ -82,6 +82,7 @@ class VehiclePageableFactoryTest {
      */
     private void assertInvalid(org.assertj.core.api.ThrowableAssert.ThrowingCallable operation) {
         assertThatThrownBy(operation).isInstanceOfSatisfying(ApplicationException.class,
-            exception -> assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.REQUEST_INVALID));
+                exception -> assertThat(exception.getErrorCode())
+                        .isEqualTo(ErrorCode.REQUEST_INVALID));
     }
 }

@@ -29,11 +29,11 @@ public final class TelemetryAckDecoder {
             TelemetryAck ack = objectMapper.readValue(payload, TelemetryAck.class);
             TelemetryAcknowledgementValidator.validate(ack);
             log.atDebug().addKeyValue("event.action", "decoded.telemetry.acknowledgement")
-                .addKeyValue("messageId", ack.messageId())
-                .addKeyValue("status", ack.status())
-                .log("Decoded telemetry acknowledgement: messageId={}, status={}",
-                ack.messageId(),
-                ack.status());
+                    .addKeyValue("messageId", ack.messageId())
+                    .addKeyValue("status", ack.status())
+                    .log("Decoded telemetry acknowledgement: messageId={}, status={}",
+                            ack.messageId(),
+                            ack.status());
             return ack;
         } catch (JacksonException exception) {
             throw new MalformedAcknowledgementException(exception);

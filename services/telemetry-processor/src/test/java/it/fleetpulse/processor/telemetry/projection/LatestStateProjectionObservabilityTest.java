@@ -19,11 +19,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 class LatestStateProjectionObservabilityTest {
     private final SimpleMeterRegistry registry = new SimpleMeterRegistry();
     private final AtomicLong time = new AtomicLong();
-    private final LatestStateProjectionObservability observability =
-        new LatestStateProjectionObservability(registry, time::get);
+    private final LatestStateProjectionObservability observability = new LatestStateProjectionObservability(
+            registry, time::get);
     private final UUID messageId = UUID.randomUUID();
     private final LatestVehicleState candidate = new LatestVehicleState(UUID.randomUUID(), 42,
-        Instant.parse("2026-08-01T10:15:30Z"), 72.4, 91.8, 12.6, 85312, 41.9028, 12.4964);
+            Instant.parse("2026-08-01T10:15:30Z"), 72.4, 91.8, 12.6, 85312, 41.9028, 12.4964);
 
     @Test
     void registersFixedOutcomesAndCountsEachOperationOnce() {
@@ -33,17 +33,19 @@ class LatestStateProjectionObservabilityTest {
 
         observability.completed(messageId, candidate, ProjectionUpdateResult.UPDATED);
         observability.completed(messageId, candidate, ProjectionUpdateResult.SKIPPED);
-        observability.failed(messageId, candidate, new LatestStateProjectionException("Unavailable"));
+        observability.failed(messageId, candidate,
+                new LatestStateProjectionException("Unavailable"));
 
         assertThat(count("updated")).isEqualTo(1);
         assertThat(count("skipped")).isEqualTo(1);
         assertThat(count("failed")).isEqualTo(1);
         assertThat(registry.get("fleetpulse.redis.update.failures").counter().count()).isEqualTo(1);
         assertThat(registry.getMeters()).hasSize(4);
-        registry.find("fleetpulse.telemetry.latest_state.updates").counters().forEach(counter ->
-            assertThat(counter.getId().getTags()).hasSize(1).allSatisfy(tag ->
-                assertThat(tag.getKey()).isEqualTo("outcome")));
-        assertThat(registry.get("fleetpulse.redis.update.failures").counter().getId().getTags()).isEmpty();
+        registry.find("fleetpulse.telemetry.latest_state.updates").counters()
+                .forEach(counter -> assertThat(counter.getId().getTags()).hasSize(1)
+                        .allSatisfy(tag -> assertThat(tag.getKey()).isEqualTo("outcome")));
+        assertThat(registry.get("fleetpulse.redis.update.failures").counter().getId().getTags())
+                .isEmpty();
     }
 
     @Test
@@ -51,11 +53,13 @@ class LatestStateProjectionObservabilityTest {
         var prometheus = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
         try {
             var observed = new LatestStateProjectionObservability(prometheus, time::get);
-            observed.failed(messageId, candidate, new LatestStateProjectionException("Unavailable"));
+            observed.failed(messageId, candidate,
+                    new LatestStateProjectionException("Unavailable"));
 
             assertThat(prometheus.scrape())
-                .contains("fleetpulse_redis_update_failures_total 1.0")
-                .contains("fleetpulse_telemetry_latest_state_updates_total{outcome=\"failed\"} 1.0");
+                    .contains("fleetpulse_redis_update_failures_total 1.0")
+                    .contains(
+                            "fleetpulse_telemetry_latest_state_updates_total{outcome=\"failed\"} 1.0");
         } finally {
             prometheus.close();
         }
@@ -68,7 +72,7 @@ class LatestStateProjectionObservabilityTest {
         appender.start();
         logger.addAppender(appender);
         var failure = new LatestStateProjectionException("SECRET_PAYLOAD",
-            new IllegalArgumentException("SECRET_PAYLOAD"));
+                new IllegalArgumentException("SECRET_PAYLOAD"));
         try {
             observability.failed(messageId, candidate, failure);
             observability.failed(messageId, candidate, failure);
@@ -79,12 +83,14 @@ class LatestStateProjectionObservabilityTest {
             time.incrementAndGet();
             observability.failed(messageId, candidate, failure);
             assertThat(appender.list).hasSize(2).allSatisfy(event -> {
-                assertThat(event.getFormattedMessage()).contains(messageId.toString(), "IllegalArgumentException")
-                    .doesNotContain("SECRET_PAYLOAD");
+                assertThat(event.getFormattedMessage())
+                        .contains(messageId.toString(), "IllegalArgumentException")
+                        .doesNotContain("SECRET_PAYLOAD");
                 assertThat(event.getThrowableProxy()).isNull();
             });
             assertThat(count("failed")).isEqualTo(4);
-            assertThat(registry.get("fleetpulse.redis.update.failures").counter().count()).isEqualTo(4);
+            assertThat(registry.get("fleetpulse.redis.update.failures").counter().count())
+                    .isEqualTo(4);
         } finally {
             logger.detachAppender(appender);
             appender.stop();
@@ -93,6 +99,6 @@ class LatestStateProjectionObservabilityTest {
 
     private double count(String outcome) {
         return registry.get("fleetpulse.telemetry.latest_state.updates")
-            .tag("outcome", outcome).counter().count();
+                .tag("outcome", outcome).counter().count();
     }
 }

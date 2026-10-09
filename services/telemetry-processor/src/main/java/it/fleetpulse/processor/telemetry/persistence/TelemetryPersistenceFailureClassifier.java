@@ -9,8 +9,7 @@ import java.util.Objects;
 public final class TelemetryPersistenceFailureClassifier {
 
     private static final String MESSAGE_ID_UNIQUE_CONSTRAINT = "uq_telemetry_samples_message_id";
-    private static final String ALERT_SOURCE_TYPE_UNIQUE_CONSTRAINT =
-        "uq_maintenance_alerts_source_message_type";
+    private static final String ALERT_SOURCE_TYPE_UNIQUE_CONSTRAINT = "uq_maintenance_alerts_source_message_type";
 
     public boolean isDuplicateMessageId(Throwable failure) {
         return hasConstraint(failure, MESSAGE_ID_UNIQUE_CONSTRAINT);
@@ -27,7 +26,7 @@ public final class TelemetryPersistenceFailureClassifier {
 
         while (current != null) {
             if (current instanceof ConstraintViolationException violation &&
-                expectedConstraint.equals(violation.getConstraintName())) {
+                    expectedConstraint.equals(violation.getConstraintName())) {
                 return true;
             }
 

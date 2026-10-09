@@ -29,15 +29,16 @@ public final class VehicleWorkloadFactory implements VehicleWorkloadProvider {
 
     @Autowired
     public VehicleWorkloadFactory(VehicleSimulatorProperties properties,
-        TelemetryFrameEncoder frameEncoder) {
+            TelemetryFrameEncoder frameEncoder) {
         this(properties, frameEncoder,
-            new SimulatedVehicleStateFactory(properties.vehicle(), INITIAL_LATITUDE,
-                INITIAL_LONGITUDE), SocketFactory.getDefault(), Clock.systemUTC());
+                new SimulatedVehicleStateFactory(properties.vehicle(), INITIAL_LATITUDE,
+                        INITIAL_LONGITUDE),
+                SocketFactory.getDefault(), Clock.systemUTC());
     }
 
     VehicleWorkloadFactory(VehicleSimulatorProperties properties,
-        TelemetryFrameEncoder frameEncoder, SimulatedVehicleStateFactory stateFactory,
-        SocketFactory socketFactory, Clock clock) {
+            TelemetryFrameEncoder frameEncoder, SimulatedVehicleStateFactory stateFactory,
+            SocketFactory socketFactory, Clock clock) {
         this.properties = Objects.requireNonNull(properties, "properties");
         this.frameEncoder = Objects.requireNonNull(frameEncoder, "frameEncoder");
         this.stateFactory = Objects.requireNonNull(stateFactory, "stateFactory");
@@ -49,17 +50,17 @@ public final class VehicleWorkloadFactory implements VehicleWorkloadProvider {
     public VehicleWorkload create(ProvisionedVehicle vehicle) {
         Objects.requireNonNull(vehicle, "vehicle");
         GatewayProperties gateway = properties.gateway();
-        VehicleConnection tcpConnection =
-            new VehicleTcpClient(gateway.host(), gateway.port(), frameEncoder, socketFactory,
+        VehicleConnection tcpConnection = new VehicleTcpClient(gateway.host(), gateway.port(),
+                frameEncoder, socketFactory,
                 gateway.connectTimeout());
-        VehicleConnection reconnectingConnection =
-            new ReconnectingVehicleConnection(vehicle.externalCode(), tcpConnection,
+        VehicleConnection reconnectingConnection = new ReconnectingVehicleConnection(
+                vehicle.externalCode(), tcpConnection,
                 properties.reconnect());
         RandomGenerator random = new SplittableRandom(vehicle.vehicleId().getMostSignificantBits() ^
-            vehicle.vehicleId().getLeastSignificantBits());
-        TelemetryProfile profile =
-            new NormalTelemetryProfile(properties.sendInterval(), clock, random, UUID::randomUUID);
+                vehicle.vehicleId().getLeastSignificantBits());
+        TelemetryProfile profile = new NormalTelemetryProfile(properties.sendInterval(), clock,
+                random, UUID::randomUUID);
         return new VehicleWorkload(stateFactory.create(vehicle), reconnectingConnection, profile,
-            properties.sendInterval());
+                properties.sendInterval());
     }
 }

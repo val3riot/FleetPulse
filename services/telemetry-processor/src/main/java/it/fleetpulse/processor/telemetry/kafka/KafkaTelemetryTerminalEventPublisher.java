@@ -17,7 +17,7 @@ public final class KafkaTelemetryTerminalEventPublisher implements TelemetryTerm
     private final Duration confirmationTimeout;
 
     public KafkaTelemetryTerminalEventPublisher(KafkaTemplate<String, Object> kafkaTemplate,
-        KafkaTopicsProperties topics, KafkaTerminalPublishingProperties properties) {
+            KafkaTopicsProperties topics, KafkaTerminalPublishingProperties properties) {
         this.kafkaTemplate = Objects.requireNonNull(kafkaTemplate);
         this.topics = Objects.requireNonNull(topics);
         this.confirmationTimeout = Objects.requireNonNull(properties).confirmationTimeout();
@@ -40,7 +40,7 @@ public final class KafkaTelemetryTerminalEventPublisher implements TelemetryTerm
     private void publish(String topic, String key, Object event) {
         try {
             kafkaTemplate.send(topic, key, event)
-                .get(confirmationTimeout.toMillis(), TimeUnit.MILLISECONDS);
+                    .get(confirmationTimeout.toMillis(), TimeUnit.MILLISECONDS);
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
 
@@ -51,8 +51,8 @@ public final class KafkaTelemetryTerminalEventPublisher implements TelemetryTerm
     }
 
     private static TelemetryTerminalPublicationException publicationFailure(String topic,
-        Exception cause) {
+            Exception cause) {
         return new TelemetryTerminalPublicationException(
-            "Terminal event publication failed: topic=" + topic, cause);
+                "Terminal event publication failed: topic=" + topic, cause);
     }
 }

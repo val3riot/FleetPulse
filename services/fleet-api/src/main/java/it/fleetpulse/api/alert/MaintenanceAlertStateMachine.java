@@ -11,7 +11,7 @@ import java.util.Objects;
 public class MaintenanceAlertStateMachine {
 
     public boolean transition(MaintenanceAlertEntity alert, AlertStatusTarget target,
-        Instant transitionedAt) {
+            Instant transitionedAt) {
         Objects.requireNonNull(alert);
         Objects.requireNonNull(target);
         Objects.requireNonNull(transitionedAt);
@@ -27,7 +27,7 @@ public class MaintenanceAlertStateMachine {
             return true;
         }
         if ((current == AlertStatus.OPEN || current == AlertStatus.ACKNOWLEDGED)
-            && target == AlertStatusTarget.CLOSED) {
+                && target == AlertStatusTarget.CLOSED) {
             alert.close(transitionedAt);
             return true;
         }

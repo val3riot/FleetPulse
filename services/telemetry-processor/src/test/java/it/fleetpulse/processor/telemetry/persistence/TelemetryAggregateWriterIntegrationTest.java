@@ -32,10 +32,8 @@ import static org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTest
 @ActiveProfiles("test")
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class TelemetryAggregateWriterIntegrationTest extends PostgreSqlIntegrationSupport {
-    private static final UUID VEHICLE_ID =
-        UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0");
-    private static final UUID MESSAGE_ID =
-        UUID.fromString("dc0fc799-0913-4e72-bd2d-8ee8ccf52e22");
+    private static final UUID VEHICLE_ID = UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0");
+    private static final UUID MESSAGE_ID = UUID.fromString("dc0fc799-0913-4e72-bd2d-8ee8ccf52e22");
     private static final Instant CREATED_AT = Instant.parse("2026-08-01T10:15:30.150Z");
 
     @Autowired
@@ -53,10 +51,10 @@ class TelemetryAggregateWriterIntegrationTest extends PostgreSqlIntegrationSuppo
     @BeforeEach
     void insertVehicle() {
         jdbc.update("""
-            INSERT INTO vehicles (id, external_code, plate, status, service_interval_km,
-                next_service_at_km, created_at)
-            VALUES (?, 'VAN-AGGREGATE', 'FP034AA', 'ACTIVE', 15000, 90000, ?)
-            """, VEHICLE_ID, OffsetDateTime.ofInstant(CREATED_AT, ZoneOffset.UTC));
+                INSERT INTO vehicles (id, external_code, plate, status, service_interval_km,
+                    next_service_at_km, created_at)
+                VALUES (?, 'VAN-AGGREGATE', 'FP034AA', 'ACTIVE', 15000, 90000, ?)
+                """, VEHICLE_ID, OffsetDateTime.ofInstant(CREATED_AT, ZoneOffset.UTC));
     }
 
     @AfterEach
@@ -78,11 +76,10 @@ class TelemetryAggregateWriterIntegrationTest extends PostgreSqlIntegrationSuppo
 
     @Test
     void persistsSampleAndAlertInSameAggregate() {
-        AlertCandidate candidate =
-            candidate(AlertType.ENGINE_TEMPERATURE_HIGH, AlertSeverity.HIGH);
+        AlertCandidate candidate = candidate(AlertType.ENGINE_TEMPERATURE_HIGH, AlertSeverity.HIGH);
 
-        TelemetryAggregateWriteResult result =
-            writer.insert(sample(), List.of(candidate), CREATED_AT);
+        TelemetryAggregateWriteResult result = writer.insert(sample(), List.of(candidate),
+                CREATED_AT);
 
         assertThat(result.alerts()).singleElement().satisfies(alert -> {
             assertThat(alert.getId()).isNotNull();
@@ -100,15 +97,15 @@ class TelemetryAggregateWriterIntegrationTest extends PostgreSqlIntegrationSuppo
     @Test
     void persistsMultipleAlertsWithDistinctTypes() {
         List<AlertCandidate> candidates = List.of(
-            candidate(AlertType.ENGINE_TEMPERATURE_HIGH, AlertSeverity.HIGH),
-            candidate(AlertType.BATTERY_VOLTAGE_LOW, AlertSeverity.HIGH),
-            candidate(AlertType.SERVICE_DUE, AlertSeverity.MEDIUM));
+                candidate(AlertType.ENGINE_TEMPERATURE_HIGH, AlertSeverity.HIGH),
+                candidate(AlertType.BATTERY_VOLTAGE_LOW, AlertSeverity.HIGH),
+                candidate(AlertType.SERVICE_DUE, AlertSeverity.MEDIUM));
 
         TelemetryAggregateWriteResult result = writer.insert(sample(), candidates, CREATED_AT);
 
         assertThat(result.alerts()).extracting(MaintenanceAlertEntity::getType)
-            .containsExactlyInAnyOrder(AlertType.ENGINE_TEMPERATURE_HIGH,
-                AlertType.BATTERY_VOLTAGE_LOW, AlertType.SERVICE_DUE);
+                .containsExactlyInAnyOrder(AlertType.ENGINE_TEMPERATURE_HIGH,
+                        AlertType.BATTERY_VOLTAGE_LOW, AlertType.SERVICE_DUE);
         assertThat(alertRepository.count()).isEqualTo(3);
     }
 
@@ -116,10 +113,10 @@ class TelemetryAggregateWriterIntegrationTest extends PostgreSqlIntegrationSuppo
     void rollsBackSampleWhenAlertViolatesCompositeForeignKey() {
         UUID otherVehicleId = UUID.randomUUID();
         AlertCandidate invalidCandidate = new AlertCandidate(otherVehicleId, MESSAGE_ID,
-            AlertType.SERVICE_DUE, AlertSeverity.MEDIUM, "Invalid vehicle association");
+                AlertType.SERVICE_DUE, AlertSeverity.MEDIUM, "Invalid vehicle association");
 
         assertThatThrownBy(() -> writer.insert(sample(), List.of(invalidCandidate), CREATED_AT))
-            .isInstanceOf(DataIntegrityViolationException.class);
+                .isInstanceOf(DataIntegrityViolationException.class);
 
         assertThat(sampleRepository.count()).isZero();
         assertThat(alertRepository.count()).isZero();
@@ -129,24 +126,24 @@ class TelemetryAggregateWriterIntegrationTest extends PostgreSqlIntegrationSuppo
     void databaseRejectsDuplicateSourceAndType() {
         AlertCandidate candidate = candidate(AlertType.SERVICE_DUE, AlertSeverity.MEDIUM);
         writer.insert(sample(), List.of(candidate), CREATED_AT);
-        MaintenanceAlertEntity duplicate =
-            new MaintenanceAlertMapper().toEntity(candidate, CREATED_AT);
+        MaintenanceAlertEntity duplicate = new MaintenanceAlertMapper().toEntity(candidate,
+                CREATED_AT);
 
         assertThatThrownBy(() -> alertRepository.saveAndFlush(duplicate))
-            .isInstanceOf(DataIntegrityViolationException.class)
-            .hasMessageContaining("uq_maintenance_alerts_source_message_type");
+                .isInstanceOf(DataIntegrityViolationException.class)
+                .hasMessageContaining("uq_maintenance_alerts_source_message_type");
         assertThat(alertRepository.count()).isEqualTo(1);
     }
 
     private static TelemetrySampleEntity sample() {
         return new TelemetrySampleEntity(MESSAGE_ID, VEHICLE_ID, 42,
-            Instant.parse("2026-08-01T10:15:30Z"),
-            Instant.parse("2026-08-01T10:15:30.083Z"), CREATED_AT,
-            72.4, 91.8, 12.6, 85_312, 41.9028, 12.4964);
+                Instant.parse("2026-08-01T10:15:30Z"),
+                Instant.parse("2026-08-01T10:15:30.083Z"), CREATED_AT,
+                72.4, 91.8, 12.6, 85_312, 41.9028, 12.4964);
     }
 
     private static AlertCandidate candidate(AlertType type, AlertSeverity severity) {
         return new AlertCandidate(VEHICLE_ID, MESSAGE_ID, type, severity,
-            "Synthetic " + type + " alert");
+                "Synthetic " + type + " alert");
     }
 }

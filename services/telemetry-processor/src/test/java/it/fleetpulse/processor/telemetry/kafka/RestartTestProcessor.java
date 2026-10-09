@@ -19,8 +19,9 @@ import java.util.Properties;
 /** Fork-only fixture: the crash seam is never present in the production artifact. */
 public final class RestartTestProcessor {
     public static void main(String[] args) {
-        new SpringApplicationBuilder(TelemetryProcessorApplication.class, BoundaryConfiguration.class)
-            .run(args);
+        new SpringApplicationBuilder(TelemetryProcessorApplication.class,
+                BoundaryConfiguration.class)
+                .run(args);
     }
 
     @TestConfiguration(proxyBeanMethods = false)
@@ -38,18 +39,20 @@ public final class RestartTestProcessor {
                 evidence.setProperty("partition", Integer.toString(source.partition()));
                 evidence.setProperty("offset", Long.toString(source.offset()));
                 evidence.setProperty("pid", Long.toString(ProcessHandle.current().pid()));
-                for (String name : new String[] {"events", "persisted", "duplicates"}) {
+                for (String name : new String[]{"events", "persisted", "duplicates"}) {
                     evidence.setProperty(name,
-                        Double.toString(registry.get("fleetpulse.processor." + name).counter().count()));
+                            Double.toString(registry.get("fleetpulse.processor." + name).counter()
+                                    .count()));
                 }
-                Path destination = Path.of(environment.getRequiredProperty("restart-test.evidence"));
+                Path destination = Path
+                        .of(environment.getRequiredProperty("restart-test.evidence"));
                 Path temporary = destination.resolveSibling(destination.getFileName() + ".tmp");
                 try {
                     try (var output = Files.newOutputStream(temporary)) {
                         evidence.store(output, "Processor boundary evidence");
                     }
                     Files.move(temporary, destination, StandardCopyOption.REPLACE_EXISTING,
-                        StandardCopyOption.ATOMIC_MOVE);
+                            StandardCopyOption.ATOMIC_MOVE);
                 } catch (IOException failure) {
                     throw new IllegalStateException("Cannot record restart evidence", failure);
                 }

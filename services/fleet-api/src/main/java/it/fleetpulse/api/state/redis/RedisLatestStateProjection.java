@@ -46,11 +46,11 @@ public class RedisLatestStateProjection implements LatestStateProjection, Latest
                 UpdateAttempt result = attemptUpdate(key, candidateJson, candidate);
 
                 switch (result) {
-                    case UPDATED:
+                    case UPDATED :
                         return ProjectionUpdateResult.UPDATED;
-                    case SKIPPED:
+                    case SKIPPED :
                         return ProjectionUpdateResult.SKIPPED;
-                    case CONFLICT:
+                    case CONFLICT :
                         break;
                 }
             }
@@ -78,7 +78,8 @@ public class RedisLatestStateProjection implements LatestStateProjection, Latest
 
             LatestVehicleState state = codec.decode(json);
             if (!vehicleId.equals(state.vehicleId())) {
-                throw new LatestStateProjectionException("Cached vehicle identity does not match key");
+                throw new LatestStateProjectionException(
+                        "Cached vehicle identity does not match key");
             }
             return Optional.of(state);
         } catch (DataAccessException failure) {
@@ -157,8 +158,6 @@ public class RedisLatestStateProjection implements LatestStateProjection, Latest
     }
 
     private enum UpdateAttempt {
-        UPDATED,
-        SKIPPED,
-        CONFLICT
+        UPDATED, SKIPPED, CONFLICT
     }
 }

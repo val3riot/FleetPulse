@@ -53,7 +53,7 @@ class VehicleStateApiIntegrationTest extends PostgreSqlIntegrationSupport {
 
     @Container
     static final GenericContainer<?> REDIS = new GenericContainer<>("redis:8.2.8-alpine")
-        .withExposedPorts(6379);
+            .withExposedPorts(6379);
 
     @DynamicPropertySource
     static void redisProperties(DynamicPropertyRegistry registry) {
@@ -61,14 +61,22 @@ class VehicleStateApiIntegrationTest extends PostgreSqlIntegrationSupport {
         registry.add("spring.data.redis.port", () -> REDIS.getMappedPort(6379));
     }
 
-    @Autowired MockMvc mvc;
-    @Autowired JdbcTemplate jdbc;
-    @Autowired StringRedisTemplate redis;
-    @Autowired RedisLatestStateProjection projection;
-    @Autowired RedisLatestStateCodec codec;
-    @Autowired MeterRegistry metrics;
-    @MockitoSpyBean PostgreSqlLatestSampleQuery samples;
-    @Autowired EntityManagerFactory entityManagerFactory;
+    @Autowired
+    MockMvc mvc;
+    @Autowired
+    JdbcTemplate jdbc;
+    @Autowired
+    StringRedisTemplate redis;
+    @Autowired
+    RedisLatestStateProjection projection;
+    @Autowired
+    RedisLatestStateCodec codec;
+    @Autowired
+    MeterRegistry metrics;
+    @MockitoSpyBean
+    PostgreSqlLatestSampleQuery samples;
+    @Autowired
+    EntityManagerFactory entityManagerFactory;
 
     @BeforeEach
     void setup() {
@@ -77,10 +85,10 @@ class VehicleStateApiIntegrationTest extends PostgreSqlIntegrationSupport {
         jdbc.update("DELETE FROM vehicles");
         redis.delete(KEY);
         jdbc.update("""
-            INSERT INTO vehicles (id, external_code, plate, status, service_interval_km,
-                                  next_service_at_km, created_at)
-            VALUES (?, 'STATE-1', 'FP031AA', 'DISABLED', 15000, 90000, ?)
-            """, ID, Timestamp.from(NOW));
+                INSERT INTO vehicles (id, external_code, plate, status, service_interval_km,
+                                      next_service_at_km, created_at)
+                VALUES (?, 'STATE-1', 'FP031AA', 'DISABLED', 15000, 90000, ?)
+                """, ID, Timestamp.from(NOW));
     }
 
     @Test
@@ -89,18 +97,18 @@ class VehicleStateApiIntegrationTest extends PostgreSqlIntegrationSupport {
         double misses = count("misses");
         double fallbacks = count("fallback");
         String first = mvc.perform(get(PATH)).andExpect(status().isOk())
-            .andExpect(jsonPath("$.length()").value(10))
-            .andExpect(jsonPath("$.vehicleId").value(ID.toString()))
-            .andExpect(jsonPath("$.lastSequenceNumber").value(42))
-            .andExpect(jsonPath("$.lastSeenAt").value(NOW.minusSeconds(30).toString()))
-            .andExpect(jsonPath("$.stale").value(false))
-            .andExpect(jsonPath("$.speedKmh").value(72.4))
-            .andExpect(jsonPath("$.engineTemperatureC").value(91.8))
-            .andExpect(jsonPath("$.batteryVoltage").value(12.6))
-            .andExpect(jsonPath("$.odometerKm").value(85312))
-            .andExpect(jsonPath("$.latitude").value(41.9))
-            .andExpect(jsonPath("$.longitude").value(12.4))
-            .andReturn().getResponse().getContentAsString();
+                .andExpect(jsonPath("$.length()").value(10))
+                .andExpect(jsonPath("$.vehicleId").value(ID.toString()))
+                .andExpect(jsonPath("$.lastSequenceNumber").value(42))
+                .andExpect(jsonPath("$.lastSeenAt").value(NOW.minusSeconds(30).toString()))
+                .andExpect(jsonPath("$.stale").value(false))
+                .andExpect(jsonPath("$.speedKmh").value(72.4))
+                .andExpect(jsonPath("$.engineTemperatureC").value(91.8))
+                .andExpect(jsonPath("$.batteryVoltage").value(12.6))
+                .andExpect(jsonPath("$.odometerKm").value(85312))
+                .andExpect(jsonPath("$.latitude").value(41.9))
+                .andExpect(jsonPath("$.longitude").value(12.4))
+                .andReturn().getResponse().getContentAsString();
         assertThat(count("misses")).isEqualTo(misses + 1);
         assertThat(count("fallback")).isEqualTo(fallbacks + 1);
         assertThat(redis.getExpire(KEY)).isBetween(1L, 300L);
@@ -139,27 +147,27 @@ class VehicleStateApiIntegrationTest extends PostgreSqlIntegrationSupport {
         insert(ID, NOW.minusSeconds(1), 2, 30);
         insert(ID, NOW.minusSeconds(1), 1, 40);
         mvc.perform(get(PATH)).andExpect(status().isOk())
-            .andExpect(jsonPath("$.lastSequenceNumber").value(2))
-            .andExpect(jsonPath("$.speedKmh").value(30));
+                .andExpect(jsonPath("$.lastSequenceNumber").value(2))
+                .andExpect(jsonPath("$.speedKmh").value(30));
     }
 
     @org.junit.jupiter.params.ParameterizedTest
     @org.junit.jupiter.params.provider.CsvSource({"0,false", "61,true"})
     void missingStateAndMissingVehicleAreDifferentAfterCacheExpires(long ageSeconds,
-        boolean stale) throws Exception {
+            boolean stale) throws Exception {
         mvc.perform(get(PATH)).andExpect(status().isNotFound())
-            .andExpect(jsonPath("$.code").value("VEHICLE_STATE_NOT_AVAILABLE"));
+                .andExpect(jsonPath("$.code").value("VEHICLE_STATE_NOT_AVAILABLE"));
         jdbc.update("DELETE FROM vehicles");
         projection.updateIfNewer(state(NOW.minusSeconds(ageSeconds), 42));
         mvc.perform(get(PATH)).andExpect(status().isOk())
-            .andExpect(jsonPath("$.stale").value(stale));
+                .andExpect(jsonPath("$.stale").value(stale));
         redis.expire(KEY, java.time.Duration.ofMillis(300));
         org.awaitility.Awaitility.await().atMost(java.time.Duration.ofSeconds(5))
-            .until(() -> !Boolean.TRUE.equals(redis.hasKey(KEY)));
+                .until(() -> !Boolean.TRUE.equals(redis.hasKey(KEY)));
         mvc.perform(get(PATH)).andExpect(status().isNotFound())
-            .andExpect(jsonPath("$.code").value("VEHICLE_NOT_FOUND"));
+                .andExpect(jsonPath("$.code").value("VEHICLE_NOT_FOUND"));
         mvc.perform(get("/api/v1/vehicles/invalid/state")).andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.code").value("REQUEST_INVALID"));
+                .andExpect(jsonPath("$.code").value("REQUEST_INVALID"));
     }
 
     @Test
@@ -168,8 +176,8 @@ class VehicleStateApiIntegrationTest extends PostgreSqlIntegrationSupport {
         insert(ID, NOW.minusSeconds(61), 42, 72.4);
         double failures = count("failures");
         mvc.perform(get(PATH)).andExpect(status().isOk())
-            .andExpect(jsonPath("$.stale").value(true))
-            .andExpect(jsonPath("$.lastSeenAt").value(NOW.minusSeconds(61).toString()));
+                .andExpect(jsonPath("$.stale").value(true))
+                .andExpect(jsonPath("$.lastSeenAt").value(NOW.minusSeconds(61).toString()));
         assertThat(count("failures")).isEqualTo(failures + 1);
         assertThat(projection.findByVehicleId(ID)).contains(state(NOW.minusSeconds(61), 42));
     }
@@ -192,7 +200,7 @@ class VehicleStateApiIntegrationTest extends PostgreSqlIntegrationSupport {
         redis.opsForValue().set(KEY, codec.encode(other));
         insert(ID, NOW.minusSeconds(5), 42, 72.4);
         mvc.perform(get(PATH)).andExpect(status().isOk())
-            .andExpect(jsonPath("$.vehicleId").value(ID.toString()));
+                .andExpect(jsonPath("$.vehicleId").value(ID.toString()));
         assertThat(projection.findByVehicleId(ID)).contains(state(NOW.minusSeconds(5), 42));
     }
 
@@ -200,37 +208,38 @@ class VehicleStateApiIntegrationTest extends PostgreSqlIntegrationSupport {
     void fallbackDoesNotReadAnotherVehiclesNewerSample() throws Exception {
         UUID other = UUID.randomUUID();
         jdbc.update("""
-            INSERT INTO vehicles (id, external_code, plate, status, service_interval_km,
-                next_service_at_km, created_at)
-            VALUES (?, 'OTHER', 'FP031CC', 'ACTIVE', 15000, 90000, ?)
-            """, other, Timestamp.from(NOW));
+                INSERT INTO vehicles (id, external_code, plate, status, service_interval_km,
+                    next_service_at_km, created_at)
+                VALUES (?, 'OTHER', 'FP031CC', 'ACTIVE', 15000, 90000, ?)
+                """, other, Timestamp.from(NOW));
         insert(other, NOW, 999, 99);
         mvc.perform(get(PATH)).andExpect(status().isNotFound())
-            .andExpect(jsonPath("$.code").value("VEHICLE_STATE_NOT_AVAILABLE"));
+                .andExpect(jsonPath("$.code").value("VEHICLE_STATE_NOT_AVAILABLE"));
         insert(ID, NOW.minusSeconds(1), 42, 72.4);
         mvc.perform(get(PATH)).andExpect(status().isOk())
-            .andExpect(jsonPath("$.lastSequenceNumber").value(42));
+                .andExpect(jsonPath("$.lastSequenceNumber").value(42));
     }
 
     @Test
     void latestStateIndexIsCreatedByMigration() {
         assertThat(jdbc.queryForObject(
-            "SELECT success FROM flyway_schema_history WHERE version = '2'", Boolean.class)).isTrue();
+                "SELECT success FROM flyway_schema_history WHERE version = '2'", Boolean.class))
+                .isTrue();
         assertThat(jdbc.queryForObject("""
-            SELECT indexdef FROM pg_indexes
-            WHERE indexname = 'ix_telemetry_samples_vehicle_latest_state'
-            """, String.class))
-            .contains("vehicle_id, observed_at DESC, sequence_number DESC, id DESC");
+                SELECT indexdef FROM pg_indexes
+                WHERE indexname = 'ix_telemetry_samples_vehicle_latest_state'
+                """, String.class))
+                .contains("vehicle_id, observed_at DESC, sequence_number DESC, id DESC");
     }
 
     void insert(UUID vehicleId, Instant observed, long sequence, double speed) {
         jdbc.update("""
-            INSERT INTO telemetry_samples (message_id, vehicle_id, sequence_number, observed_at,
-                received_at, processed_at, speed_kmh, engine_temperature_c, battery_voltage,
-                odometer_km, latitude, longitude)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 91.8, 12.6, 85312, 41.9, 12.4)
-            """, UUID.randomUUID(), vehicleId, sequence, Timestamp.from(observed),
-            Timestamp.from(NOW), Timestamp.from(NOW), speed);
+                INSERT INTO telemetry_samples (message_id, vehicle_id, sequence_number, observed_at,
+                    received_at, processed_at, speed_kmh, engine_temperature_c, battery_voltage,
+                    odometer_km, latitude, longitude)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 91.8, 12.6, 85312, 41.9, 12.4)
+                """, UUID.randomUUID(), vehicleId, sequence, Timestamp.from(observed),
+                Timestamp.from(NOW), Timestamp.from(NOW), speed);
     }
 
     private LatestVehicleState state(Instant time, long sequence) {
@@ -243,7 +252,10 @@ class VehicleStateApiIntegrationTest extends PostgreSqlIntegrationSupport {
 
     @TestConfiguration(proxyBeanMethods = false)
     static class FixedClock {
-        @Bean @Primary
-        Clock fixedClock() { return Clock.fixed(NOW, ZoneOffset.UTC); }
+        @Bean
+        @Primary
+        Clock fixedClock() {
+            return Clock.fixed(NOW, ZoneOffset.UTC);
+        }
     }
 }

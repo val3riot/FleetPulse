@@ -10,7 +10,5 @@ import java.time.Duration;
 @ConfigurationProperties(prefix = "fleetpulse.kafka.publisher")
 @Validated
 public record KafkaPublisherProperties(
-        @NotNull @DurationMin(millis = 1) Duration confirmationTimeout
-) {
+        @NotNull @DurationMin(millis = 1) Duration confirmationTimeout) {
 }
-

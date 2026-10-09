@@ -11,8 +11,7 @@ public record TcpServerProperties(
         @DefaultValue("7000") int port,
         @DefaultValue("100") int maxConnections,
         @DefaultValue("30s") Duration readTimeout,
-        @DefaultValue("5s") Duration shutdownGracePeriod
-) {
+        @DefaultValue("5s") Duration shutdownGracePeriod) {
 
     public TcpServerProperties {
         if (port < 0 || port > 65_535) {

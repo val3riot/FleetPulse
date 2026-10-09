@@ -19,13 +19,13 @@ class TelemetryAckDecoderEofTest {
     @Test
     void reportsStreamClosedBeforeHeader() {
         assertThrows(FrameStreamClosedException.class,
-            () -> decoder.read(new ByteArrayInputStream(new byte[0])));
+                () -> decoder.read(new ByteArrayInputStream(new byte[0])));
     }
 
     @Test
     void reportsTruncatedHeader() {
         TruncatedFrameHeaderException exception = assertThrows(TruncatedFrameHeaderException.class,
-            () -> decoder.read(new ByteArrayInputStream(new byte[]{0, 0, 1})));
+                () -> decoder.read(new ByteArrayInputStream(new byte[]{0, 0, 1})));
 
         assertEquals(3, exception.bytesRead());
     }
@@ -34,8 +34,8 @@ class TelemetryAckDecoderEofTest {
     void reportsTruncatedPayload() {
         byte[] frame = ByteBuffer.allocate(6).putInt(3).put(new byte[]{'{', '}'}).array();
 
-        TruncatedFramePayloadException exception =
-            assertThrows(TruncatedFramePayloadException.class,
+        TruncatedFramePayloadException exception = assertThrows(
+                TruncatedFramePayloadException.class,
                 () -> decoder.read(new ByteArrayInputStream(frame)));
 
         assertEquals(3, exception.expectedBytes());

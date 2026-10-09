@@ -20,8 +20,9 @@ public class VehicleStateService {
     private final VehicleStateObservability observations;
 
     public VehicleStateService(VehicleRepository vehicles, LatestStateQuery cache,
-        LatestSampleQuery samples, LatestStateProjection repair, VehicleStateProperties properties,
-        Clock clock, VehicleStateObservability observations) {
+            LatestSampleQuery samples, LatestStateProjection repair,
+            VehicleStateProperties properties,
+            Clock clock, VehicleStateObservability observations) {
         this.vehicles = vehicles;
         this.cache = cache;
         this.samples = samples;
@@ -47,7 +48,7 @@ public class VehicleStateService {
 
         LatestVehicleState state = cached.orElseGet(() -> fallback(vehicleId));
         boolean stale = Duration.between(state.lastSeenAt(), clock.instant())
-            .compareTo(properties.staleAfter()) > 0;
+                .compareTo(properties.staleAfter()) > 0;
         return VehicleStateResponse.from(state, stale);
     }
 
@@ -57,7 +58,7 @@ public class VehicleStateService {
             throw new ApplicationException(ErrorCode.VEHICLE_NOT_FOUND);
         }
         LatestVehicleState state = samples.findByVehicleId(vehicleId)
-            .orElseThrow(() -> new ApplicationException(ErrorCode.VEHICLE_STATE_NOT_AVAILABLE));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.VEHICLE_STATE_NOT_AVAILABLE));
         try {
             repair.updateIfNewer(state);
         } catch (LatestStateProjectionException failure) {

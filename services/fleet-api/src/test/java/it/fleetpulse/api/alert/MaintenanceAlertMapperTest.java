@@ -32,8 +32,8 @@ class MaintenanceAlertMapperTest {
         MaintenanceAlertResponse response = new MaintenanceAlertMapper().toResponse(entity);
 
         assertThat(response).isEqualTo(new MaintenanceAlertResponse(id, vehicleId,
-            sourceMessageId, AlertType.ENGINE_TEMPERATURE_HIGH, AlertSeverity.HIGH,
-            "Temperatura motore oltre soglia", AlertStatus.ACKNOWLEDGED, createdAt,
-            acknowledgedAt, null));
+                sourceMessageId, AlertType.ENGINE_TEMPERATURE_HIGH, AlertSeverity.HIGH,
+                "Temperatura motore oltre soglia", AlertStatus.ACKNOWLEDGED, createdAt,
+                acknowledgedAt, null));
     }
 }

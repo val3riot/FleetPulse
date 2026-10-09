@@ -14,7 +14,8 @@ public class TelemetryHistoryRequestValidator {
      * Rifiuta un intervallo la cui fine precede l'inizio.
      */
     public void validate(TelemetryHistoryRequest request) {
-        if (request.from() != null && request.to() != null && request.from().isAfter(request.to())) {
+        if (request.from() != null && request.to() != null
+                && request.from().isAfter(request.to())) {
             throw new ApplicationException(ErrorCode.REQUEST_INVALID_TIME_RANGE);
         }
     }

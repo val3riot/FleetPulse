@@ -19,8 +19,8 @@ class TelemetryDeadLetterEventFactoryTest {
 
     private static final Instant FAILED_AT = Instant.parse("2026-08-17T10:00:00Z");
 
-    private final TelemetryDeadLetterEventFactory factory =
-        new TelemetryDeadLetterEventFactory(Clock.fixed(FAILED_AT, ZoneOffset.UTC),
+    private final TelemetryDeadLetterEventFactory factory = new TelemetryDeadLetterEventFactory(
+            Clock.fixed(FAILED_AT, ZoneOffset.UTC),
             new KafkaOriginalPayloadResolver(new ObjectMapper()),
             new KafkaDeliveryAttemptResolver());
 
@@ -29,7 +29,7 @@ class TelemetryDeadLetterEventFactoryTest {
         ConsumerRecord<String, Map<String, Object>> record = record();
 
         TelemetryDeadLetterEvent event = factory.create(record,
-            new RuntimeException(new UnsupportedTelemetryEventVersionException(99)));
+                new RuntimeException(new UnsupportedTelemetryEventVersionException(99)));
 
         assertThat(event.failedAt()).isEqualTo(FAILED_AT);
         assertThat(event.sourceTopic()).isEqualTo("telemetry.raw.v1");
@@ -47,10 +47,10 @@ class TelemetryDeadLetterEventFactoryTest {
         ConsumerRecord<String, Map<String, Object>> record = record();
 
         record.headers().add(KafkaHeaders.DELIVERY_ATTEMPT,
-            ByteBuffer.allocate(Integer.BYTES).putInt(4).array());
+                ByteBuffer.allocate(Integer.BYTES).putInt(4).array());
 
-        TelemetryDeadLetterEvent event =
-            factory.create(record, new RuntimeException("database unavailable"));
+        TelemetryDeadLetterEvent event = factory.create(record,
+                new RuntimeException("database unavailable"));
 
         assertThat(event.attempts()).isEqualTo(4);
         assertThat(event.errorCode()).isEqualTo("PROCESSING_RETRIES_EXHAUSTED");
@@ -59,6 +59,6 @@ class TelemetryDeadLetterEventFactoryTest {
 
     private static ConsumerRecord<String, Map<String, Object>> record() {
         return new ConsumerRecord<>("telemetry.raw.v1", 1, 42L, "vehicle-id",
-            Map.of("eventVersion", 99, "messageId", "dc0fc799-0913-4e72-bd2d-8ee8ccf52e22"));
+                Map.of("eventVersion", 99, "messageId", "dc0fc799-0913-4e72-bd2d-8ee8ccf52e22"));
     }
 }

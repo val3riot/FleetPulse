@@ -26,8 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
 
-@Tag(name = "Maintenance alerts",
-    description = "Consultazione e transizioni degli alert di manutenzione")
+@Tag(name = "Maintenance alerts", description = "Consultazione e transizioni degli alert di manutenzione")
 @RestController
 @RequestMapping("/api/v1")
 public class MaintenanceAlertController {
@@ -35,97 +34,73 @@ public class MaintenanceAlertController {
     private final MaintenanceAlertCommandService commandService;
 
     public MaintenanceAlertController(MaintenanceAlertService service,
-        MaintenanceAlertCommandService commandService) {
+            MaintenanceAlertCommandService commandService) {
         this.service = service;
         this.commandService = commandService;
     }
 
     @Operation(summary = "Elenca gli alert di un veicolo")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Pagina di alert"),
-        @ApiResponse(responseCode = "400", description = "Filtri non validi",
-            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
-        @ApiResponse(responseCode = "404", description = "Veicolo non trovato",
-            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
-        @ApiResponse(responseCode = "500", description = "Errore interno",
-            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
-        @ApiResponse(responseCode = "503", description = "Servizio non disponibile",
-            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+            @ApiResponse(responseCode = "200", description = "Pagina di alert"),
+            @ApiResponse(responseCode = "400", description = "Filtri non validi", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Veicolo non trovato", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "500", description = "Errore interno", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "503", description = "Servizio non disponibile", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
     })
-    @GetMapping(path = "/vehicles/{vehicleId}/alerts",
-        produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(path = "/vehicles/{vehicleId}/alerts", produces = MediaType.APPLICATION_JSON_VALUE)
     public PagedResponse<MaintenanceAlertResponse> findByVehicleId(
-        @Parameter(required = true, description = "Identificativo UUID del veicolo")
-        @PathVariable UUID vehicleId,
-        @Valid @ParameterObject @ModelAttribute MaintenanceAlertSearchRequest request) {
+            @Parameter(required = true, description = "Identificativo UUID del veicolo") @PathVariable UUID vehicleId,
+            @Valid @ParameterObject @ModelAttribute MaintenanceAlertSearchRequest request) {
         return service.findByVehicleId(vehicleId, request);
     }
 
     @Operation(summary = "Elenca e filtra gli alert")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Pagina di alert"),
-        @ApiResponse(responseCode = "400", description = "Filtri non validi",
-            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
-        @ApiResponse(responseCode = "500", description = "Errore interno",
-            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
-        @ApiResponse(responseCode = "503", description = "Servizio non disponibile",
-            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+            @ApiResponse(responseCode = "200", description = "Pagina di alert"),
+            @ApiResponse(responseCode = "400", description = "Filtri non validi", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "500", description = "Errore interno", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "503", description = "Servizio non disponibile", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
     })
     @GetMapping(path = "/alerts", produces = MediaType.APPLICATION_JSON_VALUE)
     public PagedResponse<MaintenanceAlertResponse> search(
-        @Parameter(description = "Identificativo UUID del veicolo")
-        @RequestParam(required = false) UUID vehicleId,
-        @Valid @ParameterObject @ModelAttribute MaintenanceAlertSearchRequest request) {
+            @Parameter(description = "Identificativo UUID del veicolo") @RequestParam(required = false) UUID vehicleId,
+            @Valid @ParameterObject @ModelAttribute MaintenanceAlertSearchRequest request) {
         return service.search(vehicleId, request);
     }
 
     @Operation(summary = "Restituisce il dettaglio di un alert")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Dettaglio dell'alert",
-            content = @Content(schema = @Schema(implementation = MaintenanceAlertResponse.class))),
-        @ApiResponse(responseCode = "400", description = "UUID non valido",
-            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
-        @ApiResponse(responseCode = "404", description = "Alert non trovato",
-            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
-        @ApiResponse(responseCode = "500", description = "Errore interno",
-            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
-        @ApiResponse(responseCode = "503", description = "Servizio non disponibile",
-            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+            @ApiResponse(responseCode = "200", description = "Dettaglio dell'alert", content = @Content(schema = @Schema(implementation = MaintenanceAlertResponse.class))),
+            @ApiResponse(responseCode = "400", description = "UUID non valido", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Alert non trovato", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "500", description = "Errore interno", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "503", description = "Servizio non disponibile", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
     })
     @GetMapping(path = "/alerts/{alertId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public MaintenanceAlertResponse findById(
-        @Parameter(required = true, description = "Identificativo UUID dell'alert")
-        @PathVariable UUID alertId) {
+            @Parameter(required = true, description = "Identificativo UUID dell'alert") @PathVariable UUID alertId) {
         return service.findById(alertId);
     }
 
     @Operation(summary = "Modifica lo stato di un alert")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Alert aggiornato",
-            content = @Content(schema = @Schema(implementation = MaintenanceAlertResponse.class))),
-        @ApiResponse(responseCode = "400", description = "Richiesta non valida",
-            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
-        @ApiResponse(responseCode = "404", description = "Alert non trovato",
-            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
-        @ApiResponse(responseCode = "409", description = "Transizione non consentita",
-            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
-        @ApiResponse(responseCode = "500", description = "Errore interno",
-            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
-        @ApiResponse(responseCode = "503", description = "Servizio non disponibile",
-            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+            @ApiResponse(responseCode = "200", description = "Alert aggiornato", content = @Content(schema = @Schema(implementation = MaintenanceAlertResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Richiesta non valida", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Alert non trovato", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "409", description = "Transizione non consentita", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "500", description = "Errore interno", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "503", description = "Servizio non disponibile", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
     })
-    @PatchMapping(path = "/alerts/{alertId}", consumes = MediaType.APPLICATION_JSON_VALUE,
-        produces = MediaType.APPLICATION_JSON_VALUE)
+    @PatchMapping(path = "/alerts/{alertId}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public MaintenanceAlertResponse changeStatus(
-        @Parameter(required = true, description = "Identificativo UUID dell'alert")
-        @PathVariable UUID alertId,
-        @Valid @RequestBody ChangeAlertStatusRequest request) {
+            @Parameter(required = true, description = "Identificativo UUID dell'alert") @PathVariable UUID alertId,
+            @Valid @RequestBody ChangeAlertStatusRequest request) {
         return commandService.changeStatus(alertId, request);
     }
     @InitBinder("maintenanceAlertSearchRequest")
     void validateQueryParameters(HttpServletRequest request) {
         QueryParameterValidator.validate(request,
-            "vehicleId", "status", "type", "severity", "from", "to", "page", "size", "sort");
+                "vehicleId", "status", "type", "severity", "from", "to", "page", "size", "sort");
     }
 
 }

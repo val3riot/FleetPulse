@@ -11,9 +11,8 @@ public class AlertRuleConfiguration {
     @Bean
     AlertEvaluator alertEvaluator(AlertThresholdProperties properties) {
         return new AlertEvaluator(List.of(
-            new EngineTemperatureRule(properties.maximumEngineTemperatureC()),
-            new BatteryVoltageRule(properties.minimumBatteryVoltage()),
-            new ServiceDueRule()
-        ));
+                new EngineTemperatureRule(properties.maximumEngineTemperatureC()),
+                new BatteryVoltageRule(properties.minimumBatteryVoltage()),
+                new ServiceDueRule()));
     }
 }

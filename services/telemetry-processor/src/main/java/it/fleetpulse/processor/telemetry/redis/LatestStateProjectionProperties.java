@@ -12,8 +12,7 @@ import jakarta.validation.constraints.NotNull;
 @ConfigurationProperties(prefix = "fleetpulse.telemetry.latest-state")
 @Validated
 public record LatestStateProjectionProperties(
-        @NotNull @DurationMin (millis = 1) Duration ttl,
-        @Min(1) int maxAttempts
-) {
+        @NotNull @DurationMin(millis = 1) Duration ttl,
+        @Min(1) int maxAttempts) {
 
 }

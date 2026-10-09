@@ -71,8 +71,8 @@ class VehicleEligibilityProcessingIntegrationTest extends PostgreSqlIntegrationS
     static void createTopics() throws Exception {
         try (AdminClient admin = adminClient()) {
             admin.createTopics(List.of(new NewTopic(RAW_TOPIC, 1, (short) 1),
-                new NewTopic(REJECTED_TOPIC, 1, (short) 1),
-                new NewTopic(DEAD_LETTER_TOPIC, 1, (short) 1))).all().get(10, TimeUnit.SECONDS);
+                    new NewTopic(REJECTED_TOPIC, 1, (short) 1),
+                    new NewTopic(DEAD_LETTER_TOPIC, 1, (short) 1))).all().get(10, TimeUnit.SECONDS);
         }
     }
 
@@ -127,16 +127,16 @@ class VehicleEligibilityProcessingIntegrationTest extends PostgreSqlIntegrationS
     }
 
     private void assertRejected(TelemetryEvent event,
-        TelemetryRejectionReason reason) throws Exception {
+            TelemetryRejectionReason reason) throws Exception {
         try (KafkaConsumer<String, String> consumer = rejectedConsumer()) {
             TopicPartition rejectedPartition = new TopicPartition(REJECTED_TOPIC, 0);
             consumer.assign(List.of(rejectedPartition));
             consumer.seekToBeginning(List.of(rejectedPartition));
 
             var sendResult = kafkaTemplate.send(RAW_TOPIC, event.vehicleId().toString(), event)
-                .get(10, TimeUnit.SECONDS);
-            TopicPartition sourcePartition =
-                new TopicPartition(RAW_TOPIC, sendResult.getRecordMetadata().partition());
+                    .get(10, TimeUnit.SECONDS);
+            TopicPartition sourcePartition = new TopicPartition(RAW_TOPIC,
+                    sendResult.getRecordMetadata().partition());
 
             ConsumerRecord<String, String> rejected = awaitRejected(consumer, event.messageId());
             JsonNode json = objectMapper.readTree(rejected.value());
@@ -146,7 +146,7 @@ class VehicleEligibilityProcessingIntegrationTest extends PostgreSqlIntegrationS
             assertThat(json.get("sourceTopic").stringValue()).isEqualTo(RAW_TOPIC);
             assertThat(json.get("sourcePartition").asInt()).isEqualTo(sourcePartition.partition());
             assertThat(json.get("sourceOffset").asLong()).isEqualTo(
-                sendResult.getRecordMetadata().offset());
+                    sendResult.getRecordMetadata().offset());
             assertThat(sampleCount(event.messageId())).isZero();
 
             awaitCommittedOffset(sourcePartition, sendResult.getRecordMetadata().offset() + 1);
@@ -154,7 +154,7 @@ class VehicleEligibilityProcessingIntegrationTest extends PostgreSqlIntegrationS
     }
 
     private ConsumerRecord<String, String> awaitRejected(KafkaConsumer<String, String> consumer,
-        UUID messageId) {
+            UUID messageId) {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
 
         while (System.nanoTime() < deadline) {
@@ -183,13 +183,13 @@ class VehicleEligibilityProcessingIntegrationTest extends PostgreSqlIntegrationS
     }
 
     private static void awaitCommittedOffset(TopicPartition partition,
-        long expectedOffset) throws Exception {
+            long expectedOffset) throws Exception {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
 
         while (System.nanoTime() < deadline) {
             try (AdminClient admin = adminClient()) {
-                var committed =
-                    admin.listConsumerGroupOffsets(GROUP_ID).partitionsToOffsetAndMetadata()
+                var committed = admin.listConsumerGroupOffsets(GROUP_ID)
+                        .partitionsToOffsetAndMetadata()
                         .get(10, TimeUnit.SECONDS).get(partition);
                 if (committed != null && committed.offset() >= expectedOffset) {
                     return;
@@ -208,26 +208,26 @@ class VehicleEligibilityProcessingIntegrationTest extends PostgreSqlIntegrationS
                     next_service_at_km, created_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?)
                 """, vehicleId, "VEHICLE-" + vehicleId, vehicleId.toString().substring(0, 8),
-            status,
-            15_000, 90_000L, OffsetDateTime.now(ZoneOffset.UTC));
+                status,
+                15_000, 90_000L, OffsetDateTime.now(ZoneOffset.UTC));
     }
 
     private int sampleCount(UUID messageId) {
         return jdbcTemplate.queryForObject(
-            "SELECT COUNT(*) FROM telemetry_samples WHERE message_id = ?", Integer.class,
-            messageId);
+                "SELECT COUNT(*) FROM telemetry_samples WHERE message_id = ?", Integer.class,
+                messageId);
     }
 
     private double rejectionCount(TelemetryRejectionReason reason) {
         return meterRegistry.get("fleetpulse.processor.rejections").tag("reason", reason.name())
-            .counter().count();
+                .counter().count();
     }
 
     private static TelemetryEvent event(UUID vehicleId) {
         Instant now = Instant.parse("2026-08-17T12:00:00Z");
         return new TelemetryEvent(TelemetryEventVersions.V1, UUID.randomUUID(), vehicleId, 42,
-            now.minusSeconds(1), now,
-            new TelemetryData(72.4, 91.8, 12.6, 85_312, 41.9028, 12.4964));
+                now.minusSeconds(1), now,
+                new TelemetryData(72.4, 91.8, 12.6, 85_312, 41.9028, 12.4964));
     }
 
     private static KafkaConsumer<String, String> rejectedConsumer() {
@@ -240,6 +240,6 @@ class VehicleEligibilityProcessingIntegrationTest extends PostgreSqlIntegrationS
 
     private static AdminClient adminClient() {
         return AdminClient.create(
-            Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers()));
+                Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers()));
     }
 }

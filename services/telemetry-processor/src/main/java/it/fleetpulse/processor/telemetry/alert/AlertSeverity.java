@@ -1,8 +1,5 @@
 package it.fleetpulse.processor.telemetry.alert;
 
 public enum AlertSeverity {
-    LOW,
-    MEDIUM,
-    HIGH,
-    CRITICAL
+    LOW, MEDIUM, HIGH, CRITICAL
 }

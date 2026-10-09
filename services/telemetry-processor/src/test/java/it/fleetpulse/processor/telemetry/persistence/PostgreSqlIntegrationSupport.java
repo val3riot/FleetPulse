@@ -15,20 +15,22 @@ import static org.mockito.Mockito.when;
 
 @Testcontainers
 public abstract class PostgreSqlIntegrationSupport {
-    // This test profile excludes Redis auto-configuration; adapter tests use a real Redis separately.
+    // This test profile excludes Redis auto-configuration; adapter tests use a real Redis
+    // separately.
     @MockitoBean
     protected RedisLatestStateProjection latestStateProjection;
 
     @BeforeEach
     void stubProjection() {
         when(latestStateProjection.updateIfNewer(any()))
-            .thenReturn(ProjectionUpdateResult.UPDATED);
+                .thenReturn(ProjectionUpdateResult.UPDATED);
     }
 
     @Container
-    protected static final PostgreSQLContainer POSTGRESQL =
-        new PostgreSQLContainer("postgres:17.10-alpine3.23").withDatabaseName(
-            "fleetpulse_processor_test").withUsername("fleetpulse").withPassword("fleetpulse_test");
+    protected static final PostgreSQLContainer POSTGRESQL = new PostgreSQLContainer(
+            "postgres:17.10-alpine3.23").withDatabaseName(
+                    "fleetpulse_processor_test")
+            .withUsername("fleetpulse").withPassword("fleetpulse_test");
 
     @DynamicPropertySource
     static void postgresProperties(DynamicPropertyRegistry registry) {

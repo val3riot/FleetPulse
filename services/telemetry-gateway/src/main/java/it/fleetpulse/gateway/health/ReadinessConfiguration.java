@@ -17,14 +17,17 @@ public class ReadinessConfiguration {
     KafkaReadinessHealthIndicator kafkaHealthIndicator(KafkaAdmin admin,
             @Value("${fleetpulse.kafka.topics.raw}") String topic,
             @Value("${fleetpulse.health.kafka-timeout:1s}") Duration timeout) {
-        return new KafkaReadinessHealthIndicator(admin.getConfigurationProperties(), List.of(topic), timeout);
+        return new KafkaReadinessHealthIndicator(admin.getConfigurationProperties(), List.of(topic),
+                timeout);
     }
 
     @Bean
     HealthIndicator tcpHealthIndicator(ObjectProvider<TcpServerLifecycle> lifecycle) {
         return () -> {
             TcpServerLifecycle server = lifecycle.getIfAvailable();
-            return server != null && server.isRunning() ? Health.up().build() : Health.down().build();
+            return server != null && server.isRunning()
+                    ? Health.up().build()
+                    : Health.down().build();
         };
     }
 }

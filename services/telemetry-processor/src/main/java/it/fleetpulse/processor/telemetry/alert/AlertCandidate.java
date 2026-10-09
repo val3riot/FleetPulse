@@ -8,8 +8,7 @@ public record AlertCandidate(
         UUID sourceMessageId,
         AlertType type,
         AlertSeverity severity,
-        String description
-) {
+        String description) {
     public static final int MAX_DESCRIPTION_LENGTH = 255;
 
     public AlertCandidate {

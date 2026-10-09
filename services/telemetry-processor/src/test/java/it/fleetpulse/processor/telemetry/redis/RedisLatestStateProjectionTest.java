@@ -35,7 +35,7 @@ class RedisLatestStateProjectionTest {
     private final ValueOperations<String, String> values = mock(ValueOperations.class);
     private final RedisLatestStateCodec codec = new RedisLatestStateCodec();
     private final LatestVehicleState candidate = new LatestVehicleState(UUID.randomUUID(), 10,
-        Instant.parse("2026-08-01T10:15:30Z"), 72.4, 91.8, 12.6, 85312, 41.9028, 12.4964);
+            Instant.parse("2026-08-01T10:15:30Z"), 72.4, 91.8, 12.6, 85312, 41.9028, 12.4964);
     private final String key = "vehicle:last:" + candidate.vehicleId();
 
     @BeforeEach
@@ -60,7 +60,7 @@ class RedisLatestStateProjectionTest {
     @Test
     void conflictRereadsStateAndCanSkipCandidateSupersededByAnotherWriter() {
         var newer = new LatestVehicleState(candidate.vehicleId(), 1,
-            candidate.lastSeenAt().plusSeconds(1), 80, 90, 12, 86000, 42, 13);
+                candidate.lastSeenAt().plusSeconds(1), 80, 90, 12, 86000, 42, 13);
         when(values.get(key)).thenReturn(null, codec.encode(newer));
         when(redis.exec()).thenReturn(null);
 
@@ -75,7 +75,7 @@ class RedisLatestStateProjectionTest {
 
     @Test
     void conflictCanBeFollowedBySuccessfulWrite() {
-        when(redis.exec()).thenReturn(Collections.emptyList(), List.of(true));
+        when(redis.exec()).thenReturn(Collections.emptyList()).thenReturn(List.of(true));
 
         assertThat(projection(2).updateIfNewer(candidate)).isEqualTo(UPDATED);
 
@@ -88,8 +88,8 @@ class RedisLatestStateProjectionTest {
         when(redis.exec()).thenReturn(null);
 
         assertThatThrownBy(() -> projection(3).updateIfNewer(candidate))
-            .isInstanceOf(LatestStateProjectionException.class)
-            .hasMessageContaining("attempts exhausted");
+                .isInstanceOf(LatestStateProjectionException.class)
+                .hasMessageContaining("attempts exhausted");
 
         verify(redis, times(3)).watch(key);
         verify(redis, times(3)).exec();
@@ -100,7 +100,7 @@ class RedisLatestStateProjectionTest {
         when(redis.exec()).thenReturn(null);
 
         assertThatThrownBy(() -> projection(1).updateIfNewer(candidate))
-            .isInstanceOf(LatestStateProjectionException.class);
+                .isInstanceOf(LatestStateProjectionException.class);
 
         verify(redis).exec();
     }
@@ -111,7 +111,7 @@ class RedisLatestStateProjectionTest {
         when(values.get(key)).thenThrow(failure);
 
         assertThatThrownBy(() -> projection(3).findByVehicleId(candidate.vehicleId()))
-            .isInstanceOf(LatestStateProjectionException.class).hasCause(failure);
+                .isInstanceOf(LatestStateProjectionException.class).hasCause(failure);
     }
 
     @Test
@@ -120,7 +120,7 @@ class RedisLatestStateProjectionTest {
         when(values.get(key)).thenThrow(failure);
 
         assertThatThrownBy(() -> projection(3).updateIfNewer(candidate))
-            .isInstanceOf(LatestStateProjectionException.class).hasCause(failure);
+                .isInstanceOf(LatestStateProjectionException.class).hasCause(failure);
 
         verify(redis).watch(key);
         verify(redis).unwatch();
@@ -133,7 +133,7 @@ class RedisLatestStateProjectionTest {
         when(values.get(key)).thenReturn("{broken");
 
         assertThatThrownBy(() -> projection(3).updateIfNewer(candidate))
-            .isInstanceOf(LatestStateProjectionException.class);
+                .isInstanceOf(LatestStateProjectionException.class);
 
         verify(redis).unwatch();
         verify(redis, never()).multi();
@@ -145,7 +145,7 @@ class RedisLatestStateProjectionTest {
         doThrow(failure).when(values).set(key, codec.encode(candidate), TTL);
 
         assertThatThrownBy(() -> projection(3).updateIfNewer(candidate))
-            .isInstanceOf(LatestStateProjectionException.class).hasCause(failure);
+                .isInstanceOf(LatestStateProjectionException.class).hasCause(failure);
 
         verify(redis).discard();
         verify(redis, never()).exec();
@@ -160,7 +160,7 @@ class RedisLatestStateProjectionTest {
         doThrow(cleanupFailure).when(redis).discard();
 
         assertThatThrownBy(() -> projection(3).updateIfNewer(candidate))
-            .isInstanceOf(LatestStateProjectionException.class).hasCause(failure);
+                .isInstanceOf(LatestStateProjectionException.class).hasCause(failure);
 
         assertThat(failure.getSuppressed()).containsExactly(cleanupFailure);
         verify(redis).exec();
@@ -169,6 +169,6 @@ class RedisLatestStateProjectionTest {
 
     private RedisLatestStateProjection projection(int maxAttempts) {
         return new RedisLatestStateProjection(redis, codec,
-            new LatestStateProjectionProperties(TTL, maxAttempts));
+                new LatestStateProjectionProperties(TTL, maxAttempts));
     }
 }

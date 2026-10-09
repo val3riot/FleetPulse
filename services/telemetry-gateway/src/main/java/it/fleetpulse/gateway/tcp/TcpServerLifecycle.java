@@ -37,8 +37,8 @@ public final class TcpServerLifecycle implements SmartLifecycle {
                     bindResult.completeExceptionally(exception);
                 } else if (!bindResult.isCompletedExceptionally()) {
                     log.atError().addKeyValue("event.action", "tcp.server.terminated.unexpectedly")
-                        .addKeyValue("errorType", exception.getClass().getSimpleName())
-                        .log("TCP server terminated unexpectedly");
+                            .addKeyValue("errorType", exception.getClass().getSimpleName())
+                            .log("TCP server terminated unexpectedly");
                 }
             } finally {
                 running = false;
@@ -47,14 +47,14 @@ public final class TcpServerLifecycle implements SmartLifecycle {
         try {
             int boundPort = bindResult.join();
             log.atInfo().addKeyValue("event.action", "tcp.listener.lifecycle.started")
-                .addKeyValue("port", boundPort)
-                .log("TCP listener lifecycle started: port={}", boundPort);
+                    .addKeyValue("port", boundPort)
+                    .log("TCP listener lifecycle started: port={}", boundPort);
         } catch (CompletionException exception) {
             running = false;
             tcpServer.close();
             joinServerThread();
             throw new ApplicationContextException("Unable to bind FleetPulse TCP listener",
-                exception.getCause());
+                    exception.getCause());
         }
     }
 
@@ -89,15 +89,15 @@ public final class TcpServerLifecycle implements SmartLifecycle {
             serverThread.join(LISTENER_JOIN_TIMEOUT_MILLIS);
             if (serverThread.isAlive()) {
                 log.atWarn().addKeyValue("event.action", "tcp.listener.thread.did.not.stop.within")
-                    .log("TCP listener thread did not stop within {} ms",
-                    LISTENER_JOIN_TIMEOUT_MILLIS);
+                        .log("TCP listener thread did not stop within {} ms",
+                                LISTENER_JOIN_TIMEOUT_MILLIS);
                 serverThread.interrupt();
             }
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
             log.atWarn().addKeyValue("event.action",
-                "interrupted.while.waiting.for.tcp.listener.thread.to.stop")
-                .log("Interrupted while waiting for TCP listener thread to stop");
+                    "interrupted.while.waiting.for.tcp.listener.thread.to.stop")
+                    .log("Interrupted while waiting for TCP listener thread to stop");
         }
     }
 }

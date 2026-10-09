@@ -11,10 +11,9 @@ class AlertEvaluatorTest {
     private static final UUID VEHICLE_ID = UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0");
     private static final UUID MESSAGE_ID = UUID.fromString("dc0fc799-0913-4e72-bd2d-8ee8ccf52e22");
     private final AlertEvaluator evaluator = new AlertEvaluator(List.of(
-        new EngineTemperatureRule(110.0),
-        new BatteryVoltageRule(11.8),
-        new ServiceDueRule()
-    ));
+            new EngineTemperatureRule(110.0),
+            new BatteryVoltageRule(11.8),
+            new ServiceDueRule()));
 
     @Test
     void returnsNoCandidatesWhenNoRuleMatches() {
@@ -32,10 +31,9 @@ class AlertEvaluatorTest {
         var secondEvaluation = evaluator.evaluate(vehicle, sample);
 
         assertThat(firstEvaluation).extracting(AlertCandidate::type).containsExactly(
-            AlertType.ENGINE_TEMPERATURE_HIGH,
-            AlertType.BATTERY_VOLTAGE_LOW,
-            AlertType.SERVICE_DUE
-        );
+                AlertType.ENGINE_TEMPERATURE_HIGH,
+                AlertType.BATTERY_VOLTAGE_LOW,
+                AlertType.SERVICE_DUE);
         assertThat(secondEvaluation).isEqualTo(firstEvaluation);
     }
 }

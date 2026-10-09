@@ -26,7 +26,7 @@ class VehicleEligibilityEvaluatorTest {
         VehicleEligibilityEvaluator evaluator = new VehicleEligibilityEvaluator(registry);
 
         assertThat(evaluator.rejectionReason(VEHICLE_ID)).contains(
-            TelemetryRejectionReason.UNKNOWN_VEHICLE);
+                TelemetryRejectionReason.UNKNOWN_VEHICLE);
     }
 
     @Test
@@ -35,6 +35,6 @@ class VehicleEligibilityEvaluatorTest {
         VehicleEligibilityEvaluator evaluator = new VehicleEligibilityEvaluator(registry);
 
         assertThat(evaluator.rejectionReason(VEHICLE_ID)).contains(
-            TelemetryRejectionReason.VEHICLE_DISABLED);
+                TelemetryRejectionReason.VEHICLE_DISABLED);
     }
 }

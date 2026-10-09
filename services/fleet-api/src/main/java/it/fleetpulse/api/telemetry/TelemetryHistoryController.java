@@ -37,29 +37,21 @@ public class TelemetryHistoryController {
      */
     @Operation(summary = "Restituisce lo storico telemetrico del veicolo")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Pagina dello storico telemetrico",
-            content = @Content(
-                schema = @Schema(implementation = TelemetryHistoryResponse.class))),
-        @ApiResponse(responseCode = "400",
-            description = "REQUEST_INVALID oppure REQUEST_INVALID_TIME_RANGE",
-            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
-        @ApiResponse(responseCode = "404", description = "VEHICLE_NOT_FOUND",
-            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
-        @ApiResponse(responseCode = "503", description = "SERVICE_UNAVAILABLE",
-            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
-        @ApiResponse(responseCode = "500", description = "INTERNAL_ERROR",
-            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+            @ApiResponse(responseCode = "200", description = "Pagina dello storico telemetrico", content = @Content(schema = @Schema(implementation = TelemetryHistoryResponse.class))),
+            @ApiResponse(responseCode = "400", description = "REQUEST_INVALID oppure REQUEST_INVALID_TIME_RANGE", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "VEHICLE_NOT_FOUND", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "503", description = "SERVICE_UNAVAILABLE", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "500", description = "INTERNAL_ERROR", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
     })
-    @GetMapping(path = "/vehicles/{vehicleId}/telemetry",
-        produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(path = "/vehicles/{vehicleId}/telemetry", produces = MediaType.APPLICATION_JSON_VALUE)
     public TelemetryHistoryResponse getTelemetryHistory(@PathVariable UUID vehicleId,
-        @Valid @ParameterObject @ModelAttribute TelemetryHistoryRequest request) {
+            @Valid @ParameterObject @ModelAttribute TelemetryHistoryRequest request) {
         return telemetryHistoryService.findByVehicleId(vehicleId, request);
     }
     @InitBinder("telemetryHistoryRequest")
     void validateQueryParameters(HttpServletRequest request) {
         QueryParameterValidator.validate(request,
-            "from", "to", "page", "size", "sort");
+                "from", "to", "page", "size", "sort");
     }
 
 }

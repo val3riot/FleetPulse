@@ -28,11 +28,11 @@ import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabas
 @ActiveProfiles("test")
 class PostgreSqlVehicleRegistryIntegrationTest extends PostgreSqlIntegrationSupport {
 
-    private static final UUID ACTIVE_VEHICLE_ID =
-        UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0");
+    private static final UUID ACTIVE_VEHICLE_ID = UUID
+            .fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0");
 
-    private static final UUID DISABLED_VEHICLE_ID =
-        UUID.fromString("047eaf55-24cd-43b9-98f5-e9516649a9fd");
+    private static final UUID DISABLED_VEHICLE_ID = UUID
+            .fromString("047eaf55-24cd-43b9-98f5-e9516649a9fd");
 
     @Autowired
     private PostgreSqlVehicleRegistry registry;
@@ -70,7 +70,7 @@ class PostgreSqlVehicleRegistryIntegrationTest extends PostgreSqlIntegrationSupp
     @Test
     void loadsVehicleMaintenanceThresholdForAlertEvaluation() {
         assertThat(alertVehicleQuery.findById(ACTIVE_VEHICLE_ID))
-            .contains(new AlertVehicle(ACTIVE_VEHICLE_ID, 90_000));
+                .contains(new AlertVehicle(ACTIVE_VEHICLE_ID, 90_000));
     }
 
     @Test
@@ -87,7 +87,7 @@ class PostgreSqlVehicleRegistryIntegrationTest extends PostgreSqlIntegrationSupp
         try {
             assertThat(registry.findStatus(ACTIVE_VEHICLE_ID)).contains(VehicleStatus.ACTIVE);
             assertThat(alertVehicleQuery.findById(ACTIVE_VEHICLE_ID))
-                .contains(new AlertVehicle(ACTIVE_VEHICLE_ID, 90_000));
+                    .contains(new AlertVehicle(ACTIVE_VEHICLE_ID, 90_000));
             assertThat(statistics.getQueryExecutionCount()).isEqualTo(2);
             assertThat(statistics.getEntityLoadCount()).isZero();
         } finally {
@@ -100,18 +100,18 @@ class PostgreSqlVehicleRegistryIntegrationTest extends PostgreSqlIntegrationSupp
         registry.findStatus(ACTIVE_VEHICLE_ID);
         alertVehicleQuery.findById(ACTIVE_VEHICLE_ID);
         jdbcTemplate.update("""
-            UPDATE vehicles SET status = 'DISABLED', next_service_at_km = 105000 WHERE id = ?
-            """, ACTIVE_VEHICLE_ID);
+                UPDATE vehicles SET status = 'DISABLED', next_service_at_km = 105000 WHERE id = ?
+                """, ACTIVE_VEHICLE_ID);
 
         assertThat(registry.findStatus(ACTIVE_VEHICLE_ID)).contains(VehicleStatus.DISABLED);
         assertThat(alertVehicleQuery.findById(ACTIVE_VEHICLE_ID))
-            .contains(new AlertVehicle(ACTIVE_VEHICLE_ID, 105_000));
+                .contains(new AlertVehicle(ACTIVE_VEHICLE_ID, 105_000));
     }
 
     @Test
     void loadsMaintenanceThresholdForDisabledVehicleWithoutFilteringStatus() {
         assertThat(alertVehicleQuery.findById(DISABLED_VEHICLE_ID))
-            .contains(new AlertVehicle(DISABLED_VEHICLE_ID, 90_000));
+                .contains(new AlertVehicle(DISABLED_VEHICLE_ID, 90_000));
     }
 
     private void insertVehicle(UUID id, String externalCode, String plate, String status) {
@@ -126,6 +126,6 @@ class PostgreSqlVehicleRegistryIntegrationTest extends PostgreSqlIntegrationSupp
                     created_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?)
                 """, id, externalCode, plate, status, 15_000, 90_000L,
-            OffsetDateTime.now(ZoneOffset.UTC));
+                OffsetDateTime.now(ZoneOffset.UTC));
     }
 }

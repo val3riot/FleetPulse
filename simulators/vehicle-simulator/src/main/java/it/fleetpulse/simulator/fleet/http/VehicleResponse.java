@@ -10,7 +10,6 @@ public record VehicleResponse(
         VehicleStatus status,
         int serviceIntervalKm,
         long nextServiceAtKm,
-        Instant createdAt
-) {
+        Instant createdAt) {
 
 }

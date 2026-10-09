@@ -83,9 +83,9 @@ class TelemetryOffsetSemanticsIntegrationTest extends PostgreSqlIntegrationSuppo
     static void createTopics() throws Exception {
         try (AdminClient admin = adminClient()) {
             admin.createTopics(List.of(new NewTopic(RAW_TOPIC, 1, (short) 1),
-                new NewTopic(REJECTED_TOPIC, 1, (short) 1),
-                new NewTopic(DEAD_LETTER_TOPIC, 1, (short) 1))).all()
-                .get(10, TimeUnit.SECONDS);
+                    new NewTopic(REJECTED_TOPIC, 1, (short) 1),
+                    new NewTopic(DEAD_LETTER_TOPIC, 1, (short) 1))).all()
+                    .get(10, TimeUnit.SECONDS);
         }
     }
 
@@ -115,9 +115,9 @@ class TelemetryOffsetSemanticsIntegrationTest extends PostgreSqlIntegrationSuppo
         crashPointHandler.pauseOnce(event.messageId(), CrashPoint.BEFORE_DATABASE_COMMIT);
 
         var sendResult = kafkaTemplate.send(RAW_TOPIC, event.vehicleId().toString(), event)
-            .get(10, TimeUnit.SECONDS);
+                .get(10, TimeUnit.SECONDS);
         TopicPartition partition = new TopicPartition(RAW_TOPIC,
-            sendResult.getRecordMetadata().partition());
+                sendResult.getRecordMetadata().partition());
         long sourceOffset = sendResult.getRecordMetadata().offset();
 
         try {
@@ -142,9 +142,9 @@ class TelemetryOffsetSemanticsIntegrationTest extends PostgreSqlIntegrationSuppo
         crashPointHandler.pauseOnce(event.messageId(), CrashPoint.AFTER_DATABASE_COMMIT);
 
         var sendResult = kafkaTemplate.send(RAW_TOPIC, event.vehicleId().toString(), event)
-            .get(10, TimeUnit.SECONDS);
+                .get(10, TimeUnit.SECONDS);
         TopicPartition partition = new TopicPartition(RAW_TOPIC,
-            sendResult.getRecordMetadata().partition());
+                sendResult.getRecordMetadata().partition());
         long sourceOffset = sendResult.getRecordMetadata().offset();
 
         try {
@@ -167,9 +167,9 @@ class TelemetryOffsetSemanticsIntegrationTest extends PostgreSqlIntegrationSuppo
         insertActiveVehicle(event.vehicleId());
 
         var sendResult = kafkaTemplate.send(RAW_TOPIC, event.vehicleId().toString(), event)
-            .get(10, TimeUnit.SECONDS);
+                .get(10, TimeUnit.SECONDS);
         TopicPartition partition = new TopicPartition(RAW_TOPIC,
-            sendResult.getRecordMetadata().partition());
+                sendResult.getRecordMetadata().partition());
         long sourceOffset = sendResult.getRecordMetadata().offset();
 
         awaitSample(event.messageId());
@@ -188,15 +188,16 @@ class TelemetryOffsetSemanticsIntegrationTest extends PostgreSqlIntegrationSuppo
     void redisFailureAfterCommitDoesNotRetryKafkaAndIsCounted() throws Exception {
         TelemetryEvent event = event();
         insertActiveVehicle(event.vehicleId());
-        double failuresBefore = meterRegistry.get("fleetpulse.redis.update.failures").counter().count();
+        double failuresBefore = meterRegistry.get("fleetpulse.redis.update.failures").counter()
+                .count();
         double outcomesBefore = meterRegistry.get("fleetpulse.telemetry.latest_state.updates")
-            .tag("outcome", "failed").counter().count();
+                .tag("outcome", "failed").counter().count();
         when(latestStateProjection.updateIfNewer(any()))
-            .thenThrow(new LatestStateProjectionException(
-                "Redis unavailable"));
+                .thenThrow(new LatestStateProjectionException(
+                        "Redis unavailable"));
 
         var sent = kafkaTemplate.send(RAW_TOPIC, event.vehicleId().toString(), event)
-            .get(10, TimeUnit.SECONDS);
+                .get(10, TimeUnit.SECONDS);
         var partition = new TopicPartition(RAW_TOPIC, sent.getRecordMetadata().partition());
         awaitCommittedOffset(partition, sent.getRecordMetadata().offset() + 1);
 
@@ -204,9 +205,9 @@ class TelemetryOffsetSemanticsIntegrationTest extends PostgreSqlIntegrationSuppo
         assertThat(crashPointHandler.attemptsFor(event.messageId())).isOne();
         verify(latestStateProjection).updateIfNewer(any());
         assertThat(meterRegistry.get("fleetpulse.redis.update.failures").counter().count())
-            .isEqualTo(failuresBefore + 1);
+                .isEqualTo(failuresBefore + 1);
         assertThat(meterRegistry.get("fleetpulse.telemetry.latest_state.updates")
-            .tag("outcome", "failed").counter().count()).isEqualTo(outcomesBefore + 1);
+                .tag("outcome", "failed").counter().count()).isEqualTo(outcomesBefore + 1);
     }
 
     private void insertActiveVehicle(UUID vehicleId) {
@@ -216,14 +217,14 @@ class TelemetryOffsetSemanticsIntegrationTest extends PostgreSqlIntegrationSuppo
                     next_service_at_km, created_at
                 ) VALUES (?, ?, ?, 'ACTIVE', ?, ?, ?)
                 """, vehicleId, "VEHICLE-" + vehicleId,
-            vehicleId.toString().substring(0, 8), 15_000, 90_000L,
-            OffsetDateTime.now(ZoneOffset.UTC));
+                vehicleId.toString().substring(0, 8), 15_000, 90_000L,
+                OffsetDateTime.now(ZoneOffset.UTC));
     }
 
     private int sampleCount(UUID messageId) {
         return jdbcTemplate.queryForObject(
-            "SELECT COUNT(*) FROM telemetry_samples WHERE message_id = ?", Integer.class,
-            messageId);
+                "SELECT COUNT(*) FROM telemetry_samples WHERE message_id = ?", Integer.class,
+                messageId);
     }
 
     private void awaitSample(UUID messageId) throws InterruptedException {
@@ -240,16 +241,16 @@ class TelemetryOffsetSemanticsIntegrationTest extends PostgreSqlIntegrationSuppo
     }
 
     private static boolean offsetHasAdvancedPast(TopicPartition partition,
-        long sourceOffset) throws Exception {
+            long sourceOffset) throws Exception {
         try (AdminClient admin = adminClient()) {
             var committed = admin.listConsumerGroupOffsets(GROUP_ID).partitionsToOffsetAndMetadata()
-                .get(10, TimeUnit.SECONDS).get(partition);
+                    .get(10, TimeUnit.SECONDS).get(partition);
             return committed != null && committed.offset() > sourceOffset;
         }
     }
 
     private static void awaitCommittedOffset(TopicPartition partition,
-        long expectedOffset) throws Exception {
+            long expectedOffset) throws Exception {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
 
         while (System.nanoTime() < deadline) {
@@ -267,7 +268,7 @@ class TelemetryOffsetSemanticsIntegrationTest extends PostgreSqlIntegrationSuppo
 
         while (System.nanoTime() < deadline) {
             boolean assigned = listenerRegistry.getListenerContainers().stream()
-                .anyMatch(container -> !container.getAssignedPartitions().isEmpty());
+                    .anyMatch(container -> !container.getAssignedPartitions().isEmpty());
             if (assigned) {
                 return;
             }
@@ -281,18 +282,17 @@ class TelemetryOffsetSemanticsIntegrationTest extends PostgreSqlIntegrationSuppo
         UUID vehicleId = UUID.randomUUID();
         Instant receivedAt = Instant.parse("2026-08-17T12:00:00Z");
         return new TelemetryEvent(TelemetryEventVersions.V1, UUID.randomUUID(), vehicleId, 42,
-            receivedAt.minusSeconds(1), receivedAt,
-            new TelemetryData(72.4, 91.8, 12.6, 85_312, 41.9028, 12.4964));
+                receivedAt.minusSeconds(1), receivedAt,
+                new TelemetryData(72.4, 91.8, 12.6, 85_312, 41.9028, 12.4964));
     }
 
     private static AdminClient adminClient() {
         return AdminClient.create(
-            Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers()));
+                Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers()));
     }
 
     enum CrashPoint {
-        BEFORE_DATABASE_COMMIT,
-        AFTER_DATABASE_COMMIT
+        BEFORE_DATABASE_COMMIT, AFTER_DATABASE_COMMIT
     }
 
     @TestConfiguration
@@ -301,7 +301,7 @@ class TelemetryOffsetSemanticsIntegrationTest extends PostgreSqlIntegrationSuppo
         @Bean
         @Primary
         CrashPointTelemetryEventHandler crashPointTelemetryEventHandler(
-            TelemetryEventProcessingService delegate) {
+                TelemetryEventProcessingService delegate) {
             return new CrashPointTelemetryEventHandler(delegate);
         }
     }
@@ -371,7 +371,7 @@ class TelemetryOffsetSemanticsIntegrationTest extends PostgreSqlIntegrationSuppo
             } catch (InterruptedException exception) {
                 Thread.currentThread().interrupt();
                 throw new IllegalStateException("Interrupted while simulating processor crash",
-                    exception);
+                        exception);
             }
             throw new DataAccessResourceFailureException("simulated processor crash");
         }

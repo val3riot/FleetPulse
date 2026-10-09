@@ -79,12 +79,12 @@ class VehicleStateRecoveryIntegrationTest extends PostgreSqlIntegrationSupport {
 
     @Container
     static final GenericContainer<?> REDIS = new GenericContainer<>("redis:8.2.8-alpine")
-        .withNetwork(NETWORK).withNetworkAliases("redis").withExposedPorts(6379)
-        .withCommand("redis-server", "--save", "", "--appendonly", "no");
+            .withNetwork(NETWORK).withNetworkAliases("redis").withExposedPorts(6379)
+            .withCommand("redis-server", "--save", "", "--appendonly", "no");
 
     @Container
-    static final ToxiproxyContainer TOXIPROXY =
-        new ToxiproxyContainer("ghcr.io/shopify/toxiproxy:2.5.0")
+    static final ToxiproxyContainer TOXIPROXY = new ToxiproxyContainer(
+            "ghcr.io/shopify/toxiproxy:2.5.0")
             .withNetwork(NETWORK).withNetworkAliases("toxiproxy").dependsOn(REDIS);
 
     private static Proxy proxy;
@@ -92,21 +92,29 @@ class VehicleStateRecoveryIntegrationTest extends PostgreSqlIntegrationSupport {
     @DynamicPropertySource
     static void redisProperties(DynamicPropertyRegistry registry) throws IOException {
         proxy = new ToxiproxyClient(TOXIPROXY.getHost(), TOXIPROXY.getControlPort())
-            .createProxy("redis", "0.0.0.0:8666", "redis:6379");
+                .createProxy("redis", "0.0.0.0:8666", "redis:6379");
         registry.add("spring.data.redis.host", TOXIPROXY::getHost);
         registry.add("spring.data.redis.port", () -> TOXIPROXY.getMappedPort(8666));
         registry.add("spring.data.redis.timeout", () -> "200ms");
         registry.add("spring.data.redis.connect-timeout", () -> "200ms");
     }
 
-    @Autowired private MockMvc mvc;
-    @Autowired private JdbcTemplate jdbc;
-    @Autowired private MeterRegistry metrics;
-    @Autowired private RedisLatestStateProjection projection;
-    @Autowired private org.springframework.data.redis.core.StringRedisTemplate redis;
-    @Autowired private tools.jackson.databind.ObjectMapper json;
-    @MockitoSpyBean private PostgreSqlLatestSampleQuery samples;
-    @MockitoSpyBean private VehicleRepository vehicles;
+    @Autowired
+    private MockMvc mvc;
+    @Autowired
+    private JdbcTemplate jdbc;
+    @Autowired
+    private MeterRegistry metrics;
+    @Autowired
+    private RedisLatestStateProjection projection;
+    @Autowired
+    private org.springframework.data.redis.core.StringRedisTemplate redis;
+    @Autowired
+    private tools.jackson.databind.ObjectMapper json;
+    @MockitoSpyBean
+    private PostgreSqlLatestSampleQuery samples;
+    @MockitoSpyBean
+    private VehicleRepository vehicles;
     private List<Map<String, Object>> originalSamples;
     private List<Map<String, Object>> originalAlerts;
     private static final Path EVIDENCE = Path.of("target", "fp046-evidence", "faults.jsonl");
@@ -127,17 +135,17 @@ class VehicleStateRecoveryIntegrationTest extends PostgreSqlIntegrationSupport {
         jdbc.update("DELETE FROM telemetry_samples");
         jdbc.update("DELETE FROM vehicles");
         jdbc.update("""
-            INSERT INTO vehicles (id, external_code, plate, status, service_interval_km,
-                next_service_at_km, created_at)
-            VALUES (?, 'RECOVERY', 'FP039', 'DISABLED', 15000, 90000, ?)
-            """, ID, Timestamp.from(OBSERVED));
+                INSERT INTO vehicles (id, external_code, plate, status, service_interval_km,
+                    next_service_at_km, created_at)
+                VALUES (?, 'RECOVERY', 'FP039', 'DISABLED', 15000, 90000, ?)
+                """, ID, Timestamp.from(OBSERVED));
         jdbc.update("""
-            INSERT INTO telemetry_samples (message_id, vehicle_id, sequence_number, observed_at,
-                received_at, processed_at, speed_kmh, engine_temperature_c, battery_voltage,
-                odometer_km, latitude, longitude)
-            VALUES (?, ?, 42, ?, ?, ?, 72.4, 91.8, 12.6, 85312, 41.9, 12.4)
-            """, UUID.randomUUID(), ID, Timestamp.from(OBSERVED), Timestamp.from(OBSERVED),
-            Timestamp.from(OBSERVED));
+                INSERT INTO telemetry_samples (message_id, vehicle_id, sequence_number, observed_at,
+                    received_at, processed_at, speed_kmh, engine_temperature_c, battery_voltage,
+                    odometer_km, latitude, longitude)
+                VALUES (?, ?, 42, ?, ?, ?, 72.4, 91.8, 12.6, 85312, 41.9, 12.4)
+                """, UUID.randomUUID(), ID, Timestamp.from(OBSERVED), Timestamp.from(OBSERVED),
+                Timestamp.from(OBSERVED));
         originalSamples = jdbc.queryForList("SELECT * FROM telemetry_samples ORDER BY id");
         originalAlerts = jdbc.queryForList("SELECT * FROM maintenance_alerts ORDER BY id");
     }
@@ -145,9 +153,9 @@ class VehicleStateRecoveryIntegrationTest extends PostgreSqlIntegrationSupport {
     @AfterEach
     void cacheFaultsMustNotMutateDomainData() {
         assertThat(jdbc.queryForList("SELECT * FROM telemetry_samples ORDER BY id"))
-            .isEqualTo(originalSamples);
+                .isEqualTo(originalSamples);
         assertThat(jdbc.queryForList("SELECT * FROM maintenance_alerts ORDER BY id"))
-            .isEqualTo(originalAlerts);
+                .isEqualTo(originalAlerts);
     }
 
     @AfterAll
@@ -171,7 +179,8 @@ class VehicleStateRecoveryIntegrationTest extends PostgreSqlIntegrationSupport {
             long started = System.nanoTime();
             mvc.perform(get(PATH)).andExpect(status().isOk()).andExpect(content().json(response));
             elapsed = System.nanoTime() - started;
-            assertThat(Duration.ofNanos(elapsed)).isBetween(Duration.ofMillis(40), Duration.ofSeconds(2));
+            assertThat(Duration.ofNanos(elapsed)).isBetween(Duration.ofMillis(40),
+                    Duration.ofSeconds(2));
             assertThat(count("hits")).isEqualTo(hits + 1);
             assertThat(count("fallback")).isEqualTo(fallbacks);
             assertThat(count("failures")).isEqualTo(failures);
@@ -183,7 +192,7 @@ class VehicleStateRecoveryIntegrationTest extends PostgreSqlIntegrationSupport {
         REDIS.execInContainer("redis-cli", "DEL", KEY);
         assertRecovered(response);
         recordFault("latency", Map.of("latencyMs", 50, "jitterMs", 0), elapsed,
-            "HTTP 200 cache hit, no fallback; repair and hit after removal");
+                "HTTP 200 cache hit, no fallback; repair and hit after removal");
     }
 
     @Test
@@ -195,22 +204,26 @@ class VehicleStateRecoveryIntegrationTest extends PostgreSqlIntegrationSupport {
         long elapsed;
         try (Socket socket = proxySocket()) {
             var input = new BufferedInputStream(socket.getInputStream());
-            socket.getOutputStream().write("*1\r\n$4\r\nPING\r\n".getBytes(StandardCharsets.US_ASCII));
+            socket.getOutputStream()
+                    .write("*1\r\n$4\r\nPING\r\n".getBytes(StandardCharsets.US_ASCII));
             assertThat(readLine(input)).isEqualTo("+PONG");
             var toxic = proxy.toxics().resetPeer("reset", ToxicDirection.DOWNSTREAM, 0);
             try {
                 // Docker Desktop can translate RST to EOF at the host forwarding boundary.
                 assertThatThrownBy(() -> {
-                    socket.getOutputStream().write("*1\r\n$4\r\nPING\r\n".getBytes(StandardCharsets.US_ASCII));
+                    socket.getOutputStream()
+                            .write("*1\r\n$4\r\nPING\r\n".getBytes(StandardCharsets.US_ASCII));
                     readLine(input);
                 }).isInstanceOf(IOException.class)
-                    .isNotInstanceOf(java.net.SocketTimeoutException.class);
+                        .isNotInstanceOf(java.net.SocketTimeoutException.class);
                 // Verify the actual reset inside the Docker network, bypassing host forwarding.
-                var resetProbe = REDIS.execInContainer("redis-cli", "-h", "toxiproxy", "-p", "8666", "PING");
+                var resetProbe = REDIS.execInContainer("redis-cli", "-h", "toxiproxy", "-p", "8666",
+                        "PING");
                 assertThat(resetProbe.getExitCode()).isNotZero();
                 assertThat(resetProbe.getStderr()).containsIgnoringCase("reset");
                 long started = System.nanoTime();
-                mvc.perform(get(PATH)).andExpect(status().isOk()).andExpect(content().json(response));
+                mvc.perform(get(PATH)).andExpect(status().isOk())
+                        .andExpect(content().json(response));
                 elapsed = System.nanoTime() - started;
                 assertThat(count("failures")).isEqualTo(failures + 1);
                 assertThat(count("fallback")).isEqualTo(fallbacks + 1);
@@ -223,7 +236,7 @@ class VehicleStateRecoveryIntegrationTest extends PostgreSqlIntegrationSupport {
         REDIS.execInContainer("redis-cli", "DEL", KEY);
         assertRecovered(response);
         recordFault("reset_peer", Map.of("timeoutMs", 0), elapsed,
-            "Live host socket interrupted; in-network probe confirms reset; HTTP 200 fallback and recovery");
+                "Live host socket interrupted; in-network probe confirms reset; HTTP 200 fallback and recovery");
     }
 
     @Test
@@ -238,15 +251,18 @@ class VehicleStateRecoveryIntegrationTest extends PostgreSqlIntegrationSupport {
             // A separate fixture key makes throttling observable without changing domain JSON.
             try (Socket socket = proxySocket()) {
                 var input = new BufferedInputStream(socket.getInputStream());
-                byte[] command = ("*2\r\n$3\r\nGET\r\n$" + bulkKey.length() + "\r\n" + bulkKey + "\r\n")
-                    .getBytes(StandardCharsets.US_ASCII);
+                byte[] command = ("*2\r\n$3\r\nGET\r\n$" + bulkKey.length() + "\r\n" + bulkKey
+                        + "\r\n")
+                        .getBytes(StandardCharsets.US_ASCII);
                 long started = System.nanoTime();
                 socket.getOutputStream().write(command);
                 assertThat(readLine(input)).isEqualTo("$65536");
-                assertThat(new String(input.readNBytes(65_536), StandardCharsets.US_ASCII)).isEqualTo(payload);
+                assertThat(new String(input.readNBytes(65_536), StandardCharsets.US_ASCII))
+                        .isEqualTo(payload);
                 assertThat(input.readNBytes(2)).containsExactly((byte) '\r', (byte) '\n');
                 elapsed = System.nanoTime() - started;
-                assertThat(Duration.ofNanos(elapsed)).isBetween(Duration.ofSeconds(1), Duration.ofSeconds(8));
+                assertThat(Duration.ofNanos(elapsed)).isBetween(Duration.ofSeconds(1),
+                        Duration.ofSeconds(8));
             }
             double handled = count("hits") + count("fallback");
             mvc.perform(get(PATH)).andExpect(status().isOk()).andExpect(content().json(response));
@@ -259,7 +275,7 @@ class VehicleStateRecoveryIntegrationTest extends PostgreSqlIntegrationSupport {
         REDIS.execInContainer("redis-cli", "DEL", KEY);
         assertRecovered(response);
         recordFault("bandwidth", Map.of("rateKBps", 32, "payloadBytes", 65_536), elapsed,
-            "Complete bulk transfer throttled; HTTP 200; repair and hit after removal");
+                "Complete bulk transfer throttled; HTTP 200; repair and hit after removal");
     }
 
     @Test
@@ -302,7 +318,7 @@ class VehicleStateRecoveryIntegrationTest extends PostgreSqlIntegrationSupport {
         long outageNanos;
         try {
             assertThat(REDIS.getDockerClient().inspectContainerCmd(containerId).exec()
-                .getState().getRunning()).isFalse();
+                    .getState().getRunning()).isFalse();
             long started = System.nanoTime();
             mvc.perform(get(PATH)).andExpect(status().isOk()).andExpect(content().json(response));
             outageNanos = System.nanoTime() - started;
@@ -312,7 +328,7 @@ class VehicleStateRecoveryIntegrationTest extends PostgreSqlIntegrationSupport {
             assertThat(count("misses")).isEqualTo(misses);
             verify(samples).findByVehicleId(ID);
             assertThat(jdbc.queryForList("SELECT * FROM telemetry_samples ORDER BY id"))
-                .isEqualTo(originalSamples);
+                    .isEqualTo(originalSamples);
         } finally {
             REDIS.getDockerClient().startContainerCmd(containerId).exec();
         }
@@ -321,7 +337,7 @@ class VehicleStateRecoveryIntegrationTest extends PostgreSqlIntegrationSupport {
         assertRecovered(response);
         assertThat(REDIS.getContainerId()).isEqualTo(containerId);
         System.out.printf("FP-045 real Redis restart: cache hit %.1f ms; outage fallback %.1f ms%n",
-            baselineNanos / 1_000_000.0, outageNanos / 1_000_000.0);
+                baselineNanos / 1_000_000.0, outageNanos / 1_000_000.0);
     }
 
     @Test
@@ -339,16 +355,16 @@ class VehicleStateRecoveryIntegrationTest extends PostgreSqlIntegrationSupport {
         try {
             // TCP rimane aperto, ma Redis non può consegnare risposte al client.
             assertThatThrownBy(() -> projection.findByVehicleId(ID))
-                .isInstanceOf(LatestStateProjectionException.class)
-                .hasCauseInstanceOf(QueryTimeoutException.class);
+                    .isInstanceOf(LatestStateProjectionException.class)
+                    .hasCauseInstanceOf(QueryTimeoutException.class);
             long started = System.nanoTime();
             response = state();
             elapsedNanos = System.nanoTime() - started;
             // Generous test budget, not a production latency SLA or a noisy baseline comparison.
             assertThat(Duration.ofNanos(elapsedNanos))
-                .isBetween(Duration.ofMillis(150), Duration.ofSeconds(5));
+                    .isBetween(Duration.ofMillis(150), Duration.ofSeconds(5));
             System.out.printf("FP-045 command timeout: cache hit %.1f ms; fallback %.1f ms%n",
-                baselineNanos / 1_000_000.0, elapsedNanos / 1_000_000.0);
+                    baselineNanos / 1_000_000.0, elapsedNanos / 1_000_000.0);
             assertThat(count("failures")).isEqualTo(failures + 1);
             assertThat(count("repair.failures")).isEqualTo(repairs + 1);
             assertThat(count("fallback")).isEqualTo(fallbacks + 1);
@@ -360,12 +376,14 @@ class VehicleStateRecoveryIntegrationTest extends PostgreSqlIntegrationSupport {
         REDIS.execInContainer("redis-cli", "DEL", KEY);
         assertRecovered(response);
         recordFault("timeout", Map.of("toxicTimeoutMs", 0, "clientTimeoutMs", 200), elapsedNanos,
-            "QueryTimeoutException; HTTP 200 fallback; repair and hit after removal");
+                "QueryTimeoutException; HTTP 200 fallback; repair and hit after removal");
     }
 
     private Socket proxySocket() throws IOException {
         Socket socket = new Socket();
-        socket.connect(new java.net.InetSocketAddress(TOXIPROXY.getHost(), TOXIPROXY.getMappedPort(8666)), 3000);
+        socket.connect(
+                new java.net.InetSocketAddress(TOXIPROXY.getHost(), TOXIPROXY.getMappedPort(8666)),
+                3000);
         socket.setSoTimeout(3000);
         return socket;
     }
@@ -374,8 +392,10 @@ class VehicleStateRecoveryIntegrationTest extends PostgreSqlIntegrationSupport {
         StringBuilder line = new StringBuilder();
         while (line.length() < 128) {
             int value = input.read();
-            if (value == -1) throw new IOException("Unexpected EOF in Redis response");
-            if (value == '\n') return line.toString().stripTrailing();
+            if (value == -1)
+                throw new IOException("Unexpected EOF in Redis response");
+            if (value == '\n')
+                return line.toString().stripTrailing();
             line.append((char) value);
         }
         throw new IOException("Redis response header exceeds test limit");
@@ -384,15 +404,15 @@ class VehicleStateRecoveryIntegrationTest extends PostgreSqlIntegrationSupport {
     private void recordFault(String fault, Map<String, Object> parameters, long durationNanos,
             String result) throws IOException {
         String entry = json.writeValueAsString(Map.of("fault", fault, "direction", "DOWNSTREAM",
-            "parameters", parameters, "durationMs", durationNanos / 1_000_000.0,
-            "result", result, "recovered", true));
+                "parameters", parameters, "durationMs", durationNanos / 1_000_000.0,
+                "result", result, "recovered", true));
         Files.writeString(EVIDENCE, entry + System.lineSeparator(), StandardOpenOption.APPEND);
         System.out.println("FP-046 " + entry);
     }
 
     @Test
     void repairConnectionFailureAfterSuccessfulMissDoesNotChangePostgresResponse()
-        throws Exception {
+            throws Exception {
         double failures = count("failures");
         double repairs = count("repair.failures");
         double misses = count("misses");
@@ -425,9 +445,9 @@ class VehicleStateRecoveryIntegrationTest extends PostgreSqlIntegrationSupport {
         assertThat(count("misses")).isEqualTo(misses + 1);
         assertThat(count("fallback")).isEqualTo(fallbacks + 1);
         assertThat(redisValue()).contains("lastSeenAt", OBSERVED.toString())
-            .doesNotContain("stale");
+                .doesNotContain("stale");
         long ttl = Long.parseLong(REDIS.execInContainer("redis-cli", "PTTL", KEY)
-            .getStdout().trim());
+                .getStdout().trim());
         assertThat(ttl).isBetween(1L, 300_000L);
         double hits = count("hits");
         clearInvocations(samples, vehicles);
@@ -439,16 +459,17 @@ class VehicleStateRecoveryIntegrationTest extends PostgreSqlIntegrationSupport {
 
     private String state() throws Exception {
         return mvc.perform(get(PATH)).andExpect(status().isOk())
-            .andExpect(jsonPath("$.vehicleId").value(ID.toString()))
-            .andExpect(jsonPath("$.lastSequenceNumber").value(42))
-            .andExpect(jsonPath("$.lastSeenAt").value(OBSERVED.toString()))
-            .andExpect(jsonPath("$.stale").value(false))
-            .andReturn().getResponse().getContentAsString();
+                .andExpect(jsonPath("$.vehicleId").value(ID.toString()))
+                .andExpect(jsonPath("$.lastSequenceNumber").value(42))
+                .andExpect(jsonPath("$.lastSeenAt").value(OBSERVED.toString()))
+                .andExpect(jsonPath("$.stale").value(false))
+                .andReturn().getResponse().getContentAsString();
     }
 
     private void awaitConnection() {
         await().atMost(Duration.ofSeconds(10)).pollInterval(Duration.ofMillis(100))
-            .ignoreExceptions().until(() -> projection.findByVehicleId(new UUID(0, 391)).isEmpty());
+                .ignoreExceptions()
+                .until(() -> projection.findByVehicleId(new UUID(0, 391)).isEmpty());
     }
 
     private String redisValue() throws Exception {

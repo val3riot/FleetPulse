@@ -10,8 +10,7 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 public record AlertThresholdProperties(
         @NotNull @DecimalMin("-273.15") Double maximumEngineTemperatureC,
-        @NotNull @Positive Double minimumBatteryVoltage
-) {
+        @NotNull @Positive Double minimumBatteryVoltage) {
 
     public AlertThresholdProperties {
         requireFinite(maximumEngineTemperatureC, "maximumEngineTemperatureC");

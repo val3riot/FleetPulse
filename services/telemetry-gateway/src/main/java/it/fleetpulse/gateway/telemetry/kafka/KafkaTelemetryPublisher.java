@@ -12,9 +12,9 @@ public final class KafkaTelemetryPublisher implements TelemetryPublisher {
     private final String topic;
 
     public KafkaTelemetryPublisher(KafkaTemplate<String, TelemetryEvent> kafkaTemplate,
-        String topic) {
-        this.kafkaTemplate =
-            Objects.requireNonNull(kafkaTemplate, "kafkaTemplate must not be null");
+            String topic) {
+        this.kafkaTemplate = Objects.requireNonNull(kafkaTemplate,
+                "kafkaTemplate must not be null");
         this.topic = Objects.requireNonNull(topic, "topic must not be null");
     }
 

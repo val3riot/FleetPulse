@@ -4,6 +4,5 @@ public record CreateVehicleRequest(
         String externalCode,
         String plate,
         int serviceIntervalKm,
-        long nextServiceAtKm
-) {
+        long nextServiceAtKm) {
 }

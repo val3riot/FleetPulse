@@ -58,9 +58,9 @@ public class TelemetrySampleEntity {
     }
 
     public TelemetrySampleEntity(UUID messageId, UUID vehicleId, long sequenceNumber,
-        Instant observedAt, Instant receivedAt, Instant processedAt, double speedKmh,
-        double engineTemperatureC, double batteryVoltage, long odometerKm, double latitude,
-        double longitude) {
+            Instant observedAt, Instant receivedAt, Instant processedAt, double speedKmh,
+            double engineTemperatureC, double batteryVoltage, long odometerKm, double latitude,
+            double longitude) {
         this.messageId = messageId;
         this.vehicleId = vehicleId;
         this.sequenceNumber = sequenceNumber;

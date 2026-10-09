@@ -10,6 +10,5 @@ public record TelemetryRejectedEvent(
         Instant rejectedAt,
         String sourceTopic,
         int sourcePartition,
-        long sourceOffset
-) {
+        long sourceOffset) {
 }

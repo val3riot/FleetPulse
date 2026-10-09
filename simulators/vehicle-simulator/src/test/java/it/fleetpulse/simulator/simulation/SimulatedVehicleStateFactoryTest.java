@@ -35,8 +35,8 @@ class SimulatedVehicleStateFactoryTest {
         ProvisionedVehicle vehicle = vehicle("FP-SIM-001");
         SimulatedVehicleStateFactory factory = factory();
 
-        SimulatedVehicleState firstStartup =
-            factory.create(vehicle).next(10, 85, 13.8, 10_001, 41.9, 12.5);
+        SimulatedVehicleState firstStartup = factory.create(vehicle).next(10, 85, 13.8, 10_001,
+                41.9, 12.5);
         SimulatedVehicleState secondStartup = factory.create(vehicle);
 
         assertEquals(1, firstStartup.sequenceNumber());
@@ -47,13 +47,13 @@ class SimulatedVehicleStateFactoryTest {
     @Test
     void rejectsInvalidInitialCoordinates() {
         assertThrows(IllegalArgumentException.class,
-            () -> new SimulatedVehicleStateFactory(new VehicleProperties(15_000, 10_000), 91,
-                12.5));
+                () -> new SimulatedVehicleStateFactory(new VehicleProperties(15_000, 10_000), 91,
+                        12.5));
     }
 
     private static SimulatedVehicleStateFactory factory() {
         return new SimulatedVehicleStateFactory(new VehicleProperties(15_000, 10_000), 41.9028,
-            12.4964);
+                12.4964);
     }
 
     private static ProvisionedVehicle vehicle(String externalCode) {

@@ -12,6 +12,6 @@ public final class ServiceDueRule implements AlertRule {
             return Optional.empty();
         }
         return Optional.of(new AlertCandidate(vehicle.id(), sample.messageId(),
-            AlertType.SERVICE_DUE, AlertSeverity.MEDIUM, DESCRIPTION));
+                AlertType.SERVICE_DUE, AlertSeverity.MEDIUM, DESCRIPTION));
     }
 }

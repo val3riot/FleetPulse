@@ -22,15 +22,15 @@ public class TelemetryAckEncoderTest {
     @Test
     void writesLengthPrefixedAcknowledgementJson() throws Exception {
         TelemetryAck acknowledgement = new TelemetryAck(ProtocolConstants.PROTOCOL_VERSION,
-            UUID.fromString("dc0fc799-0913-4e72-bd2d-8ee8ccf52e22"), AckStatus.ACCEPTED,
-            Instant.parse("2026-08-01T10:15:30.083Z"), null);
+                UUID.fromString("dc0fc799-0913-4e72-bd2d-8ee8ccf52e22"), AckStatus.ACCEPTED,
+                Instant.parse("2026-08-01T10:15:30.083Z"), null);
 
         ByteArrayOutputStream output = new ByteArrayOutputStream();
 
         encoder.write(acknowledgement, output);
 
-        byte[] payload =
-            LengthPrefixedFrameCodec.read(new ByteArrayInputStream(output.toByteArray()));
+        byte[] payload = LengthPrefixedFrameCodec
+                .read(new ByteArrayInputStream(output.toByteArray()));
 
         TelemetryAck decoded = objectMapper.readValue(payload, TelemetryAck.class);
 
@@ -40,19 +40,19 @@ public class TelemetryAckEncoderTest {
     @Test
     void rejectsNullAcknowledgement() {
         NullPointerException exception = assertThrows(NullPointerException.class,
-            () -> encoder.write(null, new ByteArrayOutputStream()));
+                () -> encoder.write(null, new ByteArrayOutputStream()));
 
         assertEquals("acknowledgement must not be null", exception.getMessage());
     }
 
     @Test
     void rejectsNullOutput() {
-        TelemetryAck acknowledgement =
-            new TelemetryAck(ProtocolConstants.PROTOCOL_VERSION, UUID.randomUUID(),
+        TelemetryAck acknowledgement = new TelemetryAck(ProtocolConstants.PROTOCOL_VERSION,
+                UUID.randomUUID(),
                 AckStatus.ACCEPTED, Instant.EPOCH, null);
 
-        NullPointerException exception =
-            assertThrows(NullPointerException.class, () -> encoder.write(acknowledgement, null));
+        NullPointerException exception = assertThrows(NullPointerException.class,
+                () -> encoder.write(acknowledgement, null));
 
         assertEquals("output must not be null", exception.getMessage());
     }

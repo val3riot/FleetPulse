@@ -24,20 +24,13 @@ public class VehicleStateController {
 
     @Operation(summary = "Restituisce lo stato telemetrico corrente del veicolo")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Stato corrente",
-            content = @Content(schema = @Schema(implementation = VehicleStateResponse.class))),
-        @ApiResponse(responseCode = "400", description = "REQUEST_INVALID",
-            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
-        @ApiResponse(responseCode = "404",
-            description = "VEHICLE_NOT_FOUND oppure VEHICLE_STATE_NOT_AVAILABLE",
-            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
-        @ApiResponse(responseCode = "503", description = "SERVICE_UNAVAILABLE",
-            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
-        @ApiResponse(responseCode = "500", description = "INTERNAL_ERROR",
-            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+            @ApiResponse(responseCode = "200", description = "Stato corrente", content = @Content(schema = @Schema(implementation = VehicleStateResponse.class))),
+            @ApiResponse(responseCode = "400", description = "REQUEST_INVALID", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "VEHICLE_NOT_FOUND oppure VEHICLE_STATE_NOT_AVAILABLE", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "503", description = "SERVICE_UNAVAILABLE", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "500", description = "INTERNAL_ERROR", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
     })
-    @GetMapping(path = "/api/v1/vehicles/{vehicleId}/state",
-        produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(path = "/api/v1/vehicles/{vehicleId}/state", produces = MediaType.APPLICATION_JSON_VALUE)
     public VehicleStateResponse state(@PathVariable UUID vehicleId) {
         return service.findByVehicleId(vehicleId);
     }

@@ -14,8 +14,8 @@ public final class TelemetryDeadLetterEventFactory {
     private final KafkaDeliveryAttemptResolver attemptResolver;
 
     public TelemetryDeadLetterEventFactory(Clock clock,
-        KafkaOriginalPayloadResolver payloadResolver,
-        KafkaDeliveryAttemptResolver attemptResolver) {
+            KafkaOriginalPayloadResolver payloadResolver,
+            KafkaDeliveryAttemptResolver attemptResolver) {
         this.clock = Objects.requireNonNull(clock);
         this.payloadResolver = Objects.requireNonNull(payloadResolver);
         this.attemptResolver = Objects.requireNonNull(attemptResolver);
@@ -28,9 +28,9 @@ public final class TelemetryDeadLetterEventFactory {
         Throwable rootCause = rootCause(failure);
 
         return new TelemetryDeadLetterEvent(clock.instant(), record.topic(), record.partition(),
-            record.offset(), attemptResolver.resolve(record), errorCode(failure),
-            errorMessage(rootCause), Objects.toString(record.key(), null),
-            payloadResolver.resolve(record));
+                record.offset(), attemptResolver.resolve(record), errorCode(failure),
+                errorMessage(rootCause), Objects.toString(record.key(), null),
+                payloadResolver.resolve(record));
     }
 
     private static String errorCode(Throwable failure) {

@@ -25,12 +25,12 @@ public final class VehicleTcpClient implements VehicleConnection {
     private volatile OutputStream output;
 
     public VehicleTcpClient(String host, int port, TelemetryFrameEncoder encoder,
-        SocketFactory socketFactory) {
+            SocketFactory socketFactory) {
         this(host, port, encoder, socketFactory, Duration.ofSeconds(3));
     }
 
     public VehicleTcpClient(String host, int port, TelemetryFrameEncoder encoder,
-        SocketFactory socketFactory, Duration connectTimeout) {
+            SocketFactory socketFactory, Duration connectTimeout) {
         if (host == null || host.isBlank()) {
             throw new IllegalArgumentException("host must not be blank");
         }
@@ -130,6 +130,6 @@ public final class VehicleTcpClient implements VehicleConnection {
 
     private static boolean isUsable(Socket socket, OutputStream output) {
         return socket != null && output != null && socket.isConnected() && !socket.isClosed() &&
-            !socket.isOutputShutdown();
+                !socket.isOutputShutdown();
     }
 }

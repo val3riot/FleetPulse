@@ -5,6 +5,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Configuration;
 
 @Configuration(proxyBeanMethods = false)
-@EnableConfigurationProperties({VehicleStateProperties.class, LatestStateProjectionProperties.class})
+@EnableConfigurationProperties({VehicleStateProperties.class,
+        LatestStateProjectionProperties.class})
 public class VehicleStateConfiguration {
 }

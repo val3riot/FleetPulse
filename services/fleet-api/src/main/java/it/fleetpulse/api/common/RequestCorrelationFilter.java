@@ -53,10 +53,10 @@ public final class RequestCorrelationFilter extends OncePerRequestFilter {
         } finally {
             log.atInfo().addKeyValue("event.action",
                     completed ? "http.request.completed" : "http.request.failed")
-                .addKeyValue("method", request.getMethod())
-                .addKeyValue("status", completed ? response.getStatus() : 500)
-                .addKeyValue("durationMs", (System.nanoTime() - started) / 1_000_000)
-                .log(completed ? "HTTP request completed" : "HTTP request failed");
+                    .addKeyValue("method", request.getMethod())
+                    .addKeyValue("status", completed ? response.getStatus() : 500)
+                    .addKeyValue("durationMs", (System.nanoTime() - started) / 1_000_000)
+                    .log(completed ? "HTTP request completed" : "HTTP request failed");
             if (previous == null) {
                 MDC.clear();
             } else {

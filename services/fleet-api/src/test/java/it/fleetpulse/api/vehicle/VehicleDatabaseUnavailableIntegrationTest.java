@@ -39,9 +39,10 @@ class VehicleDatabaseUnavailableIntegrationTest {
     private static final Instant NOW = Instant.parse("2026-08-02T08:00:00Z");
 
     @Container
-    private static final PostgreSQLContainer POSTGRESQL =
-        new PostgreSQLContainer("postgres:17.10-alpine3.23").withDatabaseName(
-                "fleetpulse_unavailable_test").withUsername("fleetpulse")
+    private static final PostgreSQLContainer POSTGRESQL = new PostgreSQLContainer(
+            "postgres:17.10-alpine3.23").withDatabaseName(
+                    "fleetpulse_unavailable_test")
+            .withUsername("fleetpulse")
             .withPassword("fleetpulse_test");
 
     @Autowired
@@ -73,39 +74,42 @@ class VehicleDatabaseUnavailableIntegrationTest {
         POSTGRESQL.stop();
 
         mockMvc.perform(get("/api/v1/dashboard"))
-            .andExpect(status().isServiceUnavailable())
-            .andExpect(jsonPath("$.code").value("SERVICE_UNAVAILABLE"))
-            .andExpect(jsonPath("$.path").value("/api/v1/dashboard"))
-            .andExpect(jsonPath("$.details").isEmpty())
-            .andExpect(jsonPath("$.totalVehicles").doesNotExist());
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value("SERVICE_UNAVAILABLE"))
+                .andExpect(jsonPath("$.path").value("/api/v1/dashboard"))
+                .andExpect(jsonPath("$.details").isEmpty())
+                .andExpect(jsonPath("$.totalVehicles").doesNotExist());
 
         UUID vehicleId = UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0");
 
         mockMvc.perform(get("/api/v1/vehicles/{vehicleId}",
                 vehicleId))
-            .andExpect(status().isServiceUnavailable())
-            .andExpect(jsonPath("$.timestamp").value(NOW.toString()))
-            .andExpect(jsonPath("$.status").value(503))
-            .andExpect(jsonPath("$.code").value("SERVICE_UNAVAILABLE"))
-            .andExpect(jsonPath("$.message").value("A required service is temporarily unavailable"))
-            .andExpect(
-                jsonPath("$.path").value("/api/v1/vehicles/97e194a8-64b3-4885-b1e6-25fd482f58c0"))
-            .andExpect(jsonPath("$.details").isArray()).andExpect(jsonPath("$.details").isEmpty())
-            .andExpect(jsonPath("$.error").doesNotExist());
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.timestamp").value(NOW.toString()))
+                .andExpect(jsonPath("$.status").value(503))
+                .andExpect(jsonPath("$.code").value("SERVICE_UNAVAILABLE"))
+                .andExpect(jsonPath("$.message")
+                        .value("A required service is temporarily unavailable"))
+                .andExpect(
+                        jsonPath("$.path")
+                                .value("/api/v1/vehicles/97e194a8-64b3-4885-b1e6-25fd482f58c0"))
+                .andExpect(jsonPath("$.details").isArray())
+                .andExpect(jsonPath("$.details").isEmpty())
+                .andExpect(jsonPath("$.error").doesNotExist());
 
         mockMvc.perform(get("/api/v1/vehicles/{vehicleId}/telemetry", vehicleId)
                 .param("from", "2026-08-01T10:00:00Z")
                 .param("to", "2026-08-01T11:00:00Z"))
-            .andExpect(status().isServiceUnavailable())
-            .andExpect(jsonPath("$.timestamp").value(NOW.toString()))
-            .andExpect(jsonPath("$.status").value(503))
-            .andExpect(jsonPath("$.code").value("SERVICE_UNAVAILABLE"))
-            .andExpect(jsonPath("$.message")
-                .value("A required service is temporarily unavailable"))
-            .andExpect(jsonPath("$.path").value(
-                "/api/v1/vehicles/97e194a8-64b3-4885-b1e6-25fd482f58c0/telemetry"))
-            .andExpect(jsonPath("$.details").isEmpty())
-            .andExpect(jsonPath("$.error").doesNotExist());
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.timestamp").value(NOW.toString()))
+                .andExpect(jsonPath("$.status").value(503))
+                .andExpect(jsonPath("$.code").value("SERVICE_UNAVAILABLE"))
+                .andExpect(jsonPath("$.message")
+                        .value("A required service is temporarily unavailable"))
+                .andExpect(jsonPath("$.path").value(
+                        "/api/v1/vehicles/97e194a8-64b3-4885-b1e6-25fd482f58c0/telemetry"))
+                .andExpect(jsonPath("$.details").isEmpty())
+                .andExpect(jsonPath("$.error").doesNotExist());
     }
 
     @TestConfiguration(proxyBeanMethods = false)

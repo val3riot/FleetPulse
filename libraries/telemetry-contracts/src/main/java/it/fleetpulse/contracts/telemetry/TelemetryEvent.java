@@ -10,6 +10,5 @@ public record TelemetryEvent(
         long sequenceNumber,
         Instant observedAt,
         Instant receivedAt,
-        TelemetryData telemetry
-) {
+        TelemetryData telemetry) {
 }

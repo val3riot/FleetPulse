@@ -9,6 +9,5 @@ import org.springframework.validation.annotation.Validated;
 public record KafkaTopicsProperties(
         @NotBlank String raw,
         @NotBlank String rejected,
-        @NotBlank String deadLetter
-) {
+        @NotBlank String deadLetter) {
 }

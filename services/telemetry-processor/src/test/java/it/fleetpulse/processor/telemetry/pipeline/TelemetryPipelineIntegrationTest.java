@@ -68,6 +68,8 @@ import static org.assertj.core.api.Assertions.fail;
 @SpringBootTest
 @ActiveProfiles("test")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
+// Fixtures deliberately hold unused sockets and close resources explicitly to test shutdown.
+@SuppressWarnings("try")
 class TelemetryPipelineIntegrationTest extends PostgreSqlIntegrationSupport {
     private static final String RAW_TOPIC = "pipeline.raw.v1";
     private static final String REJECTED_TOPIC = "pipeline.rejected.v1";
@@ -87,19 +89,19 @@ class TelemetryPipelineIntegrationTest extends PostgreSqlIntegrationSupport {
     @BeforeAll
     static void prepareKafka() throws Exception {
         try (AdminClient admin = AdminClient.create(Map.of(
-            AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers()))) {
+                AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers()))) {
             admin.createTopics(List.of(new NewTopic(RAW_TOPIC, 3, (short) 1),
-                new NewTopic(REJECTED_TOPIC, 1, (short) 1),
-                new NewTopic(DEAD_LETTER_TOPIC, 1, (short) 1))).all()
-                .get(10, TimeUnit.SECONDS);
+                    new NewTopic(REJECTED_TOPIC, 1, (short) 1),
+                    new NewTopic(DEAD_LETTER_TOPIC, 1, (short) 1))).all()
+                    .get(10, TimeUnit.SECONDS);
         }
 
         producerFactory = new DefaultKafkaProducerFactory<>(Map.of(
-            ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers(),
-            ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class,
-            ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JacksonJsonSerializer.class,
-            ProducerConfig.ACKS_CONFIG, "all",
-            ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true));
+                ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers(),
+                ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class,
+                ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JacksonJsonSerializer.class,
+                ProducerConfig.ACKS_CONFIG, "all",
+                ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true));
     }
 
     @AfterAll
@@ -124,14 +126,14 @@ class TelemetryPipelineIntegrationTest extends PostgreSqlIntegrationSupport {
 
     @Test
     void carriesOrderedTelemetryFromTcpGatewayToPostgreSqlAndIgnoresDuplicates()
-        throws Exception {
+            throws Exception {
         UUID vehicleId = UUID.randomUUID();
         TelemetryMessage first = message(vehicleId, UUID.randomUUID(), 41);
         TelemetryMessage second = message(vehicleId, UUID.randomUUID(), 42);
         insertActiveVehicle(vehicleId);
 
         try (KafkaConsumer<String, TelemetryEvent> observer = observer();
-             RunningGateway gateway = startGateway()) {
+                RunningGateway gateway = startGateway()) {
             observer.subscribe(List.of(RAW_TOPIC));
             awaitAssignment(observer);
 
@@ -163,9 +165,9 @@ class TelemetryPipelineIntegrationTest extends PostgreSqlIntegrationSupport {
         KafkaTemplate<String, TelemetryEvent> kafkaTemplate = new KafkaTemplate<>(producerFactory);
         var publisher = new KafkaTelemetryPublisher(kafkaTemplate, RAW_TOPIC);
         var handler = new PublishingFrameHandler(
-            new TelemetryEventMapper(Clock.fixed(RECEIVED_AT, ZoneOffset.UTC)), publisher,
-            new KafkaPublisherProperties(Duration.ofSeconds(5)),
-            new TelemetryPublishingMetrics(new SimpleMeterRegistry()));
+                new TelemetryEventMapper(Clock.fixed(RECEIVED_AT, ZoneOffset.UTC)), publisher,
+                new KafkaPublisherProperties(Duration.ofSeconds(5)),
+                new TelemetryPublishingMetrics(new SimpleMeterRegistry()));
         return RunningGateway.start(handler);
     }
 
@@ -176,8 +178,8 @@ class TelemetryPipelineIntegrationTest extends PostgreSqlIntegrationSupport {
                     next_service_at_km, created_at
                 ) VALUES (?, ?, ?, 'ACTIVE', ?, ?, ?)
                 """, vehicleId, "PIPELINE-" + vehicleId,
-            vehicleId.toString().substring(0, 8), 15_000, 90_000L,
-            OffsetDateTime.now(ZoneOffset.UTC));
+                vehicleId.toString().substring(0, 8), 15_000, 90_000L,
+                OffsetDateTime.now(ZoneOffset.UTC));
     }
 
     private static KafkaConsumer<String, TelemetryEvent> observer() {
@@ -187,7 +189,7 @@ class TelemetryPipelineIntegrationTest extends PostgreSqlIntegrationSupport {
         properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         properties.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
         return new KafkaConsumer<>(properties, new StringDeserializer(),
-            new JacksonJsonDeserializer<>(TelemetryEvent.class));
+                new JacksonJsonDeserializer<>(TelemetryEvent.class));
     }
 
     private static void awaitAssignment(KafkaConsumer<String, TelemetryEvent> consumer) {
@@ -199,7 +201,7 @@ class TelemetryPipelineIntegrationTest extends PostgreSqlIntegrationSupport {
     }
 
     private static List<ConsumerRecord<String, TelemetryEvent>> pollRecords(
-        KafkaConsumer<String, TelemetryEvent> consumer, int expectedCount) {
+            KafkaConsumer<String, TelemetryEvent> consumer, int expectedCount) {
         List<ConsumerRecord<String, TelemetryEvent>> records = new ArrayList<>();
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
 
@@ -212,13 +214,13 @@ class TelemetryPipelineIntegrationTest extends PostgreSqlIntegrationSupport {
     }
 
     private static void assertKafkaKeyAndOrder(List<ConsumerRecord<String, TelemetryEvent>> records,
-        UUID vehicleId) {
+            UUID vehicleId) {
         assertThat(records).extracting(ConsumerRecord::key)
-            .containsOnly(vehicleId.toString());
+                .containsOnly(vehicleId.toString());
         assertThat(records).extracting(record -> record.value().sequenceNumber())
-            .containsExactly(41L, 42L, 42L);
+                .containsExactly(41L, 42L, 42L);
         assertThat(records).extracting(ConsumerRecord::partition).containsOnly(records.getFirst()
-            .partition());
+                .partition());
         assertThat(records).extracting(ConsumerRecord::offset).isSorted();
     }
 
@@ -236,27 +238,27 @@ class TelemetryPipelineIntegrationTest extends PostgreSqlIntegrationSupport {
 
     private int sampleCount(UUID messageId) {
         return jdbcTemplate.queryForObject(
-            "SELECT COUNT(*) FROM telemetry_samples WHERE message_id = ?", Integer.class,
-            messageId);
+                "SELECT COUNT(*) FROM telemetry_samples WHERE message_id = ?", Integer.class,
+                messageId);
     }
 
     private List<Long> persistedSequenceNumbers() {
         return jdbcTemplate.queryForList(
-            "SELECT sequence_number FROM telemetry_samples ORDER BY id", Long.class);
+                "SELECT sequence_number FROM telemetry_samples ORDER BY id", Long.class);
     }
 
     private static TelemetryAck exchange(Socket client, TelemetryMessage message)
-        throws IOException {
+            throws IOException {
         LengthPrefixedFrameCodec.write(OBJECT_MAPPER.writeValueAsBytes(message),
-            client.getOutputStream());
+                client.getOutputStream());
         byte[] payload = LengthPrefixedFrameCodec.read(client.getInputStream());
         return OBJECT_MAPPER.readValue(payload, TelemetryAck.class);
     }
 
     private static TelemetryMessage message(UUID vehicleId, UUID messageId, long sequenceNumber) {
         return new TelemetryMessage(ProtocolConstants.PROTOCOL_VERSION, messageId, vehicleId,
-            sequenceNumber, RECEIVED_AT.minusSeconds(1), 72.4, 91.8, 12.6, 85_312, 41.9028,
-            12.4964);
+                sequenceNumber, RECEIVED_AT.minusSeconds(1), 72.4, 91.8, 12.6, 85_312, 41.9028,
+                12.4964);
     }
 
     private static final class RunningGateway implements AutoCloseable {
@@ -267,7 +269,7 @@ class TelemetryPipelineIntegrationTest extends PostgreSqlIntegrationSupport {
         private final int port;
 
         private RunningGateway(TcpServer server, SimpleMeterRegistry registry, Thread listener,
-            AtomicReference<Throwable> listenerFailure, int port) {
+                AtomicReference<Throwable> listenerFailure, int port) {
             this.server = server;
             this.registry = registry;
             this.listener = listener;
@@ -278,9 +280,10 @@ class TelemetryPipelineIntegrationTest extends PostgreSqlIntegrationSupport {
         static RunningGateway start(PublishingFrameHandler handler) throws Exception {
             SimpleMeterRegistry registry = new SimpleMeterRegistry();
             TcpServer server = new TcpServer(handler,
-                new TcpServerProperties(true, 0, 1, Duration.ofSeconds(10),
-                    Duration.ofSeconds(2)),
-                new FrameDecoder(OBJECT_MAPPER), new TelemetryAckEncoder(OBJECT_MAPPER), registry);
+                    new TcpServerProperties(true, 0, 1, Duration.ofSeconds(10),
+                            Duration.ofSeconds(2)),
+                    new FrameDecoder(OBJECT_MAPPER), new TelemetryAckEncoder(OBJECT_MAPPER),
+                    registry);
             CompletableFuture<Integer> bindResult = new CompletableFuture<>();
             AtomicReference<Throwable> listenerFailure = new AtomicReference<>();
             Thread listener = Thread.ofPlatform().name("pipeline-gateway-listener").start(() -> {

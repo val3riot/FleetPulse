@@ -26,12 +26,13 @@ class KafkaRetryConfigurationTest {
 
         assertThat(errorHandler.removeClassification(TransientDataAccessException.class)).isTrue();
         assertThat(
-            errorHandler.removeClassification(RecoverableDataAccessException.class)).isTrue();
+                errorHandler.removeClassification(RecoverableDataAccessException.class)).isTrue();
         assertThat(
-            errorHandler.removeClassification(DataAccessResourceFailureException.class)).isTrue();
+                errorHandler.removeClassification(DataAccessResourceFailureException.class))
+                .isTrue();
         assertThat(errorHandler.removeClassification(RetriableException.class)).isTrue();
         assertThat(errorHandler.removeClassification(
-            TelemetryTerminalPublicationException.class)).isTrue();
+                TelemetryTerminalPublicationException.class)).isTrue();
     }
 
     @Test
@@ -39,18 +40,18 @@ class KafkaRetryConfigurationTest {
         DefaultErrorHandler errorHandler = errorHandler();
 
         assertThat(errorHandler.removeClassification(
-            UnsupportedTelemetryEventVersionException.class)).isFalse();
+                UnsupportedTelemetryEventVersionException.class)).isFalse();
         assertThat(
-            errorHandler.removeClassification(DataIntegrityViolationException.class)).isFalse();
+                errorHandler.removeClassification(DataIntegrityViolationException.class)).isFalse();
     }
 
     private DefaultErrorHandler errorHandler() {
-        KafkaConsumerProperties properties =
-            new KafkaConsumerProperties("test-group", 3, Duration.ofMillis(500),
+        KafkaConsumerProperties properties = new KafkaConsumerProperties("test-group", 3,
+                Duration.ofMillis(500),
                 Duration.ofSeconds(5), 2.0, 0.2);
 
-        KafkaRetryObservability observability =
-            new KafkaRetryObservability(new SimpleMeterRegistry());
+        KafkaRetryObservability observability = new KafkaRetryObservability(
+                new SimpleMeterRegistry());
         ConsumerRecordRecoverer recoverer = mock(ConsumerRecordRecoverer.class);
         return configuration.kafkaErrorHandler(properties, observability, recoverer);
     }

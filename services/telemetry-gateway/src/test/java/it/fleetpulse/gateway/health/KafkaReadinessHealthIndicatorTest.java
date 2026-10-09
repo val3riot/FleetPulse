@@ -23,8 +23,10 @@ class KafkaReadinessHealthIndicatorTest {
     private final Admin admin = mock(Admin.class);
     private final DescribeTopicsResult result = mock(DescribeTopicsResult.class);
 
-    private KafkaReadinessHealthIndicator indicator(KafkaFuture<Map<String, TopicDescription>> future) {
-        when(admin.describeTopics(eq(List.of("raw")), any(DescribeTopicsOptions.class))).thenReturn(result);
+    private KafkaReadinessHealthIndicator indicator(
+            KafkaFuture<Map<String, TopicDescription>> future) {
+        when(admin.describeTopics(eq(List.of("raw")), any(DescribeTopicsOptions.class)))
+                .thenReturn(result);
         when(result.allTopicNames()).thenReturn(future);
         return new KafkaReadinessHealthIndicator(admin, List.of("raw"), Duration.ofMillis(50));
     }
@@ -33,7 +35,7 @@ class KafkaReadinessHealthIndicatorTest {
     void checksLeaderAndCachesWithoutProducingOrRepeatedRequests() {
         var node = new Node(1, "private-broker", 9092);
         var topic = new TopicDescription("raw", false,
-            List.of(new TopicPartitionInfo(0, node, List.of(node), List.of(node))));
+                List.of(new TopicPartitionInfo(0, node, List.of(node), List.of(node))));
         var check = indicator(KafkaFuture.completedFuture(Map.of("raw", topic)));
         assertThat(check.health().getStatus()).isEqualTo(Status.UP);
         assertThat(check.health().getStatus()).isEqualTo(Status.UP);
@@ -53,9 +55,9 @@ class KafkaReadinessHealthIndicatorTest {
     @Test
     void rejectsLeaderlessTopic() {
         var topic = new TopicDescription("raw", false,
-            List.of(new TopicPartitionInfo(0, null, List.of(), List.of())));
+                List.of(new TopicPartitionInfo(0, null, List.of(), List.of())));
         assertThat(indicator(KafkaFuture.completedFuture(Map.of("raw", topic)))
-            .health().getStatus()).isEqualTo(Status.DOWN);
+                .health().getStatus()).isEqualTo(Status.DOWN);
     }
 
     @Test
@@ -81,7 +83,8 @@ class KafkaReadinessHealthIndicatorTest {
 
     @Test
     void validatesTimeout() {
-        assertThatThrownBy(() -> new KafkaReadinessHealthIndicator(admin, List.of("raw"), Duration.ZERO))
-            .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(
+                () -> new KafkaReadinessHealthIndicator(admin, List.of("raw"), Duration.ZERO))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 }

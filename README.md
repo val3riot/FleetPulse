@@ -95,6 +95,9 @@ Maven non deve essere installato: il repository include Maven Wrapper.
 ./mvnw clean verify
 ```
 
+Formatting, controlli dipendenze, warning compiler e comandi del gate completo:
+[Quality gate backend](infrastructure/quality/README.md).
+
 ### Avvio della piattaforma
 
 ```bash

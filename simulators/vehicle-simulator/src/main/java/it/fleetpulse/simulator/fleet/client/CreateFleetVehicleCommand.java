@@ -4,8 +4,7 @@ public record CreateFleetVehicleCommand(
         String externalCode,
         String plate,
         int serviceIntervalKm,
-        long nextServiceAtKm
-) {
+        long nextServiceAtKm) {
     public CreateFleetVehicleCommand {
         if (externalCode == null || externalCode.isBlank()) {
             throw new IllegalArgumentException("externalCode must not be blank");

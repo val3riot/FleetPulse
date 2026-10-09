@@ -23,54 +23,54 @@ import org.springframework.kafka.core.ProducerFactory;
 import java.time.Duration;
 
 public class TelemetryPublishingConfigurationTest {
-    private final ApplicationContextRunner contextRunner =
-        new ApplicationContextRunner().withUserConfiguration(TelemetryPublishingConfiguration.class)
+    private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
+            .withUserConfiguration(TelemetryPublishingConfiguration.class)
             .withBean(KafkaTemplate.class, TelemetryPublishingConfigurationTest::kafkaTemplate)
             .withBean(MeterRegistry.class, SimpleMeterRegistry::new);
 
     @Test
     void createsPublishingBeansFromConfiguredTopic() {
         contextRunner.withPropertyValues("fleetpulse.kafka.topics.raw=telemetry.test.v1",
-            "fleetpulse.kafka.publisher.confirmation-timeout=750ms").run(context -> {
-            assertNull(context.getStartupFailure());
+                "fleetpulse.kafka.publisher.confirmation-timeout=750ms").run(context -> {
+                    assertNull(context.getStartupFailure());
 
-            KafkaTopicsProperties topics = context.getBean(KafkaTopicsProperties.class);
-            KafkaPublisherProperties publisherProperties =
-                context.getBean(KafkaPublisherProperties.class);
+                    KafkaTopicsProperties topics = context.getBean(KafkaTopicsProperties.class);
+                    KafkaPublisherProperties publisherProperties = context
+                            .getBean(KafkaPublisherProperties.class);
 
-            assertEquals("telemetry.test.v1", topics.raw());
-            assertNotNull(context.getBean(Clock.class));
-            assertNotNull(context.getBean(TelemetryEventMapper.class));
-            assertEquals(Duration.ofMillis(750), publisherProperties.confirmationTimeout());
+                    assertEquals("telemetry.test.v1", topics.raw());
+                    assertNotNull(context.getBean(Clock.class));
+                    assertNotNull(context.getBean(TelemetryEventMapper.class));
+                    assertEquals(Duration.ofMillis(750), publisherProperties.confirmationTimeout());
 
-            TelemetryPublisher publisher = context.getBean(TelemetryPublisher.class);
+                    TelemetryPublisher publisher = context.getBean(TelemetryPublisher.class);
 
-            assertInstanceOf(KafkaTelemetryPublisher.class, publisher);
+                    assertInstanceOf(KafkaTelemetryPublisher.class, publisher);
 
-            FrameHandler frameHandler = context.getBean(FrameHandler.class);
+                    FrameHandler frameHandler = context.getBean(FrameHandler.class);
 
-            assertInstanceOf(PublishingFrameHandler.class, frameHandler);
-        });
+                    assertInstanceOf(PublishingFrameHandler.class, frameHandler);
+                });
     }
 
     @Test
     void rejectsBlankRawTopic() {
         contextRunner.withPropertyValues("fleetpulse.kafka.topics.raw= ",
                 "fleetpulse.kafka.publisher.confirmation-timeout=5s")
-            .run(context -> assertNotNull(context.getStartupFailure()));
+                .run(context -> assertNotNull(context.getStartupFailure()));
     }
 
     @Test
     void rejectsMissingConfirmationTimeout() {
         contextRunner.withPropertyValues("fleetpulse.kafka.topics.raw=telemetry.raw.v1")
-            .run(context -> assertNotNull(context.getStartupFailure()));
+                .run(context -> assertNotNull(context.getStartupFailure()));
     }
 
     @Test
     void rejectsNonPositiveConfirmationTimeout() {
         contextRunner.withPropertyValues("fleetpulse.kafka.topics.raw=telemetry.raw.v1",
                 "fleetpulse.kafka.publisher.confirmation-timeout=0s")
-            .run(context -> assertNotNull(context.getStartupFailure()));
+                .run(context -> assertNotNull(context.getStartupFailure()));
     }
 
     private static KafkaTemplate<String, TelemetryEvent> kafkaTemplate() {

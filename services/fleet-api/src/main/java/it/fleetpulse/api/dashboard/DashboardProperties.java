@@ -13,7 +13,6 @@ import java.time.Duration;
 @Validated
 @ConfigurationProperties("fleetpulse.api.dashboard")
 public record DashboardProperties(
-    @NotNull @DurationMin(millis = 1) @DurationMax(days = 1) Duration reportingWindow,
-    @Min(1) @Max(100) int relevantAlertsLimit
-) {
+        @NotNull @DurationMin(millis = 1) @DurationMax(days = 1) Duration reportingWindow,
+        @Min(1) @Max(100) int relevantAlertsLimit) {
 }

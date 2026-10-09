@@ -17,26 +17,26 @@ import java.util.UUID;
 public interface TelemetrySampleRepository extends Repository<TelemetrySampleEntity, Long> {
 
     @Query("""
-        SELECT new it.fleetpulse.api.state.LatestVehicleState(
-            sample.vehicleId, sample.sequenceNumber, sample.observedAt, sample.speedKmh,
-            sample.engineTemperatureC, sample.batteryVoltage, sample.odometerKm,
-            sample.latitude, sample.longitude)
-        FROM TelemetrySampleEntity sample
-        WHERE sample.vehicleId = :vehicleId
-        ORDER BY sample.observedAt DESC, sample.sequenceNumber DESC, sample.id DESC
-        """)
+            SELECT new it.fleetpulse.api.state.LatestVehicleState(
+                sample.vehicleId, sample.sequenceNumber, sample.observedAt, sample.speedKmh,
+                sample.engineTemperatureC, sample.batteryVoltage, sample.odometerKm,
+                sample.latitude, sample.longitude)
+            FROM TelemetrySampleEntity sample
+            WHERE sample.vehicleId = :vehicleId
+            ORDER BY sample.observedAt DESC, sample.sequenceNumber DESC, sample.id DESC
+            """)
     List<LatestVehicleState> findLatestState(@Param("vehicleId") UUID vehicleId, Pageable pageable);
 
     @Query("""
-        SELECT COUNT(DISTINCT sample.vehicleId)
-        FROM TelemetrySampleEntity sample
-        WHERE sample.observedAt >= :from AND sample.observedAt <= :to
-        """)
+            SELECT COUNT(DISTINCT sample.vehicleId)
+            FROM TelemetrySampleEntity sample
+            WHERE sample.observedAt >= :from AND sample.observedAt <= :to
+            """)
     long countDistinctReportingVehicles(@Param("from") Instant from, @Param("to") Instant to);
 
     /**
      * Cerca i sample del veicolo nell'intervallo UTC inclusivo richiesto.
      */
     Page<TelemetrySampleEntity> findAllByVehicleIdAndObservedAtBetween(UUID vehicleId,
-        Instant from, Instant to, Pageable pageable);
+            Instant from, Instant to, Pageable pageable);
 }

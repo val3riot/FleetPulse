@@ -9,6 +9,5 @@ public record VehiclePageResponse(
         long totalElements,
         int totalPages,
         boolean first,
-        boolean last
-) {
+        boolean last) {
 }

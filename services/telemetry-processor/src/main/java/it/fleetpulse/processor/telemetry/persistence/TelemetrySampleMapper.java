@@ -13,12 +13,12 @@ public final class TelemetrySampleMapper {
         Objects.requireNonNull(event, "event must not be null");
         Objects.requireNonNull(processedAt, "processedAt must not be null");
 
-        TelemetryData telemetry =
-            Objects.requireNonNull(event.telemetry(), "event telemetry must not be null");
+        TelemetryData telemetry = Objects.requireNonNull(event.telemetry(),
+                "event telemetry must not be null");
 
         return new TelemetrySampleEntity(event.messageId(), event.vehicleId(),
-            event.sequenceNumber(), event.observedAt(), event.receivedAt(), processedAt,
-            telemetry.speedKmh(), telemetry.engineTemperatureC(), telemetry.batteryVoltage(),
-            telemetry.odometerKm(), telemetry.latitude(), telemetry.longitude());
+                event.sequenceNumber(), event.observedAt(), event.receivedAt(), processedAt,
+                telemetry.speedKmh(), telemetry.engineTemperatureC(), telemetry.batteryVoltage(),
+                telemetry.odometerKm(), telemetry.latitude(), telemetry.longitude());
     }
 }

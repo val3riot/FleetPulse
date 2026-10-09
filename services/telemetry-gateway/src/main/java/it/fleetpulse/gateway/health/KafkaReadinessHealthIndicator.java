@@ -57,12 +57,14 @@ public final class KafkaReadinessHealthIndicator implements HealthIndicator, Aut
         }
         try {
             var descriptions = admin.describeTopics(topics,
-                new DescribeTopicsOptions().timeoutMs(timeoutMillis)).allTopicNames()
-                .get(timeoutMillis, TimeUnit.MILLISECONDS);
+                    new DescribeTopicsOptions().timeoutMs(timeoutMillis)).allTopicNames()
+                    .get(timeoutMillis, TimeUnit.MILLISECONDS);
             boolean ready = descriptions.keySet().containsAll(topics)
-                && descriptions.values().stream().allMatch(topic -> !topic.partitions().isEmpty()
-                    && topic.partitions().stream().allMatch(partition -> partition.leader() != null
-                        && partition.leader().id() >= 0));
+                    && descriptions.values().stream()
+                            .allMatch(topic -> !topic.partitions().isEmpty()
+                                    && topic.partitions().stream()
+                                            .allMatch(partition -> partition.leader() != null
+                                                    && partition.leader().id() >= 0));
             cached = ready ? Health.up().build() : Health.down().build();
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();

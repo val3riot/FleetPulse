@@ -21,10 +21,8 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 public class TelemetryEventJsonContractTest {
 
     private static final String TOPIC = "telemetry.raw.v1";
-    private static final UUID MESSAGE_ID =
-        UUID.fromString("dc0fc799-0913-4e72-bd2d-8ee8ccf52e22");
-    private static final UUID VEHICLE_ID =
-        UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0");
+    private static final UUID MESSAGE_ID = UUID.fromString("dc0fc799-0913-4e72-bd2d-8ee8ccf52e22");
+    private static final UUID VEHICLE_ID = UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0");
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -42,14 +40,15 @@ public class TelemetryEventJsonContractTest {
         assertThat(event.sequenceNumber()).isEqualTo(42);
         assertThat(event.observedAt()).isEqualTo(Instant.parse("2026-08-01T10:15:30Z"));
         assertThat(event.receivedAt()).isEqualTo(Instant.parse("2026-08-01T10:15:31Z"));
-        assertThat(event.telemetry()).isEqualTo(new TelemetryData(72.4, 91.8, 12.6, 85312, 41.9028, 12.4964));
+        assertThat(event.telemetry())
+                .isEqualTo(new TelemetryData(72.4, 91.8, 12.6, 85312, 41.9028, 12.4964));
     }
 
     @Test
     void reportsMissingFixtureClearly() {
         assertThatThrownBy(() -> fixture("missing.json"))
-            .isInstanceOf(IllegalStateException.class)
-            .hasMessage("Missing fixture: missing.json");
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Missing fixture: missing.json");
     }
 
     @Test
@@ -60,7 +59,7 @@ public class TelemetryEventJsonContractTest {
             byte[] serialized = serializer.serialize(TOPIC, versionOneEvent());
 
             JSONAssert.assertEquals(fixtureText("telemetry-event-v1.json"),
-                new String(serialized, StandardCharsets.UTF_8), JSONCompareMode.STRICT);
+                    new String(serialized, StandardCharsets.UTF_8), JSONCompareMode.STRICT);
         } finally {
             serializer.close();
         }
@@ -81,15 +80,15 @@ public class TelemetryEventJsonContractTest {
     void kafkaDeserializerIgnoresAdditiveFields() throws IOException {
         JacksonJsonDeserializer<TelemetryEvent> deserializer = new JacksonJsonDeserializer<>();
         deserializer.configure(Map.of(
-            JacksonJsonDeserializer.USE_TYPE_INFO_HEADERS, false,
-            JacksonJsonDeserializer.VALUE_DEFAULT_TYPE, TelemetryEvent.class.getName(),
-            JacksonJsonDeserializer.TRUSTED_PACKAGES, TelemetryEvent.class.getPackageName()
-        ), false);
+                JacksonJsonDeserializer.USE_TYPE_INFO_HEADERS, false,
+                JacksonJsonDeserializer.VALUE_DEFAULT_TYPE, TelemetryEvent.class.getName(),
+                JacksonJsonDeserializer.TRUSTED_PACKAGES, TelemetryEvent.class.getPackageName()),
+                false);
 
         try {
             TelemetryEvent event = deserializer.deserialize(TOPIC,
-                fixtureText("telemetry-event-v1-additive-fields.json")
-                    .getBytes(StandardCharsets.UTF_8));
+                    fixtureText("telemetry-event-v1-additive-fields.json")
+                            .getBytes(StandardCharsets.UTF_8));
 
             assertThat(event).isEqualTo(versionOneEvent());
         } finally {
@@ -126,8 +125,8 @@ public class TelemetryEventJsonContractTest {
 
     private static TelemetryEvent versionOneEvent() {
         return new TelemetryEvent(TelemetryEventVersions.V1, MESSAGE_ID, VEHICLE_ID, 42,
-            Instant.parse("2026-08-01T10:15:30Z"), Instant.parse("2026-08-01T10:15:31Z"),
-            new TelemetryData(72.4, 91.8, 12.6, 85312, 41.9028, 12.4964));
+                Instant.parse("2026-08-01T10:15:30Z"), Instant.parse("2026-08-01T10:15:31Z"),
+                new TelemetryData(72.4, 91.8, 12.6, 85312, 41.9028, 12.4964));
     }
 
 }

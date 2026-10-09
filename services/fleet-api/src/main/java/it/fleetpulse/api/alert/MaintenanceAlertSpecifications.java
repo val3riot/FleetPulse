@@ -12,7 +12,7 @@ public final class MaintenanceAlertSpecifications {
     }
 
     public static Specification<MaintenanceAlertEntity> from(
-        MaintenanceAlertSearchCriteria criteria) {
+            MaintenanceAlertSearchCriteria criteria) {
         return (root, query, builder) -> {
             List<Predicate> predicates = new ArrayList<>();
 
@@ -29,7 +29,8 @@ public final class MaintenanceAlertSpecifications {
                 predicates.add(builder.equal(root.get("severity"), criteria.severity()));
             }
             if (criteria.from() != null) {
-                predicates.add(builder.greaterThanOrEqualTo(root.get("createdAt"), criteria.from()));
+                predicates
+                        .add(builder.greaterThanOrEqualTo(root.get("createdAt"), criteria.from()));
             }
             if (criteria.to() != null) {
                 predicates.add(builder.lessThanOrEqualTo(root.get("createdAt"), criteria.to()));

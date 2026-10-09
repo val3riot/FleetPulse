@@ -11,6 +11,5 @@ public record TelemetryAck(
         UUID messageId,
         AckStatus status,
         Instant receivedAt,
-        ProtocolErrorCode errorCode
-) {
+        ProtocolErrorCode errorCode) {
 }

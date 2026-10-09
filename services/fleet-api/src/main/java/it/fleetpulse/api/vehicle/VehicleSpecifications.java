@@ -25,8 +25,8 @@ public final class VehicleSpecifications {
                 String pattern = "%" + normalizedQuery + "%";
 
                 predicates.add(
-                    builder.or(builder.like(builder.lower(root.get("externalCode")), pattern),
-                        builder.like(builder.lower(root.get("plate")), pattern)));
+                        builder.or(builder.like(builder.lower(root.get("externalCode")), pattern),
+                                builder.like(builder.lower(root.get("plate")), pattern)));
             }
 
             if (criteria.status() != null) {

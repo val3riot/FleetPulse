@@ -26,7 +26,7 @@ public class DashboardService {
     private final Clock clock;
 
     public DashboardService(VehicleRepository vehicles, TelemetrySampleRepository samples,
-        MaintenanceAlertRepository alerts, DashboardProperties properties, Clock clock) {
+            MaintenanceAlertRepository alerts, DashboardProperties properties, Clock clock) {
         this.vehicles = vehicles;
         this.samples = samples;
         this.alerts = alerts;
@@ -45,20 +45,20 @@ public class DashboardService {
             counts.put(status, 0L);
         }
         vehicles.countVehiclesByStatus()
-            .forEach(count -> counts.put(count.status(), count.total()));
+                .forEach(count -> counts.put(count.status(), count.total()));
         long total = counts.values().stream().mapToLong(Long::longValue).sum();
         long recentlyReporting = samples.countDistinctReportingVehicles(
-            now.minus(properties.reportingWindow()), now);
+                now.minus(properties.reportingWindow()), now);
         long openAlerts = alerts.countByStatus(AlertStatus.OPEN);
         List<DashboardAlertResponse> relevantAlerts = alerts.findRelevantAlerts(
                 List.of(AlertStatus.OPEN, AlertStatus.ACKNOWLEDGED),
                 PageRequest.of(0, properties.relevantAlertsLimit()))
-            .stream().map(this::toResponse).toList();
+                .stream().map(this::toResponse).toList();
         return new DashboardResponse(total, counts, recentlyReporting, openAlerts, relevantAlerts);
     }
 
     private DashboardAlertResponse toResponse(MaintenanceAlertSummary summary) {
         return new DashboardAlertResponse(summary.id(), summary.vehicleId(), summary.type(),
-            summary.severity(), summary.status(), summary.description(), summary.createdAt());
+                summary.severity(), summary.status(), summary.description(), summary.createdAt());
     }
 }

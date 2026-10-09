@@ -6,15 +6,14 @@ public record ReconnectProperties(
         Duration initialBackoff,
         Duration maxBackoff,
         int maxAttempts,
-        double jitterRatio
-) {
+        double jitterRatio) {
 
     public ReconnectProperties {
         requirePositive(initialBackoff, "reconnect.initialBackoff");
         requirePositive(maxBackoff, "reconnect.maxBackoff");
         if (initialBackoff.compareTo(maxBackoff) > 0) {
             throw new IllegalArgumentException(
-                "reconnect.initialBackoff must not exceed maxBackoff");
+                    "reconnect.initialBackoff must not exceed maxBackoff");
         }
         if (maxAttempts <= 0) {
             throw new IllegalArgumentException("reconnect.maxAttempts must be greater than zero");

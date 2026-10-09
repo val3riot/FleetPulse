@@ -72,9 +72,9 @@ class TelemetryPoisonPillIntegrationTest {
     @BeforeAll
     static void createTopics() throws Exception {
         try (AdminClient admin = AdminClient.create(
-            Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers()))) {
+                Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers()))) {
             admin.createTopics(List.of(new NewTopic(RAW_TOPIC, 1, (short) 1),
-                new NewTopic(DEAD_LETTER_TOPIC, 1, (short) 1))).all().get(10, TimeUnit.SECONDS);
+                    new NewTopic(DEAD_LETTER_TOPIC, 1, (short) 1))).all().get(10, TimeUnit.SECONDS);
         }
     }
 
@@ -83,13 +83,13 @@ class TelemetryPoisonPillIntegrationTest {
         byte[] malformedPayload = "{\"eventVersion\":".getBytes(StandardCharsets.UTF_8);
 
         try (KafkaConsumer<String, String> deadLetterConsumer = deadLetterConsumer();
-             KafkaProducer<String, byte[]> rawProducer = rawProducer()) {
+                KafkaProducer<String, byte[]> rawProducer = rawProducer()) {
             TopicPartition deadLetterPartition = new TopicPartition(DEAD_LETTER_TOPIC, 0);
             deadLetterConsumer.assign(List.of(deadLetterPartition));
             deadLetterConsumer.seekToBeginning(List.of(deadLetterPartition));
 
             rawProducer.send(new ProducerRecord<>(RAW_TOPIC, ORIGINAL_KEY, malformedPayload))
-                .get(10, TimeUnit.SECONDS);
+                    .get(10, TimeUnit.SECONDS);
 
             ConsumerRecord<String, String> published = awaitRecord(deadLetterConsumer);
             JsonNode json = new ObjectMapper().readTree(published.value());
@@ -101,15 +101,15 @@ class TelemetryPoisonPillIntegrationTest {
             assertThat(json.get("attempts").asInt()).isEqualTo(1);
             assertThat(json.get("errorCode").stringValue()).isEqualTo("DESERIALIZATION_FAILED");
             assertThat(json.get("originalPayload").get("rawBase64").stringValue()).isEqualTo(
-                Base64.getEncoder().encodeToString(malformedPayload));
+                    Base64.getEncoder().encodeToString(malformedPayload));
         }
     }
 
     private static KafkaProducer<String, byte[]> rawProducer() {
         return new KafkaProducer<>(
-            Map.of(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers(),
-                ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class,
-                ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class));
+                Map.of(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers(),
+                        ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class,
+                        ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class));
     }
 
     private static KafkaConsumer<String, String> deadLetterConsumer() {
@@ -122,7 +122,7 @@ class TelemetryPoisonPillIntegrationTest {
     }
 
     private static ConsumerRecord<String, String> awaitRecord(
-        KafkaConsumer<String, String> consumer) {
+            KafkaConsumer<String, String> consumer) {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
 
         while (System.nanoTime() < deadline) {
@@ -144,7 +144,7 @@ class TelemetryPoisonPillIntegrationTest {
         @Bean
         KafkaConsumerProperties kafkaConsumerProperties() {
             return new KafkaConsumerProperties("poison-pill-processor-test", 3,
-                Duration.ofMillis(10), Duration.ofMillis(50), 2.0, 0.0);
+                    Duration.ofMillis(10), Duration.ofMillis(50), 2.0, 0.0);
         }
 
         @Bean
@@ -187,33 +187,32 @@ class TelemetryPoisonPillIntegrationTest {
         @Bean
         ConsumerFactory<String, TelemetryEvent> consumerFactory() {
             Map<String, Object> properties = Map.ofEntries(
-                Map.entry(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers()),
-                Map.entry(ConsumerConfig.GROUP_ID_CONFIG, "poison-pill-processor-test"),
-                Map.entry(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false),
-                Map.entry(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"),
-                Map.entry(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
-                    ErrorHandlingDeserializer.class),
-                Map.entry(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
-                    ErrorHandlingDeserializer.class),
-                Map.entry(ErrorHandlingDeserializer.KEY_DESERIALIZER_CLASS,
-                    StringDeserializer.class),
-                Map.entry(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS,
-                    JacksonJsonDeserializer.class),
-                Map.entry(JacksonJsonDeserializer.USE_TYPE_INFO_HEADERS, false),
-                Map.entry(JacksonJsonDeserializer.VALUE_DEFAULT_TYPE,
-                    TelemetryEvent.class.getName()),
-                Map.entry(JacksonJsonDeserializer.TRUSTED_PACKAGES,
-                    TelemetryEvent.class.getPackageName()));
+                    Map.entry(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers()),
+                    Map.entry(ConsumerConfig.GROUP_ID_CONFIG, "poison-pill-processor-test"),
+                    Map.entry(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false),
+                    Map.entry(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"),
+                    Map.entry(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
+                            ErrorHandlingDeserializer.class),
+                    Map.entry(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
+                            ErrorHandlingDeserializer.class),
+                    Map.entry(ErrorHandlingDeserializer.KEY_DESERIALIZER_CLASS,
+                            StringDeserializer.class),
+                    Map.entry(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS,
+                            JacksonJsonDeserializer.class),
+                    Map.entry(JacksonJsonDeserializer.USE_TYPE_INFO_HEADERS, false),
+                    Map.entry(JacksonJsonDeserializer.VALUE_DEFAULT_TYPE,
+                            TelemetryEvent.class.getName()),
+                    Map.entry(JacksonJsonDeserializer.TRUSTED_PACKAGES,
+                            TelemetryEvent.class.getPackageName()));
 
             return new DefaultKafkaConsumerFactory<>(properties);
         }
 
         @Bean
         ConcurrentKafkaListenerContainerFactory<String, TelemetryEvent> kafkaListenerContainerFactory(
-            ConsumerFactory<String, TelemetryEvent> consumerFactory,
-            DefaultErrorHandler errorHandler) {
-            ConcurrentKafkaListenerContainerFactory<String, TelemetryEvent> factory =
-                new ConcurrentKafkaListenerContainerFactory<>();
+                ConsumerFactory<String, TelemetryEvent> consumerFactory,
+                DefaultErrorHandler errorHandler) {
+            ConcurrentKafkaListenerContainerFactory<String, TelemetryEvent> factory = new ConcurrentKafkaListenerContainerFactory<>();
 
             factory.setConsumerFactory(consumerFactory);
             factory.setCommonErrorHandler(errorHandler);
@@ -225,14 +224,15 @@ class TelemetryPoisonPillIntegrationTest {
         @Bean
         DefaultKafkaProducerFactory<String, Object> producerFactory() {
             return new DefaultKafkaProducerFactory<>(
-                Map.of(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers(),
-                    ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class,
-                    ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JacksonJsonSerializer.class));
+                    Map.of(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers(),
+                            ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class,
+                            ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
+                            JacksonJsonSerializer.class));
         }
 
         @Bean
         KafkaTemplate<String, Object> kafkaTemplate(
-            DefaultKafkaProducerFactory<String, Object> producerFactory) {
+                DefaultKafkaProducerFactory<String, Object> producerFactory) {
             return new KafkaTemplate<>(producerFactory);
         }
     }

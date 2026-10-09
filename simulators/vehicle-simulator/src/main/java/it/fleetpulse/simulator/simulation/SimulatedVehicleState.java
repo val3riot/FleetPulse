@@ -14,8 +14,7 @@ public record SimulatedVehicleState(
         double batteryVoltage,
         double odometerKm,
         double latitude,
-        double longitude
-) {
+        double longitude) {
     private static final double INITIAL_SPEED_KMH = 0.0;
     private static final double INITIAL_ENGINE_TEMPERATURE_C = 85.0;
     private static final double INITIAL_BATTERY_VOLTAGE = 13.8;
@@ -37,15 +36,15 @@ public record SimulatedVehicleState(
     }
 
     public static SimulatedVehicleState initial(ProvisionedVehicle vehicle,
-        double initialOdometerKm, double latitude, double longitude) {
+            double initialOdometerKm, double latitude, double longitude) {
         Objects.requireNonNull(vehicle, "vehicle must not be null");
         return new SimulatedVehicleState(vehicle.vehicleId(), vehicle.externalCode(), 0,
-            INITIAL_SPEED_KMH, INITIAL_ENGINE_TEMPERATURE_C, INITIAL_BATTERY_VOLTAGE,
-            initialOdometerKm, latitude, longitude);
+                INITIAL_SPEED_KMH, INITIAL_ENGINE_TEMPERATURE_C, INITIAL_BATTERY_VOLTAGE,
+                initialOdometerKm, latitude, longitude);
     }
 
     public SimulatedVehicleState next(double speedKmh, double engineTemperatureC,
-        double batteryVoltage, double odometerKm, double latitude, double longitude) {
+            double batteryVoltage, double odometerKm, double latitude, double longitude) {
         if (sequenceNumber == Long.MAX_VALUE) {
             throw new IllegalStateException("sequenceNumber exhausted");
         }
@@ -53,7 +52,7 @@ public record SimulatedVehicleState(
             throw new IllegalArgumentException("odometerKm must not decrease");
         }
         return new SimulatedVehicleState(vehicleId, externalCode, sequenceNumber + 1, speedKmh,
-            engineTemperatureC, batteryVoltage, odometerKm, latitude, longitude);
+                engineTemperatureC, batteryVoltage, odometerKm, latitude, longitude);
     }
 
     private static void requireFinite(double value, String field) {
@@ -73,7 +72,7 @@ public record SimulatedVehicleState(
         requireFinite(value, field);
         if (value < minimum || value > maximum) {
             throw new IllegalArgumentException(
-                field + " must be between " + minimum + " and " + maximum);
+                    field + " must be between " + minimum + " and " + maximum);
         }
     }
 }

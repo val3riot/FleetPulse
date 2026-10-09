@@ -26,24 +26,24 @@ public class TelemetrySampleMapperTest {
 
     @Test
     void mapsCompleteVersionOneEvent() {
-        TelemetryEvent event =
-            new TelemetryEvent(TelemetryEventVersions.V1, MESSAGE_ID, VEHICLE_ID, 42, OBSERVED_AT,
+        TelemetryEvent event = new TelemetryEvent(TelemetryEventVersions.V1, MESSAGE_ID, VEHICLE_ID,
+                42, OBSERVED_AT,
                 RECEIVED_AT, new TelemetryData(72.4, 91.8, 12.6, 85_312, 41.9028, 12.4964));
 
         TelemetrySampleEntity entity = mapper.toEntity(event, PROCESSED_AT);
 
         assertAll(() -> assertNull(entity.getId()),
-            () -> assertEquals(MESSAGE_ID, entity.getMessageId()),
-            () -> assertEquals(VEHICLE_ID, entity.getVehicleId()),
-            () -> assertEquals(42, entity.getSequenceNumber()),
-            () -> assertEquals(OBSERVED_AT, entity.getObservedAt()),
-            () -> assertEquals(RECEIVED_AT, entity.getReceivedAt()),
-            () -> assertEquals(PROCESSED_AT, entity.getProcessedAt()),
-            () -> assertEquals(72.4, entity.getSpeedKmh()),
-            () -> assertEquals(91.8, entity.getEngineTemperatureC()),
-            () -> assertEquals(12.6, entity.getBatteryVoltage()),
-            () -> assertEquals(85_312, entity.getOdometerKm()),
-            () -> assertEquals(41.9028, entity.getLatitude()),
-            () -> assertEquals(12.4964, entity.getLongitude()));
+                () -> assertEquals(MESSAGE_ID, entity.getMessageId()),
+                () -> assertEquals(VEHICLE_ID, entity.getVehicleId()),
+                () -> assertEquals(42, entity.getSequenceNumber()),
+                () -> assertEquals(OBSERVED_AT, entity.getObservedAt()),
+                () -> assertEquals(RECEIVED_AT, entity.getReceivedAt()),
+                () -> assertEquals(PROCESSED_AT, entity.getProcessedAt()),
+                () -> assertEquals(72.4, entity.getSpeedKmh()),
+                () -> assertEquals(91.8, entity.getEngineTemperatureC()),
+                () -> assertEquals(12.6, entity.getBatteryVoltage()),
+                () -> assertEquals(85_312, entity.getOdometerKm()),
+                () -> assertEquals(41.9028, entity.getLatitude()),
+                () -> assertEquals(12.4964, entity.getLongitude()));
     }
 }

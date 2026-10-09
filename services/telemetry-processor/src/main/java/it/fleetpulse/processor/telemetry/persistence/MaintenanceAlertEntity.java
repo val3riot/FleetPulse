@@ -57,10 +57,10 @@ public class MaintenanceAlertEntity {
     }
 
     public MaintenanceAlertEntity(UUID vehicleId, UUID sourceMessageId, AlertType type,
-        AlertSeverity severity, String description, Instant createdAt) {
+            AlertSeverity severity, String description, Instant createdAt) {
         this.vehicleId = Objects.requireNonNull(vehicleId, "vehicleId must not be null");
-        this.sourceMessageId =
-            Objects.requireNonNull(sourceMessageId, "sourceMessageId must not be null");
+        this.sourceMessageId = Objects.requireNonNull(sourceMessageId,
+                "sourceMessageId must not be null");
         this.type = Objects.requireNonNull(type, "type must not be null");
         this.severity = Objects.requireNonNull(severity, "severity must not be null");
         this.description = Objects.requireNonNull(description, "description must not be null");

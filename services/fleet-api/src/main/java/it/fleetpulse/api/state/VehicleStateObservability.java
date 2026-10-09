@@ -17,7 +17,7 @@ public class VehicleStateObservability {
     private final Counter fallbacks;
     private final Counter repairFailures;
     private final AtomicLong lastWarning = new AtomicLong(System.nanoTime()
-        - Duration.ofSeconds(30).toNanos());
+            - Duration.ofSeconds(30).toNanos());
 
     public VehicleStateObservability(MeterRegistry registry) {
         hits = registry.counter("fleetpulse.api.cache.hits");
@@ -27,9 +27,15 @@ public class VehicleStateObservability {
         repairFailures = registry.counter("fleetpulse.api.cache.repair.failures");
     }
 
-    public void hit() { hits.increment(); }
-    public void miss() { misses.increment(); }
-    public void fallback() { fallbacks.increment(); }
+    public void hit() {
+        hits.increment();
+    }
+    public void miss() {
+        misses.increment();
+    }
+    public void fallback() {
+        fallbacks.increment();
+    }
 
     public void failure(boolean repair, LatestStateProjectionException failure) {
         (repair ? repairFailures : failures).increment();
@@ -38,11 +44,11 @@ public class VehicleStateObservability {
         if (now - previous >= Duration.ofSeconds(30).toNanos()
                 && lastWarning.compareAndSet(previous, now)) {
             log.atWarn().addKeyValue("event.action", "state.cache.operation.failed")
-                .addKeyValue("operation", repair ? "repair" : "read")
-                .addKeyValue("errorType", failure.getClass().getSimpleName())
-                .log("State cache operation failed: operation={}, errorType={}",
-                repair ? "repair" : "read",
-                failure.getClass().getSimpleName());
+                    .addKeyValue("operation", repair ? "repair" : "read")
+                    .addKeyValue("errorType", failure.getClass().getSimpleName())
+                    .log("State cache operation failed: operation={}, errorType={}",
+                            repair ? "repair" : "read",
+                            failure.getClass().getSimpleName());
         }
     }
 }

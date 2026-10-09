@@ -62,26 +62,26 @@ class VehicleEligibilityGuardTest {
     void doesNotRecordRejectionWhenPublicationFails() {
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         TelemetryTerminalEventPublisher publisher = mock(TelemetryTerminalEventPublisher.class);
-        TelemetryTerminalPublicationException failure =
-            new TelemetryTerminalPublicationException("broker unavailable", new RuntimeException());
+        TelemetryTerminalPublicationException failure = new TelemetryTerminalPublicationException(
+                "broker unavailable", new RuntimeException());
         doThrow(failure).when(publisher).publishRejected(any(TelemetryRejectedEvent.class));
 
-        VehicleEligibilityEvaluator evaluator =
-            new VehicleEligibilityEvaluator(id -> Optional.empty());
-        TelemetryRejectedEventFactory factory =
-            new TelemetryRejectedEventFactory(Clock.fixed(REJECTED_AT, ZoneOffset.UTC));
+        VehicleEligibilityEvaluator evaluator = new VehicleEligibilityEvaluator(
+                id -> Optional.empty());
+        TelemetryRejectedEventFactory factory = new TelemetryRejectedEventFactory(
+                Clock.fixed(REJECTED_AT, ZoneOffset.UTC));
         VehicleRejectionObservability observability = new VehicleRejectionObservability(registry);
-        VehicleEligibilityGuard guard =
-            new VehicleEligibilityGuard(evaluator, factory, publisher, observability);
+        VehicleEligibilityGuard guard = new VehicleEligibilityGuard(evaluator, factory, publisher,
+                observability);
 
         assertThatThrownBy(() -> guard.rejectIfIneligible(event(), SOURCE)).isSameAs(failure);
         assertThat(registry.get("fleetpulse.processor.rejections")
-            .tag("reason", TelemetryRejectionReason.UNKNOWN_VEHICLE.name()).counter()
-            .count()).isZero();
+                .tag("reason", TelemetryRejectionReason.UNKNOWN_VEHICLE.name()).counter()
+                .count()).isZero();
     }
 
     private static void assertPublishesRejection(VehicleRegistry registry,
-        TelemetryRejectionReason expectedReason) {
+            TelemetryRejectionReason expectedReason) {
         TelemetryTerminalEventPublisher publisher = mock(TelemetryTerminalEventPublisher.class);
         VehicleEligibilityGuard guard = guard(registry, publisher);
         TelemetryEvent event = event();
@@ -103,22 +103,22 @@ class VehicleEligibilityGuardTest {
     }
 
     private static VehicleEligibilityGuard guard(VehicleRegistry registry,
-        TelemetryTerminalEventPublisher publisher) {
+            TelemetryTerminalEventPublisher publisher) {
         VehicleEligibilityEvaluator evaluator = new VehicleEligibilityEvaluator(registry);
-        TelemetryRejectedEventFactory factory =
-            new TelemetryRejectedEventFactory(Clock.fixed(REJECTED_AT, ZoneOffset.UTC));
+        TelemetryRejectedEventFactory factory = new TelemetryRejectedEventFactory(
+                Clock.fixed(REJECTED_AT, ZoneOffset.UTC));
 
-        VehicleRejectionObservability observability =
-            new VehicleRejectionObservability(new SimpleMeterRegistry());
+        VehicleRejectionObservability observability = new VehicleRejectionObservability(
+                new SimpleMeterRegistry());
 
         return new VehicleEligibilityGuard(evaluator, factory, publisher, observability);
     }
 
     private static TelemetryEvent event() {
         return new TelemetryEvent(TelemetryEventVersions.V1,
-            UUID.fromString("dc0fc799-0913-4e72-bd2d-8ee8ccf52e22"),
-            UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0"), 42,
-            Instant.parse("2026-08-01T10:15:30Z"), Instant.parse("2026-08-01T10:15:30.083Z"),
-            new TelemetryData(72.4, 91.8, 12.6, 85_312, 41.9028, 12.4964));
+                UUID.fromString("dc0fc799-0913-4e72-bd2d-8ee8ccf52e22"),
+                UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0"), 42,
+                Instant.parse("2026-08-01T10:15:30Z"), Instant.parse("2026-08-01T10:15:30.083Z"),
+                new TelemetryData(72.4, 91.8, 12.6, 85_312, 41.9028, 12.4964));
     }
 }

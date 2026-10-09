@@ -86,15 +86,16 @@ class VehicleApiIntegrationTest extends PostgreSqlIntegrationSupport {
     void createsVehicleThroughAllLayers() throws Exception {
         MvcResult result = mockMvc.perform(
                 post(VEHICLES_PATH).contentType(MediaType.APPLICATION_JSON)
-                    .content(json("VAN-API-1", "FP201AA"))).andExpect(status().isCreated())
-            .andExpect(jsonPath("$.externalCode").value("VAN-API-1"))
-            .andExpect(jsonPath("$.plate").value("FP201AA"))
-            .andExpect(jsonPath("$.status").value("ACTIVE"))
-            .andExpect(jsonPath("$.createdAt").value(NOW.toString())).andReturn();
+                        .content(json("VAN-API-1", "FP201AA")))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.externalCode").value("VAN-API-1"))
+                .andExpect(jsonPath("$.plate").value("FP201AA"))
+                .andExpect(jsonPath("$.status").value("ACTIVE"))
+                .andExpect(jsonPath("$.createdAt").value(NOW.toString())).andReturn();
 
         String id = JsonPath.read(result.getResponse().getContentAsString(), "$.id");
         assertThat(result.getResponse().getHeader("Location")).isEqualTo(
-            "http://localhost/api/v1/vehicles/" + id);
+                "http://localhost/api/v1/vehicles/" + id);
         assertThat(repository.findById(UUID.fromString(id))).isPresent();
     }
 
@@ -107,10 +108,11 @@ class VehicleApiIntegrationTest extends PostgreSqlIntegrationSupport {
         VehicleEntity saved = repository.saveAndFlush(entity("VAN-API-2", "FP202AA"));
 
         mockMvc.perform(get(VEHICLES_PATH + "/{vehicleId}", saved.getId()))
-            .andExpect(status().isOk()).andExpect(jsonPath("$.id").value(saved.getId().toString()))
-            .andExpect(jsonPath("$.externalCode").value("VAN-API-2"))
-            .andExpect(jsonPath("$.plate").value("FP202AA"))
-            .andExpect(jsonPath("$.status").value("ACTIVE"));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(saved.getId().toString()))
+                .andExpect(jsonPath("$.externalCode").value("VAN-API-2"))
+                .andExpect(jsonPath("$.plate").value("FP202AA"))
+                .andExpect(jsonPath("$.status").value("ACTIVE"));
     }
 
     /**
@@ -120,10 +122,12 @@ class VehicleApiIntegrationTest extends PostgreSqlIntegrationSupport {
     @DisplayName("GET lista restituisce una pagina vuota valida")
     void returnsEmptyVehiclePage() throws Exception {
         mockMvc.perform(get(VEHICLES_PATH)).andExpect(status().isOk())
-            .andExpect(jsonPath("$.content").isEmpty()).andExpect(jsonPath("$.page").value(0))
-            .andExpect(jsonPath("$.size").value(20)).andExpect(jsonPath("$.totalElements").value(0))
-            .andExpect(jsonPath("$.totalPages").value(0)).andExpect(jsonPath("$.first").value(true))
-            .andExpect(jsonPath("$.last").value(true));
+                .andExpect(jsonPath("$.content").isEmpty()).andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(20))
+                .andExpect(jsonPath("$.totalElements").value(0))
+                .andExpect(jsonPath("$.totalPages").value(0))
+                .andExpect(jsonPath("$.first").value(true))
+                .andExpect(jsonPath("$.last").value(true));
     }
 
     /**
@@ -133,16 +137,16 @@ class VehicleApiIntegrationTest extends PostgreSqlIntegrationSupport {
     @DisplayName("GET lista cerca codice esterno e targa ignorando il case")
     void searchesExternalCodeAndPlateCaseInsensitively() throws Exception {
         repository.saveAllAndFlush(
-            List.of(entity("Delivery-North", "FP301AA"), entity("VAN-SOUTH", "MiXeD302"),
-                entity("TRUCK-WEST", "FP303AA")));
+                List.of(entity("Delivery-North", "FP301AA"), entity("VAN-SOUTH", "MiXeD302"),
+                        entity("TRUCK-WEST", "FP303AA")));
 
         mockMvc.perform(get(VEHICLES_PATH).param("query", "DeLiVeRy")).andExpect(status().isOk())
-            .andExpect(jsonPath("$.content.length()").value(1))
-            .andExpect(jsonPath("$.content[0].externalCode").value("Delivery-North"));
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].externalCode").value("Delivery-North"));
 
         mockMvc.perform(get(VEHICLES_PATH).param("query", "mixed")).andExpect(status().isOk())
-            .andExpect(jsonPath("$.content.length()").value(1))
-            .andExpect(jsonPath("$.content[0].plate").value("MiXeD302"));
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].plate").value("MiXeD302"));
     }
 
     /**
@@ -152,14 +156,14 @@ class VehicleApiIntegrationTest extends PostgreSqlIntegrationSupport {
     @DisplayName("GET lista combina query e status")
     void filtersByQueryAndStatus() throws Exception {
         repository.saveAllAndFlush(
-            List.of(entity("VAN-ACTIVE", "FP304AA", VehicleStatus.ACTIVE, NOW),
-                entity("VAN-DISABLED", "FP305AA", VehicleStatus.DISABLED, NOW),
-                entity("TRUCK-DISABLED", "FP306AA", VehicleStatus.DISABLED, NOW)));
+                List.of(entity("VAN-ACTIVE", "FP304AA", VehicleStatus.ACTIVE, NOW),
+                        entity("VAN-DISABLED", "FP305AA", VehicleStatus.DISABLED, NOW),
+                        entity("TRUCK-DISABLED", "FP306AA", VehicleStatus.DISABLED, NOW)));
 
         mockMvc.perform(get(VEHICLES_PATH).param("query", "van").param("status", "DISABLED"))
-            .andExpect(status().isOk()).andExpect(jsonPath("$.content.length()").value(1))
-            .andExpect(jsonPath("$.content[0].externalCode").value("VAN-DISABLED"))
-            .andExpect(jsonPath("$.content[0].status").value("DISABLED"));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].externalCode").value("VAN-DISABLED"))
+                .andExpect(jsonPath("$.content[0].status").value("DISABLED"));
     }
 
     /**
@@ -169,24 +173,29 @@ class VehicleApiIntegrationTest extends PostgreSqlIntegrationSupport {
     @DisplayName("GET lista pagina i risultati con ordering deterministico")
     void paginatesWithDeterministicOrdering() throws Exception {
         repository.saveAllAndFlush(List.of(entity("VAN-C", "FP307AA"), entity("VAN-A", "FP308AA"),
-            entity("VAN-D", "FP309AA"), entity("VAN-B", "FP310AA"), entity("VAN-E", "FP311AA")));
+                entity("VAN-D", "FP309AA"), entity("VAN-B", "FP310AA"),
+                entity("VAN-E", "FP311AA")));
 
         MvcResult firstPage = mockMvc.perform(
                 get(VEHICLES_PATH).param("page", "0").param("size", "2")
-                    .param("sort", "externalCode,asc")).andExpect(status().isOk())
-            .andExpect(jsonPath("$.totalElements").value(5))
-            .andExpect(jsonPath("$.totalPages").value(3)).andExpect(jsonPath("$.first").value(true))
-            .andExpect(jsonPath("$.last").value(false)).andReturn();
+                        .param("sort", "externalCode,asc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(5))
+                .andExpect(jsonPath("$.totalPages").value(3))
+                .andExpect(jsonPath("$.first").value(true))
+                .andExpect(jsonPath("$.last").value(false)).andReturn();
         MvcResult secondPage = mockMvc.perform(
                 get(VEHICLES_PATH).param("page", "1").param("size", "2")
-                    .param("sort", "externalCode,asc")).andExpect(status().isOk())
-            .andExpect(jsonPath("$.first").value(false)).andExpect(jsonPath("$.last").value(false))
-            .andReturn();
+                        .param("sort", "externalCode,asc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.first").value(false))
+                .andExpect(jsonPath("$.last").value(false))
+                .andReturn();
 
         List<String> firstCodes = JsonPath.read(firstPage.getResponse().getContentAsString(),
-            "$.content[*].externalCode");
+                "$.content[*].externalCode");
         List<String> secondCodes = JsonPath.read(secondPage.getResponse().getContentAsString(),
-            "$.content[*].externalCode");
+                "$.content[*].externalCode");
         assertThat(firstCodes).containsExactly("VAN-A", "VAN-B");
         assertThat(secondCodes).containsExactly("VAN-C", "VAN-D");
         assertThat(firstCodes).doesNotContainAnyElementsOf(secondCodes);
@@ -199,16 +208,16 @@ class VehicleApiIntegrationTest extends PostgreSqlIntegrationSupport {
     @DisplayName("GET lista usa UUID come tie-breaker stabile")
     void usesStableIdTieBreaker() throws Exception {
         List<VehicleEntity> saved = repository.saveAllAndFlush(
-            List.of(entity("TIE-A", "FP312AA"), entity("TIE-B", "FP313AA"),
-                entity("TIE-C", "FP314AA")));
-        List<String> expectedIds =
-            saved.stream().map(VehicleEntity::getId).map(UUID::toString).sorted().toList();
+                List.of(entity("TIE-A", "FP312AA"), entity("TIE-B", "FP313AA"),
+                        entity("TIE-C", "FP314AA")));
+        List<String> expectedIds = saved.stream().map(VehicleEntity::getId).map(UUID::toString)
+                .sorted().toList();
 
         MvcResult result = mockMvc.perform(get(VEHICLES_PATH).param("sort", "status,asc"))
-            .andExpect(status().isOk()).andReturn();
+                .andExpect(status().isOk()).andReturn();
 
-        List<String> actualIds =
-            JsonPath.read(result.getResponse().getContentAsString(), "$.content[*].id");
+        List<String> actualIds = JsonPath.read(result.getResponse().getContentAsString(),
+                "$.content[*].id");
         assertThat(actualIds).containsExactlyElementsOf(expectedIds);
     }
 
@@ -219,7 +228,7 @@ class VehicleApiIntegrationTest extends PostgreSqlIntegrationSupport {
     @DisplayName("PATCH reale disabilita e persiste il veicolo")
     void disablesVehicleThroughAllLayers() throws Exception {
         assertPersistedStatusChange("VAN-STATUS-1", "FP401AA", VehicleStatus.ACTIVE,
-            VehicleStatus.DISABLED);
+                VehicleStatus.DISABLED);
     }
 
     /**
@@ -229,7 +238,7 @@ class VehicleApiIntegrationTest extends PostgreSqlIntegrationSupport {
     @DisplayName("PATCH reale riattiva e persiste il veicolo")
     void activatesVehicleThroughAllLayers() throws Exception {
         assertPersistedStatusChange("VAN-STATUS-2", "FP402AA", VehicleStatus.DISABLED,
-            VehicleStatus.ACTIVE);
+                VehicleStatus.ACTIVE);
     }
 
     /**
@@ -238,16 +247,17 @@ class VehicleApiIntegrationTest extends PostgreSqlIntegrationSupport {
     @Test
     @DisplayName("PATCH reale mantiene idempotentemente lo stato corrente")
     void keepsCurrentStatusIdempotently() throws Exception {
-        VehicleEntity saved =
-            repository.saveAndFlush(entity("VAN-STATUS-3", "FP403AA", VehicleStatus.ACTIVE, NOW));
+        VehicleEntity saved = repository
+                .saveAndFlush(entity("VAN-STATUS-3", "FP403AA", VehicleStatus.ACTIVE, NOW));
 
         mockMvc.perform(patch(VEHICLES_PATH + "/{vehicleId}/status", saved.getId()).contentType(
                 MediaType.APPLICATION_JSON).content("{\"status\":\"ACTIVE\"}"))
-            .andExpect(status().isOk()).andExpect(jsonPath("$.id").value(saved.getId().toString()))
-            .andExpect(jsonPath("$.status").value("ACTIVE"));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(saved.getId().toString()))
+                .andExpect(jsonPath("$.status").value("ACTIVE"));
 
         assertThat(repository.findById(saved.getId())).get().extracting(VehicleEntity::getStatus)
-            .isEqualTo(VehicleStatus.ACTIVE);
+                .isEqualTo(VehicleStatus.ACTIVE);
         assertThat(repository.count()).isEqualTo(1L);
     }
 
@@ -261,7 +271,7 @@ class VehicleApiIntegrationTest extends PostgreSqlIntegrationSupport {
         doReturn(false).when(repository).existsByExternalCode("VAN-API-DUP");
 
         expectConflict(mockMvc.perform(post(VEHICLES_PATH).contentType(MediaType.APPLICATION_JSON)
-            .content(json("VAN-API-DUP", "FP204AA"))), "VEHICLE_EXTERNAL_CODE_CONFLICT");
+                .content(json("VAN-API-DUP", "FP204AA"))), "VEHICLE_EXTERNAL_CODE_CONFLICT");
     }
 
     /**
@@ -274,7 +284,7 @@ class VehicleApiIntegrationTest extends PostgreSqlIntegrationSupport {
         doReturn(false).when(repository).existsByPlate("FP205AA");
 
         expectConflict(mockMvc.perform(post(VEHICLES_PATH).contentType(MediaType.APPLICATION_JSON)
-            .content(json("VAN-API-4", "FP205AA"))), "VEHICLE_PLATE_CONFLICT");
+                .content(json("VAN-API-4", "FP205AA"))), "VEHICLE_PLATE_CONFLICT");
     }
 
     /**
@@ -290,7 +300,7 @@ class VehicleApiIntegrationTest extends PostgreSqlIntegrationSupport {
             bothPastExternalCodeCheck.countDown();
             if (!bothPastExternalCodeCheck.await(10, TimeUnit.SECONDS)) {
                 throw new IllegalStateException(
-                    "Le richieste non hanno raggiunto insieme il pre-check");
+                        "Le richieste non hanno raggiunto insieme il pre-check");
             }
             releaseChecks.await(10, TimeUnit.SECONDS);
             return false;
@@ -305,14 +315,16 @@ class VehicleApiIntegrationTest extends PostgreSqlIntegrationSupport {
             assertThat(bothPastExternalCodeCheck.await(10, TimeUnit.SECONDS)).isTrue();
             releaseChecks.countDown();
 
-            List<Integer> statuses =
-                List.of(first.get(15, TimeUnit.SECONDS).getResponse().getStatus(),
+            List<Integer> statuses = List.of(
+                    first.get(15, TimeUnit.SECONDS).getResponse().getStatus(),
                     second.get(15, TimeUnit.SECONDS).getResponse().getStatus());
 
             assertThat(statuses).containsExactlyInAnyOrder(201, 409);
             assertThat(
-                jdbcTemplate.queryForObject("select count(*) from vehicles where external_code = ?",
-                    Long.class, externalCode)).isEqualTo(1L);
+                    jdbcTemplate.queryForObject(
+                            "select count(*) from vehicles where external_code = ?",
+                            Long.class, externalCode))
+                    .isEqualTo(1L);
         } finally {
             releaseChecks.countDown();
             executor.shutdownNow();
@@ -325,43 +337,48 @@ class VehicleApiIntegrationTest extends PostgreSqlIntegrationSupport {
      */
     private MvcResult create(String externalCode, String plate) throws Exception {
         return mockMvc.perform(post(VEHICLES_PATH).contentType(MediaType.APPLICATION_JSON)
-            .content(json(externalCode, plate))).andReturn();
+                .content(json(externalCode, plate))).andReturn();
     }
 
     /**
      * Esegue una transizione via API e verifica lo stato realmente memorizzato.
      */
     private void assertPersistedStatusChange(String externalCode, String plate,
-        VehicleStatus initialStatus, VehicleStatus requestedStatus) throws Exception {
-        VehicleEntity saved =
-            repository.saveAndFlush(entity(externalCode, plate, initialStatus, NOW));
+            VehicleStatus initialStatus, VehicleStatus requestedStatus) throws Exception {
+        VehicleEntity saved = repository
+                .saveAndFlush(entity(externalCode, plate, initialStatus, NOW));
 
         mockMvc.perform(patch(VEHICLES_PATH + "/{vehicleId}/status", saved.getId()).contentType(
-                MediaType.APPLICATION_JSON).content("{\"status\":\"%s\"}".formatted(requestedStatus)))
-            .andExpect(status().isOk())
-            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.id").value(saved.getId().toString()))
-            .andExpect(jsonPath("$.status").value(requestedStatus.name()))
-            .andExpect(header().doesNotExist("Location"));
+                MediaType.APPLICATION_JSON)
+                .content("{\"status\":\"%s\"}".formatted(requestedStatus)))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.id").value(saved.getId().toString()))
+                .andExpect(jsonPath("$.status").value(requestedStatus.name()))
+                .andExpect(header().doesNotExist("Location"));
 
         assertThat(repository.findById(saved.getId())).get().extracting(VehicleEntity::getStatus)
-            .isEqualTo(requestedStatus);
+                .isEqualTo(requestedStatus);
         assertThat(
-            jdbcTemplate.queryForObject("select status from vehicles where id = ?", String.class,
-                saved.getId())).isEqualTo(requestedStatus.name());
+                jdbcTemplate.queryForObject("select status from vehicles where id = ?",
+                        String.class,
+                        saved.getId()))
+                .isEqualTo(requestedStatus.name());
     }
 
     /**
      * Verifica il formato dell'errore prodotto da una violazione database reale.
      */
     private void expectConflict(org.springframework.test.web.servlet.ResultActions result,
-        String code) throws Exception {
+            String code) throws Exception {
         result.andExpect(status().isConflict())
-            .andExpect(jsonPath("$.timestamp").value(NOW.toString()))
-            .andExpect(jsonPath("$.status").value(409)).andExpect(jsonPath("$.code").value(code))
-            .andExpect(jsonPath("$.path").value(VEHICLES_PATH))
-            .andExpect(jsonPath("$.details").isArray()).andExpect(jsonPath("$.details").isEmpty())
-            .andExpect(jsonPath("$.error").doesNotExist());
+                .andExpect(jsonPath("$.timestamp").value(NOW.toString()))
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.code").value(code))
+                .andExpect(jsonPath("$.path").value(VEHICLES_PATH))
+                .andExpect(jsonPath("$.details").isArray())
+                .andExpect(jsonPath("$.details").isEmpty())
+                .andExpect(jsonPath("$.error").doesNotExist());
     }
 
     /**
@@ -369,8 +386,8 @@ class VehicleApiIntegrationTest extends PostgreSqlIntegrationSupport {
      */
     private String json(String externalCode, String plate) {
         return """
-            {"externalCode":"%s","plate":"%s","serviceIntervalKm":15000,"nextServiceAtKm":90000}
-            """.formatted(externalCode, plate);
+                {"externalCode":"%s","plate":"%s","serviceIntervalKm":15000,"nextServiceAtKm":90000}
+                """.formatted(externalCode, plate);
     }
 
     /**
@@ -384,7 +401,7 @@ class VehicleApiIntegrationTest extends PostgreSqlIntegrationSupport {
      * Costruisce un'entity con stato e timestamp scelti dallo scenario.
      */
     private VehicleEntity entity(String externalCode, String plate, VehicleStatus status,
-        Instant createdAt) {
+            Instant createdAt) {
         return new VehicleEntity(externalCode, plate, status, 15_000, 90_000L, createdAt);
     }
 

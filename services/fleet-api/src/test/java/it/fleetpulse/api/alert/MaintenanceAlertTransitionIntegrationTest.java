@@ -45,18 +45,16 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @Import(MaintenanceAlertTransitionIntegrationTest.FixedClockConfiguration.class)
 @ImportAutoConfiguration(FlywayAutoConfiguration.class)
 class MaintenanceAlertTransitionIntegrationTest {
-    private static final UUID VEHICLE_ID =
-        UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0");
-    private static final UUID ALERT_ID =
-        UUID.fromString("f2607610-5100-4723-93d0-e6bbdcf00da0");
-    private static final UUID SOURCE_MESSAGE_ID =
-        UUID.fromString("dc0fc799-0913-4e72-bd2d-8ee8ccf52e22");
+    private static final UUID VEHICLE_ID = UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0");
+    private static final UUID ALERT_ID = UUID.fromString("f2607610-5100-4723-93d0-e6bbdcf00da0");
+    private static final UUID SOURCE_MESSAGE_ID = UUID
+            .fromString("dc0fc799-0913-4e72-bd2d-8ee8ccf52e22");
     private static final Instant CREATED_AT = Instant.parse("2026-09-14T08:00:00Z");
     private static final Instant NOW = Instant.parse("2026-09-14T09:00:00Z");
 
     @Container
-    private static final PostgreSQLContainer POSTGRESQL =
-        new PostgreSQLContainer("postgres:17.10-alpine3.23")
+    private static final PostgreSQLContainer POSTGRESQL = new PostgreSQLContainer(
+            "postgres:17.10-alpine3.23")
             .withDatabaseName("fleetpulse_alert_transition_test")
             .withUsername("fleetpulse")
             .withPassword("fleetpulse_test");
@@ -89,32 +87,32 @@ class MaintenanceAlertTransitionIntegrationTest {
         jdbc.update("DELETE FROM telemetry_samples");
         jdbc.update("DELETE FROM vehicles");
         jdbc.update("""
-            INSERT INTO vehicles (id, external_code, plate, status, service_interval_km,
-                next_service_at_km, created_at)
-            VALUES (?, 'VAN-FP036', 'FP036AA', 'ACTIVE', 15000, 90000, ?)
-            """, VEHICLE_ID, timestamp(CREATED_AT));
+                INSERT INTO vehicles (id, external_code, plate, status, service_interval_km,
+                    next_service_at_km, created_at)
+                VALUES (?, 'VAN-FP036', 'FP036AA', 'ACTIVE', 15000, 90000, ?)
+                """, VEHICLE_ID, timestamp(CREATED_AT));
         jdbc.update("""
-            INSERT INTO telemetry_samples (message_id, vehicle_id, sequence_number, observed_at,
-                received_at, processed_at, speed_kmh, engine_temperature_c, battery_voltage,
-                odometer_km, latitude, longitude)
-            VALUES (?, ?, 1, ?, ?, ?, 50, 110, 12.5, 85000, 41.9, 12.5)
-            """, SOURCE_MESSAGE_ID, VEHICLE_ID, timestamp(CREATED_AT), timestamp(CREATED_AT),
-            timestamp(CREATED_AT));
+                INSERT INTO telemetry_samples (message_id, vehicle_id, sequence_number, observed_at,
+                    received_at, processed_at, speed_kmh, engine_temperature_c, battery_voltage,
+                    odometer_km, latitude, longitude)
+                VALUES (?, ?, 1, ?, ?, ?, 50, 110, 12.5, 85000, 41.9, 12.5)
+                """, SOURCE_MESSAGE_ID, VEHICLE_ID, timestamp(CREATED_AT), timestamp(CREATED_AT),
+                timestamp(CREATED_AT));
         insertOpenAlert();
     }
 
     @Test
     void migrationInitializesVersionToZero() {
         Long version = jdbc.queryForObject(
-            "SELECT version FROM maintenance_alerts WHERE id = ?", Long.class, ALERT_ID);
+                "SELECT version FROM maintenance_alerts WHERE id = ?", Long.class, ALERT_ID);
 
         assertThat(version).isZero();
     }
 
     @Test
     void acknowledgesOnceAndKeepsTimestampOnIdempotentReplay() {
-        ChangeAlertStatusRequest request =
-            new ChangeAlertStatusRequest(AlertStatusTarget.ACKNOWLEDGED);
+        ChangeAlertStatusRequest request = new ChangeAlertStatusRequest(
+                AlertStatusTarget.ACKNOWLEDGED);
 
         MaintenanceAlertResponse first = commandService.changeStatus(ALERT_ID, request);
         MaintenanceAlertResponse replay = commandService.changeStatus(ALERT_ID, request);
@@ -129,7 +127,7 @@ class MaintenanceAlertTransitionIntegrationTest {
     @Test
     void closesOpenAlertWithoutAcknowledgingIt() {
         MaintenanceAlertResponse response = commandService.changeStatus(ALERT_ID,
-            new ChangeAlertStatusRequest(AlertStatusTarget.CLOSED));
+                new ChangeAlertStatusRequest(AlertStatusTarget.CLOSED));
 
         assertThat(response.status()).isEqualTo(AlertStatus.CLOSED);
         assertThat(response.acknowledgedAt()).isNull();
@@ -140,9 +138,9 @@ class MaintenanceAlertTransitionIntegrationTest {
     @Test
     void closesAcknowledgedAlertAndPreservesAcknowledgement() {
         commandService.changeStatus(ALERT_ID,
-            new ChangeAlertStatusRequest(AlertStatusTarget.ACKNOWLEDGED));
+                new ChangeAlertStatusRequest(AlertStatusTarget.ACKNOWLEDGED));
         MaintenanceAlertResponse response = commandService.changeStatus(ALERT_ID,
-            new ChangeAlertStatusRequest(AlertStatusTarget.CLOSED));
+                new ChangeAlertStatusRequest(AlertStatusTarget.CLOSED));
 
         assertThat(response.status()).isEqualTo(AlertStatus.CLOSED);
         assertThat(response.acknowledgedAt()).isEqualTo(NOW);
@@ -153,13 +151,13 @@ class MaintenanceAlertTransitionIntegrationTest {
     @Test
     void rejectsAcknowledgeAfterClose() {
         commandService.changeStatus(ALERT_ID,
-            new ChangeAlertStatusRequest(AlertStatusTarget.CLOSED));
+                new ChangeAlertStatusRequest(AlertStatusTarget.CLOSED));
 
         assertThatThrownBy(() -> commandService.changeStatus(ALERT_ID,
-            new ChangeAlertStatusRequest(AlertStatusTarget.ACKNOWLEDGED)))
-            .isInstanceOfSatisfying(ApplicationException.class,
-                exception -> assertThat(exception.getErrorCode())
-                    .isEqualTo(ErrorCode.ALERT_STATUS_TRANSITION_CONFLICT));
+                new ChangeAlertStatusRequest(AlertStatusTarget.ACKNOWLEDGED)))
+                .isInstanceOfSatisfying(ApplicationException.class,
+                        exception -> assertThat(exception.getErrorCode())
+                                .isEqualTo(ErrorCode.ALERT_STATUS_TRANSITION_CONFLICT));
         assertThat(readVersion()).isEqualTo(1L);
     }
 
@@ -173,7 +171,7 @@ class MaintenanceAlertTransitionIntegrationTest {
         writeDetachedAlert(firstSnapshot);
 
         assertThatThrownBy(() -> writeDetachedAlert(secondSnapshot))
-            .isInstanceOf(OptimisticLockingFailureException.class);
+                .isInstanceOf(OptimisticLockingFailureException.class);
         MaintenanceAlertEntity persisted = readDetachedAlert();
         assertThat(persisted.getStatus()).isEqualTo(AlertStatus.CLOSED);
         assertThat(persisted.getClosedAt()).isEqualTo(NOW);
@@ -189,12 +187,12 @@ class MaintenanceAlertTransitionIntegrationTest {
             Future<MaintenanceAlertResponse> acknowledge = executor.submit(() -> {
                 start.await();
                 return commandService.changeStatus(ALERT_ID,
-                    new ChangeAlertStatusRequest(AlertStatusTarget.ACKNOWLEDGED));
+                        new ChangeAlertStatusRequest(AlertStatusTarget.ACKNOWLEDGED));
             });
             Future<MaintenanceAlertResponse> close = executor.submit(() -> {
                 start.await();
                 return commandService.changeStatus(ALERT_ID,
-                    new ChangeAlertStatusRequest(AlertStatusTarget.CLOSED));
+                        new ChangeAlertStatusRequest(AlertStatusTarget.CLOSED));
             });
 
             start.countDown();
@@ -210,26 +208,26 @@ class MaintenanceAlertTransitionIntegrationTest {
         assertThat(persisted.getStatus()).isEqualTo(AlertStatus.CLOSED);
         assertThat(persisted.getClosedAt()).isEqualTo(NOW);
         assertThat(persisted.getAcknowledgedAt() == null
-            || NOW.equals(persisted.getAcknowledgedAt())).isTrue();
+                || NOW.equals(persisted.getAcknowledgedAt())).isTrue();
         assertThat(persisted.getVersion()).isBetween(1L, 2L);
     }
 
     private void assertAcknowledgeOutcomeIsSerialized(Future<MaintenanceAlertResponse> future)
-        throws Exception {
+            throws Exception {
         try {
             MaintenanceAlertResponse response = future.get(10, TimeUnit.SECONDS);
             assertThat(response.status()).isEqualTo(AlertStatus.ACKNOWLEDGED);
         } catch (ExecutionException exception) {
             assertThat(exception.getCause()).isInstanceOfSatisfying(ApplicationException.class,
-                applicationException -> assertThat(applicationException.getErrorCode())
-                    .isEqualTo(ErrorCode.ALERT_STATUS_TRANSITION_CONFLICT));
+                    applicationException -> assertThat(applicationException.getErrorCode())
+                            .isEqualTo(ErrorCode.ALERT_STATUS_TRANSITION_CONFLICT));
         }
     }
 
     private MaintenanceAlertEntity readDetachedAlert() {
         TransactionTemplate transaction = requiresNewTransaction();
         MaintenanceAlertEntity alert = transaction.execute(
-            status -> repository.findById(ALERT_ID).orElseThrow());
+                status -> repository.findById(ALERT_ID).orElseThrow());
         assertThat(alert).isNotNull();
         return alert;
     }
@@ -247,18 +245,18 @@ class MaintenanceAlertTransitionIntegrationTest {
 
     private long readVersion() {
         Long version = jdbc.queryForObject(
-            "SELECT version FROM maintenance_alerts WHERE id = ?", Long.class, ALERT_ID);
+                "SELECT version FROM maintenance_alerts WHERE id = ?", Long.class, ALERT_ID);
         assertThat(version).isNotNull();
         return version;
     }
 
     private void insertOpenAlert() {
         jdbc.update("""
-            INSERT INTO maintenance_alerts (id, vehicle_id, source_message_id, type, severity,
-                description, status, created_at, acknowledged_at, closed_at)
-            VALUES (?, ?, ?, 'ENGINE_TEMPERATURE_HIGH', 'HIGH',
-                'Temperature above threshold', 'OPEN', ?, NULL, NULL)
-            """, ALERT_ID, VEHICLE_ID, SOURCE_MESSAGE_ID, timestamp(CREATED_AT));
+                INSERT INTO maintenance_alerts (id, vehicle_id, source_message_id, type, severity,
+                    description, status, created_at, acknowledged_at, closed_at)
+                VALUES (?, ?, ?, 'ENGINE_TEMPERATURE_HIGH', 'HIGH',
+                    'Temperature above threshold', 'OPEN', ?, NULL, NULL)
+                """, ALERT_ID, VEHICLE_ID, SOURCE_MESSAGE_ID, timestamp(CREATED_AT));
     }
 
     private OffsetDateTime timestamp(Instant instant) {

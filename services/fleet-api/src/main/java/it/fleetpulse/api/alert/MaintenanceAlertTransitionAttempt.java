@@ -18,7 +18,7 @@ public class MaintenanceAlertTransitionAttempt {
     private final Clock clock;
 
     public MaintenanceAlertTransitionAttempt(MaintenanceAlertRepository alerts,
-        MaintenanceAlertStateMachine stateMachine, MaintenanceAlertMapper mapper, Clock clock) {
+            MaintenanceAlertStateMachine stateMachine, MaintenanceAlertMapper mapper, Clock clock) {
         this.alerts = alerts;
         this.stateMachine = stateMachine;
         this.mapper = mapper;
@@ -28,7 +28,7 @@ public class MaintenanceAlertTransitionAttempt {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public MaintenanceAlertResponse execute(UUID alertId, AlertStatusTarget target) {
         MaintenanceAlertEntity alert = alerts.findById(alertId)
-            .orElseThrow(() -> new ApplicationException(ErrorCode.ALERT_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.ALERT_NOT_FOUND));
         Instant transitionedAt = clock.instant();
         boolean changed = stateMachine.transition(alert, target, transitionedAt);
         if (changed) {

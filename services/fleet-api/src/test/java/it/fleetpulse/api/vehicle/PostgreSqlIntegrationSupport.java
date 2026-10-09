@@ -12,8 +12,8 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 public abstract class PostgreSqlIntegrationSupport {
 
     @Container
-    protected static final PostgreSQLContainer POSTGRESQL =
-        new PostgreSQLContainer("postgres:17.10-alpine3.23").withDatabaseName("fleetpulse_test")
+    protected static final PostgreSQLContainer POSTGRESQL = new PostgreSQLContainer(
+            "postgres:17.10-alpine3.23").withDatabaseName("fleetpulse_test")
             .withUsername("fleetpulse").withPassword("fleetpulse_test");
 
     /**

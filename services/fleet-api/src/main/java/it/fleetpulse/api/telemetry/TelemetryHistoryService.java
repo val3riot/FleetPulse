@@ -25,8 +25,8 @@ public class TelemetryHistoryService {
     private final TelemetryHistoryRequestValidator requestValidator;
 
     public TelemetryHistoryService(VehicleRepository vehicles, TelemetrySampleRepository samples,
-        TelemetrySampleMapper mapper, TelemetryHistoryPageableFactory pageableFactory,
-        TelemetryHistoryRequestValidator requestValidator) {
+            TelemetrySampleMapper mapper, TelemetryHistoryPageableFactory pageableFactory,
+            TelemetryHistoryRequestValidator requestValidator) {
         this.vehicles = vehicles;
         this.samples = samples;
         this.mapper = mapper;
@@ -39,7 +39,7 @@ public class TelemetryHistoryService {
      */
     @Transactional(readOnly = true)
     public TelemetryHistoryResponse findByVehicleId(UUID vehicleId,
-        TelemetryHistoryRequest request) {
+            TelemetryHistoryRequest request) {
         requestValidator.validate(request);
         Pageable pageable = pageableFactory.create(request.page(), request.size(), request.sort());
 
@@ -48,21 +48,22 @@ public class TelemetryHistoryService {
         }
 
         Page<TelemetrySampleEntity> result = samples.findAllByVehicleIdAndObservedAtBetween(
-            vehicleId, request.from(), request.to(), pageable);
+                vehicleId, request.from(), request.to(), pageable);
         log.atDebug().addKeyValue("event.action", "telemetry.history.query.completed")
-            .addKeyValue("vehicleId", vehicleId)
-            .addKeyValue("page", pageable.getPageNumber())
-            .addKeyValue("size", pageable.getPageSize())
-            .addKeyValue("results", result.getNumberOfElements())
-            .addKeyValue("total", result.getTotalElements())
-            .log("Telemetry history query completed: vehicleId={}, page={}, size={}, results={}, " +
-                "total={}", vehicleId, pageable.getPageNumber(),
-            pageable.getPageSize(),
-            result.getNumberOfElements(),
-            result.getTotalElements());
+                .addKeyValue("vehicleId", vehicleId)
+                .addKeyValue("page", pageable.getPageNumber())
+                .addKeyValue("size", pageable.getPageSize())
+                .addKeyValue("results", result.getNumberOfElements())
+                .addKeyValue("total", result.getTotalElements())
+                .log("Telemetry history query completed: vehicleId={}, page={}, size={}, results={}, "
+                        +
+                        "total={}", vehicleId, pageable.getPageNumber(),
+                        pageable.getPageSize(),
+                        result.getNumberOfElements(),
+                        result.getTotalElements());
 
         return new TelemetryHistoryResponse(result.getContent().stream().map(mapper::toResponse)
-            .toList(), result.getNumber(), result.getSize(), result.getTotalElements(),
-            result.getTotalPages(), result.isFirst(), result.isLast());
+                .toList(), result.getNumber(), result.getSize(), result.getTotalElements(),
+                result.getTotalPages(), result.isFirst(), result.isLast());
     }
 }

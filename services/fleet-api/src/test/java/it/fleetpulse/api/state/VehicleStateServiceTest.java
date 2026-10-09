@@ -28,8 +28,8 @@ class VehicleStateServiceTest {
     private final LatestStateProjection repair = mock(LatestStateProjection.class);
     private final SimpleMeterRegistry metrics = new SimpleMeterRegistry();
     private final VehicleStateService service = new VehicleStateService(vehicles, cache, samples,
-        repair, new VehicleStateProperties(Duration.ofMinutes(1)),
-        Clock.fixed(NOW, ZoneOffset.UTC), new VehicleStateObservability(metrics));
+            repair, new VehicleStateProperties(Duration.ofMinutes(1)),
+            Clock.fixed(NOW, ZoneOffset.UTC), new VehicleStateObservability(metrics));
 
     @BeforeEach
     void vehicleExists() {
@@ -77,7 +77,7 @@ class VehicleStateServiceTest {
 
     @ParameterizedTest
     @CsvSource({"-1,false", "0,false", "59999999999,false", "60000000000,false",
-        "60000000001,true"})
+            "60000000001,true"})
     void freshnessHasExactBoundaryAndDoesNotCorrectFutureTime(long ageNanos, boolean stale) {
         when(cache.findByVehicleId(ID)).thenReturn(Optional.of(state(NOW.minusNanos(ageNanos))));
         assertThat(service.findByVehicleId(ID).stale()).isEqualTo(stale);
@@ -87,8 +87,9 @@ class VehicleStateServiceTest {
     void missingVehicleOnCacheMissDoesNotConsultHistory() {
         when(vehicles.existsById(ID)).thenReturn(false);
         assertThatThrownBy(() -> service.findByVehicleId(ID))
-            .isInstanceOfSatisfying(ApplicationException.class,
-                error -> assertThat(error.getErrorCode()).isEqualTo(ErrorCode.VEHICLE_NOT_FOUND));
+                .isInstanceOfSatisfying(ApplicationException.class,
+                        error -> assertThat(error.getErrorCode())
+                                .isEqualTo(ErrorCode.VEHICLE_NOT_FOUND));
         verify(cache).findByVehicleId(ID);
         verifyNoInteractions(samples, repair);
     }
@@ -98,8 +99,9 @@ class VehicleStateServiceTest {
         when(cache.findByVehicleId(ID)).thenReturn(Optional.empty());
         when(samples.findByVehicleId(ID)).thenReturn(Optional.empty());
         assertThatThrownBy(() -> service.findByVehicleId(ID))
-            .isInstanceOfSatisfying(ApplicationException.class, error ->
-                assertThat(error.getErrorCode()).isEqualTo(ErrorCode.VEHICLE_STATE_NOT_AVAILABLE));
+                .isInstanceOfSatisfying(ApplicationException.class,
+                        error -> assertThat(error.getErrorCode())
+                                .isEqualTo(ErrorCode.VEHICLE_STATE_NOT_AVAILABLE));
         verifyNoInteractions(repair);
     }
 
@@ -108,7 +110,7 @@ class VehicleStateServiceTest {
         when(cache.findByVehicleId(ID)).thenThrow(new LatestStateProjectionException("down"));
         when(samples.findByVehicleId(ID)).thenThrow(new DataAccessResourceFailureException("down"));
         assertThatThrownBy(() -> service.findByVehicleId(ID))
-            .isInstanceOf(DataAccessResourceFailureException.class);
+                .isInstanceOf(DataAccessResourceFailureException.class);
         verifyNoInteractions(repair);
     }
 
@@ -116,7 +118,7 @@ class VehicleStateServiceTest {
     void vehicleVerificationFailureOnCacheMissPropagates() {
         when(vehicles.existsById(ID)).thenThrow(new DataAccessResourceFailureException("down"));
         assertThatThrownBy(() -> service.findByVehicleId(ID))
-            .isInstanceOf(DataAccessResourceFailureException.class);
+                .isInstanceOf(DataAccessResourceFailureException.class);
         verify(cache).findByVehicleId(ID);
         verifyNoInteractions(samples, repair);
     }

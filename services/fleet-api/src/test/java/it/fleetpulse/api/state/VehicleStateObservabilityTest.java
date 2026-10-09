@@ -23,13 +23,15 @@ class VehicleStateObservabilityTest {
                 observations.failure(false, new LatestStateProjectionException("private payload"));
                 observations.failure(true, new LatestStateProjectionException("private payload"));
             }
-            assertThat(metrics.get("fleetpulse.api.cache.failures").counter().count()).isEqualTo(100);
+            assertThat(metrics.get("fleetpulse.api.cache.failures").counter().count())
+                    .isEqualTo(100);
             assertThat(metrics.get("fleetpulse.api.cache.repair.failures").counter().count())
-                .isEqualTo(100);
-            assertThat(metrics.getMeters()).allSatisfy(meter ->
-                assertThat(meter.getId().getTags()).isEmpty());
+                    .isEqualTo(100);
+            assertThat(metrics.getMeters())
+                    .allSatisfy(meter -> assertThat(meter.getId().getTags()).isEmpty());
             assertThat(appender.list).hasSize(1);
-            assertThat(appender.list.getFirst().getFormattedMessage()).doesNotContain("private payload");
+            assertThat(appender.list.getFirst().getFormattedMessage())
+                    .doesNotContain("private payload");
             assertThat(appender.list.getFirst().getThrowableProxy()).isNull();
         } finally {
             logger.detachAppender(appender);

@@ -12,14 +12,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class VehicleStatePropertiesTest {
     private final ApplicationContextRunner runner = new ApplicationContextRunner()
-        .withUserConfiguration(Config.class);
+            .withUserConfiguration(Config.class);
 
     @Test
     void bindsDuration() {
         runner.withPropertyValues("fleetpulse.api.state.stale-after=1m").run(context -> {
             assertThat(context).hasNotFailed();
             assertThat(context.getBean(VehicleStateProperties.class).staleAfter())
-                .isEqualTo(Duration.ofMinutes(1));
+                    .isEqualTo(Duration.ofMinutes(1));
         });
     }
 
@@ -27,7 +27,7 @@ class VehicleStatePropertiesTest {
     @ValueSource(strings = {"0ms", "-1s", "PT0.000999999S", "invalid"})
     void invalidThresholdPreventsStartup(String value) {
         runner.withPropertyValues("fleetpulse.api.state.stale-after=" + value)
-            .run(context -> assertThat(context).hasFailed());
+                .run(context -> assertThat(context).hasFailed());
     }
 
     @Test
@@ -37,5 +37,6 @@ class VehicleStatePropertiesTest {
 
     @Configuration(proxyBeanMethods = false)
     @EnableConfigurationProperties(VehicleStateProperties.class)
-    static class Config { }
+    static class Config {
+    }
 }

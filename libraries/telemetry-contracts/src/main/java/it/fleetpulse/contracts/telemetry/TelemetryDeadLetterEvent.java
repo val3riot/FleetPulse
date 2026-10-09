@@ -6,7 +6,8 @@ import java.util.Map;
 /**
  * Evento terminale contenente il payload che non è stato elaborato.
  *
- * @param originalKey chiave Kafka originale, che può anche non essere un UUID
+ * @param originalKey
+ *            chiave Kafka originale, che può anche non essere un UUID
  */
 public record TelemetryDeadLetterEvent(
         Instant failedAt,
@@ -17,6 +18,5 @@ public record TelemetryDeadLetterEvent(
         String errorCode,
         String errorMessage,
         String originalKey,
-        Map<String, Object> originalPayload
-) {
+        Map<String, Object> originalPayload) {
 }

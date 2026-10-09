@@ -29,29 +29,30 @@ class ProcessingResultInvariantTest {
             Class<? extends Throwable> expectedCause) throws Exception {
         var constructor = constructor();
         assertThatThrownBy(() -> constructor.newInstance(outcome, sample))
-            .isInstanceOf(InvocationTargetException.class)
-            .hasCauseInstanceOf(expectedCause)
-            .satisfies(failure -> assertThat(failure.getCause().getMessage())
-                .doesNotContain("private-payload-marker", "vehicleId", "latitude", "longitude"));
+                .isInstanceOf(InvocationTargetException.class)
+                .hasCauseInstanceOf(expectedCause)
+                .satisfies(failure -> assertThat(failure.getCause().getMessage())
+                        .doesNotContain("private-payload-marker", "vehicleId", "latitude",
+                                "longitude"));
     }
 
     private static Stream<Arguments> validResults() {
         return Stream.of(
-            Arguments.of(Outcome.PERSISTED, sample()),
-            Arguments.of(Outcome.DUPLICATE, null),
-            Arguments.of(Outcome.REJECTED, null),
-            Arguments.of(Outcome.FAILED, null));
+                Arguments.of(Outcome.PERSISTED, sample()),
+                Arguments.of(Outcome.DUPLICATE, null),
+                Arguments.of(Outcome.REJECTED, null),
+                Arguments.of(Outcome.FAILED, null));
     }
 
     private static Stream<Arguments> invalidResults() {
         var sample = sample();
         return Stream.of(
-            Arguments.of(null, null, NullPointerException.class),
-            Arguments.of(null, sample, NullPointerException.class),
-            Arguments.of(Outcome.PERSISTED, null, IllegalArgumentException.class),
-            Arguments.of(Outcome.DUPLICATE, sample, IllegalArgumentException.class),
-            Arguments.of(Outcome.REJECTED, sample, IllegalArgumentException.class),
-            Arguments.of(Outcome.FAILED, sample, IllegalArgumentException.class));
+                Arguments.of(null, null, NullPointerException.class),
+                Arguments.of(null, sample, NullPointerException.class),
+                Arguments.of(Outcome.PERSISTED, null, IllegalArgumentException.class),
+                Arguments.of(Outcome.DUPLICATE, sample, IllegalArgumentException.class),
+                Arguments.of(Outcome.REJECTED, sample, IllegalArgumentException.class),
+                Arguments.of(Outcome.FAILED, sample, IllegalArgumentException.class));
     }
 
     private static TelemetrySampleEntity sample() {
@@ -61,8 +62,8 @@ class ProcessingResultInvariantTest {
     private static Constructor<?> constructor() throws Exception {
         // Validate the private invariant without widening the production type's visibility.
         Class<?> result = Arrays.stream(TelemetryEventProcessingService.class.getDeclaredClasses())
-            .filter(type -> type.getSimpleName().equals("ProcessingResult"))
-            .findFirst().orElseThrow();
+                .filter(type -> type.getSimpleName().equals("ProcessingResult"))
+                .findFirst().orElseThrow();
         var constructor = result.getDeclaredConstructor(Outcome.class, TelemetrySampleEntity.class);
         constructor.setAccessible(true);
         return constructor;

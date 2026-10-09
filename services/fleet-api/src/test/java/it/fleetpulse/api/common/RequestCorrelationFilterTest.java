@@ -41,15 +41,15 @@ class RequestCorrelationFilterTest {
 
     @Test
     void generatesIdsForMissingInvalidAndRepeatedHeaders() throws Exception {
-        for (String[] headers : new String[][] {{}, {"invalid"}, {"1-1-1-1-1"},
+        for (String[] headers : new String[][]{{}, {"invalid"}, {"1-1-1-1-1"},
                 {UUID.randomUUID().toString(), UUID.randomUUID().toString()}}) {
             var request = new MockHttpServletRequest();
             for (String header : headers) {
                 request.addHeader(RequestCorrelationFilter.HEADER, header);
             }
             var response = new MockHttpServletResponse();
-            filter.doFilter(request, response, (req, res) ->
-                assertThat(MDC.get("requestId")).isNotBlank());
+            filter.doFilter(request, response,
+                    (req, res) -> assertThat(MDC.get("requestId")).isNotBlank());
             String id = response.getHeader(RequestCorrelationFilter.HEADER);
             assertThat(UUID.fromString(id).toString()).isEqualTo(id);
             assertThat(MDC.get("requestId")).isNull();
@@ -60,8 +60,10 @@ class RequestCorrelationFilterTest {
     void cleansContextAndReturnsHeaderWhenChainFails() {
         var response = new MockHttpServletResponse();
         assertThatThrownBy(() -> filter.doFilter(new MockHttpServletRequest(), response,
-            (req, res) -> { throw new ServletException("private-payload"); }))
-            .isInstanceOf(ServletException.class);
+                (req, res) -> {
+                    throw new ServletException("private-payload");
+                }))
+                .isInstanceOf(ServletException.class);
         assertThat(response.getHeader(RequestCorrelationFilter.HEADER)).isNotBlank();
         assertThat(MDC.get("requestId")).isNull();
     }
@@ -72,7 +74,7 @@ class RequestCorrelationFilterTest {
             var first = executor.submit(() -> concurrentRequest(barrier));
             var second = executor.submit(() -> concurrentRequest(barrier));
             assertThat(first.get(5, TimeUnit.SECONDS))
-                .isNotEqualTo(second.get(5, TimeUnit.SECONDS));
+                    .isNotEqualTo(second.get(5, TimeUnit.SECONDS));
         }
     }
 

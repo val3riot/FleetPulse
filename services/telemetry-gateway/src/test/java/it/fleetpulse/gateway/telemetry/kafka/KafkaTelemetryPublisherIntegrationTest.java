@@ -68,15 +68,15 @@ public class KafkaTelemetryPublisherIntegrationTest {
 
     @BeforeAll
     static void createTopic() throws Exception {
-        Map<String, Object> configuration =
-            Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers());
+        Map<String, Object> configuration = Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG,
+                KAFKA.getBootstrapServers());
 
         try (AdminClient adminClient = AdminClient.create(configuration)) {
             adminClient.createTopics(List.of(new NewTopic(TOPIC, 3, (short) 1))).all()
-                .get(10, TimeUnit.SECONDS);
+                    .get(10, TimeUnit.SECONDS);
         }
-        Map<String, Object> producerConfiguration =
-            Map.of(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers(),
+        Map<String, Object> producerConfiguration = Map.of(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
+                KAFKA.getBootstrapServers(),
                 ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class,
                 ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JacksonJsonSerializer.class,
                 ProducerConfig.ACKS_CONFIG, "all", ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
@@ -98,15 +98,15 @@ public class KafkaTelemetryPublisherIntegrationTest {
 
         Properties consumerConfiguration = new Properties();
         consumerConfiguration.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
-            KAFKA.getBootstrapServers());
+                KAFKA.getBootstrapServers());
         consumerConfiguration.put(ConsumerConfig.GROUP_ID_CONFIG,
-            "gateway-integration-test-" + UUID.randomUUID());
+                "gateway-integration-test-" + UUID.randomUUID());
         consumerConfiguration.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         consumerConfiguration.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
 
         try (KafkaConsumer<String, TelemetryEvent> consumer = new KafkaConsumer<>(
-            consumerConfiguration, new StringDeserializer(),
-            new JacksonJsonDeserializer<>(TelemetryEvent.class))) {
+                consumerConfiguration, new StringDeserializer(),
+                new JacksonJsonDeserializer<>(TelemetryEvent.class))) {
             consumer.subscribe(List.of(TOPIC));
 
             publisher.publish(expectedEvent).toCompletableFuture().get(10, TimeUnit.SECONDS);
@@ -125,32 +125,33 @@ public class KafkaTelemetryPublisherIntegrationTest {
 
     @Test
     void returnsNackWhenKafkaIsUnavailable() throws Exception {
-        Map<String, Object> unavailableKafkaConfiguration =
-            Map.of(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "127.0.0.1:1",
+        Map<String, Object> unavailableKafkaConfiguration = Map.of(
+                ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "127.0.0.1:1",
                 ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class,
                 ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JacksonJsonSerializer.class,
                 ProducerConfig.ACKS_CONFIG, "all", ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true,
                 ProducerConfig.MAX_BLOCK_MS_CONFIG, 250, ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG,
                 250, ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, 500);
 
-        DefaultKafkaProducerFactory<String, TelemetryEvent> unavailableFactory =
-            new DefaultKafkaProducerFactory<>(unavailableKafkaConfiguration);
+        DefaultKafkaProducerFactory<String, TelemetryEvent> unavailableFactory = new DefaultKafkaProducerFactory<>(
+                unavailableKafkaConfiguration);
 
         try {
-            KafkaTelemetryPublisher unavailablePublisher =
-                new KafkaTelemetryPublisher(new KafkaTemplate<>(unavailableFactory), TOPIC);
+            KafkaTelemetryPublisher unavailablePublisher = new KafkaTelemetryPublisher(
+                    new KafkaTemplate<>(unavailableFactory), TOPIC);
 
             Instant receivedAt = Instant.parse("2026-08-01T10:15:30.083Z");
 
             PublishingFrameHandler handler = new PublishingFrameHandler(
-                new TelemetryEventMapper(Clock.fixed(receivedAt, ZoneOffset.UTC)),
-                unavailablePublisher, new KafkaPublisherProperties(Duration.ofSeconds(1)),
-                new TelemetryPublishingMetrics(new SimpleMeterRegistry()));
+                    new TelemetryEventMapper(Clock.fixed(receivedAt, ZoneOffset.UTC)),
+                    unavailablePublisher, new KafkaPublisherProperties(Duration.ofSeconds(1)),
+                    new TelemetryPublishingMetrics(new SimpleMeterRegistry()));
 
             TelemetryAck result = exchangeOverTcp(handler, message());
 
             assertEquals(new TelemetryAck(ProtocolConstants.PROTOCOL_VERSION, message().messageId(),
-                AckStatus.REJECTED, receivedAt, ProtocolErrorCode.UPSTREAM_UNAVAILABLE), result);
+                    AckStatus.REJECTED, receivedAt, ProtocolErrorCode.UPSTREAM_UNAVAILABLE),
+                    result);
         } finally {
             unavailableFactory.destroy();
         }
@@ -161,16 +162,16 @@ public class KafkaTelemetryPublisherIntegrationTest {
         Instant receivedAt = Instant.parse("2026-08-01T10:15:30.083Z");
 
         PublishingFrameHandler handler = new PublishingFrameHandler(
-            new TelemetryEventMapper(Clock.fixed(receivedAt, ZoneOffset.UTC)), publisher,
-            new KafkaPublisherProperties(Duration.ofSeconds(2)),
-            new TelemetryPublishingMetrics(new SimpleMeterRegistry()));
+                new TelemetryEventMapper(Clock.fixed(receivedAt, ZoneOffset.UTC)), publisher,
+                new KafkaPublisherProperties(Duration.ofSeconds(2)),
+                new TelemetryPublishingMetrics(new SimpleMeterRegistry()));
 
         TelemetryMessage input = message();
 
         TelemetryAck result = handler.handle(input);
 
         assertEquals(new TelemetryAck(ProtocolConstants.PROTOCOL_VERSION, input.messageId(),
-            AckStatus.ACCEPTED, receivedAt, null), result);
+                AckStatus.ACCEPTED, receivedAt, null), result);
     }
 
     @Test
@@ -178,14 +179,14 @@ public class KafkaTelemetryPublisherIntegrationTest {
         Instant receivedAt = Instant.parse("2026-08-01T10:15:30.083Z");
 
         PublishingFrameHandler handler = new PublishingFrameHandler(
-            new TelemetryEventMapper(Clock.fixed(receivedAt, ZoneOffset.UTC)), publisher,
-            new KafkaPublisherProperties(Duration.ofSeconds(2)),
-            new TelemetryPublishingMetrics(new SimpleMeterRegistry()));
+                new TelemetryEventMapper(Clock.fixed(receivedAt, ZoneOffset.UTC)), publisher,
+                new KafkaPublisherProperties(Duration.ofSeconds(2)),
+                new TelemetryPublishingMetrics(new SimpleMeterRegistry()));
 
         TcpServer server = new TcpServer(handler,
-            new TcpServerProperties(true, 0, 1, Duration.ofSeconds(5), Duration.ofSeconds(1)),
-            new FrameDecoder(OBJECT_MAPPER), new TelemetryAckEncoder(OBJECT_MAPPER),
-            new SimpleMeterRegistry());
+                new TcpServerProperties(true, 0, 1, Duration.ofSeconds(5), Duration.ofSeconds(1)),
+                new FrameDecoder(OBJECT_MAPPER), new TelemetryAckEncoder(OBJECT_MAPPER),
+                new SimpleMeterRegistry());
 
         CompletableFuture<Integer> boundPort = new CompletableFuture<>();
 
@@ -205,13 +206,13 @@ public class KafkaTelemetryPublisherIntegrationTest {
                 client.setSoTimeout(3_000);
 
                 LengthPrefixedFrameCodec.write(OBJECT_MAPPER.writeValueAsBytes(input),
-                    client.getOutputStream());
+                        client.getOutputStream());
 
-                byte[] acknowledgementPayload =
-                    LengthPrefixedFrameCodec.read(client.getInputStream());
+                byte[] acknowledgementPayload = LengthPrefixedFrameCodec
+                        .read(client.getInputStream());
 
-                TelemetryAck acknowledgement =
-                    OBJECT_MAPPER.readValue(acknowledgementPayload, TelemetryAck.class);
+                TelemetryAck acknowledgement = OBJECT_MAPPER.readValue(acknowledgementPayload,
+                        TelemetryAck.class);
 
                 assertEquals(AckStatus.ACCEPTED, acknowledgement.status());
                 assertEquals(input.messageId(), acknowledgement.messageId());
@@ -225,11 +226,11 @@ public class KafkaTelemetryPublisherIntegrationTest {
     }
 
     private static TelemetryAck exchangeOverTcp(FrameHandler handler,
-        TelemetryMessage input) throws Exception {
+            TelemetryMessage input) throws Exception {
         TcpServer server = new TcpServer(handler,
-            new TcpServerProperties(true, 0, 1, Duration.ofSeconds(5), Duration.ofSeconds(1)),
-            new FrameDecoder(OBJECT_MAPPER), new TelemetryAckEncoder(OBJECT_MAPPER),
-            new SimpleMeterRegistry());
+                new TcpServerProperties(true, 0, 1, Duration.ofSeconds(5), Duration.ofSeconds(1)),
+                new FrameDecoder(OBJECT_MAPPER), new TelemetryAckEncoder(OBJECT_MAPPER),
+                new SimpleMeterRegistry());
 
         CompletableFuture<Integer> boundPort = new CompletableFuture<>();
 
@@ -248,7 +249,7 @@ public class KafkaTelemetryPublisherIntegrationTest {
                 client.setSoTimeout(3_000);
 
                 LengthPrefixedFrameCodec.write(OBJECT_MAPPER.writeValueAsBytes(input),
-                    client.getOutputStream());
+                        client.getOutputStream());
 
                 byte[] payload = LengthPrefixedFrameCodec.read(client.getInputStream());
 
@@ -262,15 +263,15 @@ public class KafkaTelemetryPublisherIntegrationTest {
 
     private static TelemetryEvent event() {
         return new TelemetryEvent(1, UUID.fromString("dc0fc799-0913-4e72-bd2d-8ee8ccf52e22"),
-            UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0"), 42,
-            Instant.parse("2026-08-01T10:15:30Z"), Instant.parse("2026-08-01T10:15:30.083Z"),
-            new TelemetryData(72.4, 91.8, 12.6, 85312, 41.9028, 12.4964));
+                UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0"), 42,
+                Instant.parse("2026-08-01T10:15:30Z"), Instant.parse("2026-08-01T10:15:30.083Z"),
+                new TelemetryData(72.4, 91.8, 12.6, 85312, 41.9028, 12.4964));
     }
 
     private static TelemetryMessage message() {
         return new TelemetryMessage(ProtocolConstants.PROTOCOL_VERSION,
-            UUID.fromString("dc0fc799-0913-4e72-bd2d-8ee8ccf52e22"),
-            UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0"), 42,
-            Instant.parse("2026-08-01T10:15:30Z"), 72.4, 91.8, 12.6, 85312, 41.9028, 12.4964);
+                UUID.fromString("dc0fc799-0913-4e72-bd2d-8ee8ccf52e22"),
+                UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0"), 42,
+                Instant.parse("2026-08-01T10:15:30Z"), 72.4, 91.8, 12.6, 85312, 41.9028, 12.4964);
     }
 }

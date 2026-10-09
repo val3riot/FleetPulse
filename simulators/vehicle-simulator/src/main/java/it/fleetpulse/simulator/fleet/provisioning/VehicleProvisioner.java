@@ -20,7 +20,7 @@ public final class VehicleProvisioner implements FleetProvisioner {
     private final VehicleSimulatorProperties properties;
 
     public VehicleProvisioner(FleetApiClient fleetApiClient,
-        VehicleSimulatorProperties properties) {
+            VehicleSimulatorProperties properties) {
         this.fleetApiClient = fleetApiClient;
         this.properties = properties;
     }
@@ -30,8 +30,8 @@ public final class VehicleProvisioner implements FleetProvisioner {
         List<ProvisionedVehicle> vehicles = new ArrayList<>(properties.vehicleCount());
 
         for (int index = 1; index <= properties.vehicleCount(); index++) {
-            SimulatorVehicleDefinition definition =
-                SimulatorVehicleDefinition.of(index, properties.vehicle());
+            SimulatorVehicleDefinition definition = SimulatorVehicleDefinition.of(index,
+                    properties.vehicle());
 
             FleetVehicle vehicle = provision(definition);
 
@@ -42,8 +42,8 @@ public final class VehicleProvisioner implements FleetProvisioner {
     }
 
     private FleetVehicle provision(SimulatorVehicleDefinition definition) {
-        Optional<FleetVehicle> existing =
-            fleetApiClient.findByExternalCode(definition.externalCode());
+        Optional<FleetVehicle> existing = fleetApiClient
+                .findByExternalCode(definition.externalCode());
 
         if (existing.isPresent()) {
             return existing.get();
@@ -51,13 +51,13 @@ public final class VehicleProvisioner implements FleetProvisioner {
 
         try {
             return fleetApiClient.createVehicle(
-                new CreateFleetVehicleCommand(definition.externalCode(), definition.plate(),
-                    definition.serviceIntervalKm(), definition.nextServiceAtKm()));
+                    new CreateFleetVehicleCommand(definition.externalCode(), definition.plate(),
+                            definition.serviceIntervalKm(), definition.nextServiceAtKm()));
 
         } catch (VehicleAlreadyExistsException exception) {
             return fleetApiClient.findByExternalCode(definition.externalCode()).orElseThrow(
-                () -> new VehicleProvisioningException("Vehicle " + definition.externalCode() +
-                    " returned conflict but could not be found"));
+                    () -> new VehicleProvisioningException("Vehicle " + definition.externalCode() +
+                            " returned conflict but could not be found"));
         }
     }
 }

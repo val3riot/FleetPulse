@@ -72,12 +72,12 @@ public class RawTelemetryEventListenerIntegrationTest {
 
     @BeforeAll
     static void createTopic() throws Exception {
-        Map<String, Object> configuration =
-            Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers());
+        Map<String, Object> configuration = Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG,
+                KAFKA.getBootstrapServers());
 
         try (AdminClient adminClient = AdminClient.create(configuration)) {
             adminClient.createTopics(List.of(new NewTopic(TOPIC, 3, (short) 1))).all()
-                .get(10, TimeUnit.SECONDS);
+                    .get(10, TimeUnit.SECONDS);
         }
     }
 
@@ -97,7 +97,7 @@ public class RawTelemetryEventListenerIntegrationTest {
         TelemetryEvent expected = event();
 
         kafkaTemplate.send(TOPIC, expected.vehicleId().toString(), expected)
-            .get(10, TimeUnit.SECONDS);
+                .get(10, TimeUnit.SECONDS);
 
         TelemetryEvent received = receivedEvents.poll(10, TimeUnit.SECONDS);
 
@@ -124,15 +124,16 @@ public class RawTelemetryEventListenerIntegrationTest {
     @Test
     void consumersInSameGroupSplitPartitions() {
         try (KafkaConsumer<String, String> first = partitionTestConsumer(
-            "partition-sharing-test"); KafkaConsumer<String, String> second = partitionTestConsumer(
-            "partition-sharing-test")) {
+                "partition-sharing-test");
+                KafkaConsumer<String, String> second = partitionTestConsumer(
+                        "partition-sharing-test")) {
             first.subscribe(List.of(TOPIC));
             second.subscribe(List.of(TOPIC));
 
             long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
 
             while ((first.assignment().isEmpty() || second.assignment().isEmpty()) &&
-                System.nanoTime() < deadline) {
+                    System.nanoTime() < deadline) {
                 first.poll(Duration.ofMillis(200));
                 second.poll(Duration.ofMillis(200));
             }
@@ -157,8 +158,9 @@ public class RawTelemetryEventListenerIntegrationTest {
         String suffix = UUID.randomUUID().toString();
 
         try (KafkaConsumer<String, String> first = partitionTestConsumer("independent-a-" +
-            suffix); KafkaConsumer<String, String> second = partitionTestConsumer(
-            "independent-b-" + suffix)) {
+                suffix);
+                KafkaConsumer<String, String> second = partitionTestConsumer(
+                        "independent-b-" + suffix)) {
             first.subscribe(List.of(TOPIC));
             second.subscribe(List.of(TOPIC));
 
@@ -181,10 +183,10 @@ public class RawTelemetryEventListenerIntegrationTest {
         testHandler.block(event.messageId());
 
         var sendResult = kafkaTemplate.send(TOPIC, event.vehicleId().toString(), event)
-            .get(10, TimeUnit.SECONDS);
+                .get(10, TimeUnit.SECONDS);
 
         TopicPartition partition = new TopicPartition(sendResult.getRecordMetadata().topic(),
-            sendResult.getRecordMetadata().partition());
+                sendResult.getRecordMetadata().partition());
         long recordOffset = sendResult.getRecordMetadata().offset();
 
         try {
@@ -213,8 +215,8 @@ public class RawTelemetryEventListenerIntegrationTest {
     void stopsAfterConfiguredRetryAttempts() throws Exception {
         TelemetryEvent event = event();
         testHandler.alwaysFail(event.messageId());
-        double terminalFailuresBefore =
-            meterRegistry.get("fleetpulse.processor.failures.terminal").counter().count();
+        double terminalFailuresBefore = meterRegistry.get("fleetpulse.processor.failures.terminal")
+                .counter().count();
 
         kafkaTemplate.send(TOPIC, event.vehicleId().toString(), event).get(10, TimeUnit.SECONDS);
 
@@ -241,17 +243,17 @@ public class RawTelemetryEventListenerIntegrationTest {
     }
 
     private static boolean offsetHasAdvancedPast(TopicPartition partition,
-        long recordOffset) throws Exception {
+            long recordOffset) throws Exception {
         try (AdminClient admin = adminClient()) {
             var committed = admin.listConsumerGroupOffsets(GROUP_ID).partitionsToOffsetAndMetadata()
-                .get(10, TimeUnit.SECONDS).get(partition);
+                    .get(10, TimeUnit.SECONDS).get(partition);
 
             return committed != null && committed.offset() > recordOffset;
         }
     }
 
     private static void awaitCommittedOffset(TopicPartition partition,
-        long expectedOffset) throws Exception {
+            long expectedOffset) throws Exception {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
 
         while (System.nanoTime() < deadline) {
@@ -266,7 +268,7 @@ public class RawTelemetryEventListenerIntegrationTest {
 
     private static AdminClient adminClient() {
         return AdminClient.create(
-            Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers()));
+                Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers()));
     }
 
     private static void waitForAssignment(KafkaConsumer<String, String> consumer) {
@@ -306,18 +308,16 @@ public class RawTelemetryEventListenerIntegrationTest {
         return new KafkaConsumer<>(properties, new StringDeserializer(), new StringDeserializer());
     }
 
-
     private static TelemetryEvent event() {
         return event(42);
     }
 
     private static TelemetryEvent event(long sequenceNumber) {
         return new TelemetryEvent(TelemetryEventVersions.V1, UUID.randomUUID(),
-            UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0"), sequenceNumber,
-            Instant.parse("2026-08-01T10:15:30Z"), Instant.parse("2026-08-01T10:15:30.083Z"),
-            new TelemetryData(72.4, 91.8, 12.6, 85312, 41.9028, 12.4964));
+                UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0"), sequenceNumber,
+                Instant.parse("2026-08-01T10:15:30Z"), Instant.parse("2026-08-01T10:15:30.083Z"),
+                new TelemetryData(72.4, 91.8, 12.6, 85312, 41.9028, 12.4964));
     }
-
 
     @Configuration
     @EnableKafka
@@ -327,7 +327,7 @@ public class RawTelemetryEventListenerIntegrationTest {
         @Bean
         KafkaConsumerProperties kafkaConsumerProperties() {
             return new KafkaConsumerProperties(GROUP_ID, 3, Duration.ofMillis(10),
-                Duration.ofMillis(50), 2.0, 0.0);
+                    Duration.ofMillis(50), 2.0, 0.0);
         }
 
         @Bean
@@ -360,9 +360,9 @@ public class RawTelemetryEventListenerIntegrationTest {
 
         @Bean
         ConsumerFactory<String, TelemetryEvent> consumerFactory(
-            @Value("${spring.kafka.bootstrap-servers}") String bootstrapServers) {
-            Map<String, Object> properties =
-                Map.of(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers,
+                @Value("${spring.kafka.bootstrap-servers}") String bootstrapServers) {
+            Map<String, Object> properties = Map.of(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
+                    bootstrapServers,
                     ConsumerConfig.GROUP_ID_CONFIG, GROUP_ID,
                     ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false,
                     ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest",
@@ -377,10 +377,9 @@ public class RawTelemetryEventListenerIntegrationTest {
 
         @Bean
         ConcurrentKafkaListenerContainerFactory<String, TelemetryEvent> kafkaListenerContainerFactory(
-            ConsumerFactory<String, TelemetryEvent> consumerFactory,
-            DefaultErrorHandler errorHandler) {
-            ConcurrentKafkaListenerContainerFactory<String, TelemetryEvent> factory =
-                new ConcurrentKafkaListenerContainerFactory<>();
+                ConsumerFactory<String, TelemetryEvent> consumerFactory,
+                DefaultErrorHandler errorHandler) {
+            ConcurrentKafkaListenerContainerFactory<String, TelemetryEvent> factory = new ConcurrentKafkaListenerContainerFactory<>();
 
             factory.setConsumerFactory(consumerFactory);
             factory.setCommonErrorHandler(errorHandler);
@@ -391,9 +390,9 @@ public class RawTelemetryEventListenerIntegrationTest {
 
         @Bean
         ProducerFactory<String, TelemetryEvent> producerFactory(
-            @Value("${spring.kafka.bootstrap-servers}") String bootstrapServers) {
-            Map<String, Object> properties =
-                Map.of(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers,
+                @Value("${spring.kafka.bootstrap-servers}") String bootstrapServers) {
+            Map<String, Object> properties = Map.of(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
+                    bootstrapServers,
                     ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class,
                     ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JacksonJsonSerializer.class);
 
@@ -402,7 +401,7 @@ public class RawTelemetryEventListenerIntegrationTest {
 
         @Bean
         KafkaTemplate<String, TelemetryEvent> kafkaTemplate(
-            ProducerFactory<String, TelemetryEvent> producerFactory) {
+                ProducerFactory<String, TelemetryEvent> producerFactory) {
             return new KafkaTemplate<>(producerFactory);
         }
     }
@@ -435,7 +434,7 @@ public class RawTelemetryEventListenerIntegrationTest {
                 } catch (InterruptedException exception) {
                     Thread.currentThread().interrupt();
                     throw new IllegalStateException("Interrupted while blocking test handler",
-                        exception);
+                            exception);
                 }
             }
 

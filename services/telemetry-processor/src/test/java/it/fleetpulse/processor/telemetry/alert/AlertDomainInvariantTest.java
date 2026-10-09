@@ -15,18 +15,18 @@ class AlertDomainInvariantTest {
     @ValueSource(doubles = {Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY})
     void rejectsNonFiniteTelemetry(double value) {
         assertThatThrownBy(() -> new AlertTelemetrySample(ID, ID, value, 12.6, 0))
-            .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> new AlertTelemetrySample(ID, ID, 90.0, value, 0))
-            .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void rejectsDescriptionsThatCannotBePersisted() {
         assertThatThrownBy(() -> new AlertCandidate(ID, ID, AlertType.SERVICE_DUE,
-            AlertSeverity.MEDIUM, " "))
-            .isInstanceOf(IllegalArgumentException.class);
+                AlertSeverity.MEDIUM, " "))
+                .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> new AlertCandidate(ID, ID, AlertType.SERVICE_DUE,
-            AlertSeverity.MEDIUM, "x".repeat(AlertCandidate.MAX_DESCRIPTION_LENGTH + 1)))
-            .isInstanceOf(IllegalArgumentException.class);
+                AlertSeverity.MEDIUM, "x".repeat(AlertCandidate.MAX_DESCRIPTION_LENGTH + 1)))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 }

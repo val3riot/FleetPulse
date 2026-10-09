@@ -10,12 +10,11 @@ import java.time.Duration;
 @ConfigurationProperties(prefix = "fleetpulse.kafka.terminal-publication")
 @Validated
 public record KafkaTerminalPublishingProperties(
-        @NotNull Duration confirmationTimeout
-) {
+        @NotNull Duration confirmationTimeout) {
 
     @AssertTrue(message = "confirmation timeout must be positive")
     public boolean isConfirmationTimeoutValid() {
         return confirmationTimeout == null ||
-            (!confirmationTimeout.isZero() && !confirmationTimeout.isNegative());
+                (!confirmationTimeout.isZero() && !confirmationTimeout.isNegative());
     }
 }

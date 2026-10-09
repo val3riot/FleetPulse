@@ -20,25 +20,26 @@ class StructuredLoggingTest {
     void serializesEcsWithTypedFieldsAndCorrelation() {
         var context = new LoggerContext();
         context.putObject(Environment.class.getName(),
-            new MockEnvironment().withProperty("spring.application.name", "fleet-api"));
+                new MockEnvironment().withProperty("spring.application.name", "fleet-api"));
         var encoder = new StructuredLogEncoder();
         encoder.setContext(context);
         encoder.setFormat("ecs");
         encoder.start();
         try {
             var event = new LoggingEvent(getClass().getName(), context.getLogger("test"),
-                Level.INFO, "HTTP request completed", null, null);
+                    Level.INFO, "HTTP request completed", null, null);
             event.setMDCPropertyMap(Map.of("requestId", "request-123"));
             event.addKeyValuePair(new KeyValuePair("event.action", "http.request.completed"));
             event.addKeyValuePair(new KeyValuePair("status", 200));
             String output = new String(encoder.encode(event), StandardCharsets.UTF_8);
             var json = new ObjectMapper().readTree(output);
-            assertThat(json.path("@timestamp").asText()).isNotBlank();
-            assertThat(json.path("log").path("level").asText()).isEqualTo("INFO");
-            assertThat(json.path("service").path("name").asText()).isEqualTo("fleet-api");
-            assertThat(json.path("ecs").path("version").asText()).isNotBlank();
-            assertThat(json.path("requestId").asText()).isEqualTo("request-123");
-            assertThat(json.path("event").path("action").asText()).isEqualTo("http.request.completed");
+            assertThat(json.path("@timestamp").asString()).isNotBlank();
+            assertThat(json.path("log").path("level").asString()).isEqualTo("INFO");
+            assertThat(json.path("service").path("name").asString()).isEqualTo("fleet-api");
+            assertThat(json.path("ecs").path("version").asString()).isNotBlank();
+            assertThat(json.path("requestId").asString()).isEqualTo("request-123");
+            assertThat(json.path("event").path("action").asString())
+                    .isEqualTo("http.request.completed");
             assertThat(json.path("status").isNumber()).isTrue();
             assertThat(output).doesNotContain("error.stack_trace");
             assertThat(output).endsWith("\n");

@@ -30,7 +30,7 @@ import static org.awaitility.Awaitility.await;
 class RedisLatestStateProjectionIntegrationTest {
     @Container
     static final GenericContainer<?> REDIS = new GenericContainer<>("redis:8.2.8-alpine")
-        .withExposedPorts(6379);
+            .withExposedPorts(6379);
 
     private static final Instant OBSERVED_AT = Instant.parse("2026-08-01T10:15:30.123456789Z");
     private static LettuceConnectionFactory connectionFactory;
@@ -40,7 +40,8 @@ class RedisLatestStateProjectionIntegrationTest {
 
     @BeforeAll
     static void connect() {
-        connectionFactory = new LettuceConnectionFactory(REDIS.getHost(), REDIS.getMappedPort(6379));
+        connectionFactory = new LettuceConnectionFactory(REDIS.getHost(),
+                REDIS.getMappedPort(6379));
         connectionFactory.afterPropertiesSet();
         redis = new StringRedisTemplate(connectionFactory);
     }
@@ -89,7 +90,7 @@ class RedisLatestStateProjectionIntegrationTest {
 
         assertThat(projection.updateIfNewer(newer)).isEqualTo(UPDATED);
         assertThat(projection.updateIfNewer(state(OBSERVED_AT, Long.MAX_VALUE - 1)))
-            .isEqualTo(SKIPPED);
+                .isEqualTo(SKIPPED);
         assertThat(projection.findByVehicleId(vehicleId)).contains(newer);
     }
 
@@ -102,9 +103,9 @@ class RedisLatestStateProjectionIntegrationTest {
         long remaining = redis.getExpire(key(), TimeUnit.MILLISECONDS);
 
         assertThat(projection.updateIfNewer(state(OBSERVED_AT.minusNanos(1), 999)))
-            .isEqualTo(SKIPPED);
+                .isEqualTo(SKIPPED);
         var equivalentWithDifferentPayload = new LatestVehicleState(vehicleId, 10, OBSERVED_AT,
-            99, 99, 14, 999, 0, 0);
+                99, 99, 14, 999, 0, 0);
         assertThat(projection.updateIfNewer(equivalentWithDifferentPayload)).isEqualTo(SKIPPED);
 
         assertThat(projection.findByVehicleId(vehicleId)).contains(current);
@@ -114,11 +115,11 @@ class RedisLatestStateProjectionIntegrationTest {
     @Test
     void expiredKeyCanBeInitializedAgain() {
         var projection = new RedisLatestStateProjection(redis, codec,
-            new LatestStateProjectionProperties(Duration.ofMillis(150), 3));
+                new LatestStateProjectionProperties(Duration.ofMillis(150), 3));
         projection.updateIfNewer(state(OBSERVED_AT, 10));
 
-        await().atMost(Duration.ofSeconds(5)).untilAsserted(() ->
-            assertThat(projection.findByVehicleId(vehicleId)).isEmpty());
+        await().atMost(Duration.ofSeconds(5))
+                .untilAsserted(() -> assertThat(projection.findByVehicleId(vehicleId)).isEmpty());
 
         var older = state(OBSERVED_AT.minusSeconds(10), 1);
         assertThat(projection().updateIfNewer(older)).isEqualTo(UPDATED);
@@ -130,9 +131,9 @@ class RedisLatestStateProjectionIntegrationTest {
         redis.opsForValue().set(key(), "{broken");
 
         assertThatThrownBy(() -> projection().findByVehicleId(vehicleId))
-            .isInstanceOf(LatestStateProjectionException.class);
+                .isInstanceOf(LatestStateProjectionException.class);
         assertThatThrownBy(() -> projection().updateIfNewer(state(OBSERVED_AT, 1)))
-            .isInstanceOf(LatestStateProjectionException.class);
+                .isInstanceOf(LatestStateProjectionException.class);
         assertThat(redis.opsForValue().get(key())).isEqualTo("{broken");
 
         redis.delete(key());
@@ -169,12 +170,12 @@ class RedisLatestStateProjectionIntegrationTest {
         }
 
         assertThat(projection.findByVehicleId(vehicleId))
-            .contains(state(OBSERVED_AT.plusNanos(writers - 1), 1));
+                .contains(state(OBSERVED_AT.plusNanos(writers - 1), 1));
     }
 
     private RedisLatestStateProjection projection() {
         return new RedisLatestStateProjection(redis, codec,
-            new LatestStateProjectionProperties(Duration.ofSeconds(30), 32));
+                new LatestStateProjectionProperties(Duration.ofSeconds(30), 32));
     }
 
     private String key() {
@@ -183,6 +184,6 @@ class RedisLatestStateProjectionIntegrationTest {
 
     private LatestVehicleState state(Instant timestamp, long sequence) {
         return new LatestVehicleState(vehicleId, sequence, timestamp,
-            72.4, 91.8, 12.6, 85312, 41.9028, 12.4964);
+                72.4, 91.8, 12.6, 85312, 41.9028, 12.4964);
     }
 }

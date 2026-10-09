@@ -45,48 +45,50 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
      * Crea il gestore con clock e classificatori degli errori database.
      */
     public GlobalExceptionHandler(Clock clock, DatabaseConstraintErrorResolver constraintResolver,
-        DatabaseAvailabilityClassifier availabilityClassifier) {
+            DatabaseAvailabilityClassifier availabilityClassifier) {
         this.clock = clock;
         this.constraintResolver = constraintResolver;
         this.availabilityClassifier = availabilityClassifier;
     }
 
     /*
-     * Eccezioni applicative controllate:
-     * not found, conflict, transizione di stato non valida, ecc.
+     * Eccezioni applicative controllate: not found, conflict, transizione di stato non valida, ecc.
      */
     @ExceptionHandler(ApplicationException.class)
     public ResponseEntity<Object> handleApplicationException(ApplicationException exception,
-        HttpServletRequest request) {
+            HttpServletRequest request) {
         ErrorCode errorCode = exception.getErrorCode();
         log.atDebug().addKeyValue("event.action", "api.application.rejected")
-            .log("Application error {} while processing {} {}",
-                errorCode.getCode(),
-                request.getMethod(),
-                request.getRequestURI());
+                .log("Application error {} while processing {} {}",
+                        errorCode.getCode(),
+                        request.getMethod(),
+                        request.getRequestURI());
         return buildResponse(errorCode, publicMessage(exception, errorCode),
-            request.getRequestURI(), List.of(), HttpHeaders.EMPTY);
+                request.getRequestURI(), List.of(), HttpHeaders.EMPTY);
     }
 
     @Override
     protected ResponseEntity<Object> handleMethodArgumentNotValid(
-        MethodArgumentNotValidException exception, HttpHeaders headers, HttpStatusCode status,
-        WebRequest request) {
+            MethodArgumentNotValidException exception, HttpHeaders headers, HttpStatusCode status,
+            WebRequest request) {
         List<ValidationErrorDetail> details = Stream.concat(
                 exception.getBindingResult().getFieldErrors().stream().map(
-                    error -> new ValidationErrorDetail(error.getField(),
-                        Objects.requireNonNullElse(error.getDefaultMessage(), "invalid value"))),
+                        error -> new ValidationErrorDetail(error.getField(),
+                                Objects.requireNonNullElse(error.getDefaultMessage(),
+                                        "invalid value"))),
                 exception.getBindingResult().getGlobalErrors().stream().map(
-                    error -> new ValidationErrorDetail("request",
-                        Objects.requireNonNullElse(error.getDefaultMessage(), "invalid request"))))
-            .toList();
+                        error -> new ValidationErrorDetail("request",
+                                Objects.requireNonNullElse(error.getDefaultMessage(),
+                                        "invalid request"))))
+                .toList();
         log.atDebug().addKeyValue("event.action", "api.request.validation.failed")
-            .log("Request validation failed for {}: {} error(s)", path(request), details.size());
+                .log("Request validation failed for {}: {} error(s)", path(request),
+                        details.size());
 
         ErrorCode errorCode = ErrorCode.REQUEST_INVALID;
 
         return buildResponse(errorCode, errorCode.getDefaultMessage(), path(request), details,
-            headers);
+                headers);
     }
 
     /*
@@ -94,14 +96,16 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
      */
     @Override
     protected @Nullable ResponseEntity<Object> handleHttpMediaTypeNotSupported(
-        HttpMediaTypeNotSupportedException exception, HttpHeaders headers, HttpStatusCode status,
-        WebRequest request) {
+            HttpMediaTypeNotSupportedException exception, HttpHeaders headers,
+            HttpStatusCode status,
+            WebRequest request) {
 
         ErrorCode errorCode = ErrorCode.REQUEST_UNSUPPORTED_MEDIA_TYPE;
         log.atDebug().addKeyValue("event.action", "api.media.type.unsupported")
-            .log("Media type {} non supported for {}", exception.getContentType(), path(request));
+                .log("Media type {} non supported for {}", exception.getContentType(),
+                        path(request));
         return buildResponse(errorCode, errorCode.getDefaultMessage(), path(request), List.of(),
-            headers);
+                headers);
     }
 
     /*
@@ -109,30 +113,29 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
      */
     @Override
     protected @Nullable ResponseEntity<Object> handleHttpRequestMethodNotSupported(
-        HttpRequestMethodNotSupportedException exception, HttpHeaders headers,
-        HttpStatusCode status, WebRequest request) {
+            HttpRequestMethodNotSupportedException exception, HttpHeaders headers,
+            HttpStatusCode status, WebRequest request) {
         ErrorCode errorCode = ErrorCode.REQUEST_METHOD_NOT_ALLOWED;
         log.atDebug().addKeyValue("event.action", "api.method.unsupported")
-            .log("HTTP method {} not supported for {}", exception.getMethod(), path(request));
+                .log("HTTP method {} not supported for {}", exception.getMethod(), path(request));
 
         return buildResponse(errorCode, errorCode.getDefaultMessage(), path(request), List.of(),
-            headers);
+                headers);
     }
 
     /*
-     * JSON invalido, body mancante, enum non deserializzabile,
-     * valore numerico incompatibile, ecc.
+     * JSON invalido, body mancante, enum non deserializzabile, valore numerico incompatibile, ecc.
      */
     @Override
     protected ResponseEntity<Object> handleHttpMessageNotReadable(
-        HttpMessageNotReadableException exception, HttpHeaders headers, HttpStatusCode status,
-        WebRequest request) {
+            HttpMessageNotReadableException exception, HttpHeaders headers, HttpStatusCode status,
+            WebRequest request) {
         log.atDebug().addKeyValue("event.action", "api.body.unreadable")
-            .log("Unreadable request body for {}", path(request));
+                .log("Unreadable request body for {}", path(request));
 
         return buildResponse(ErrorCode.REQUEST_MALFORMED_JSON,
-            ErrorCode.REQUEST_MALFORMED_JSON.getDefaultMessage(), path(request), List.of(),
-            headers);
+                ErrorCode.REQUEST_MALFORMED_JSON.getDefaultMessage(), path(request), List.of(),
+                headers);
     }
 
     /*
@@ -140,16 +143,17 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
      */
     @Override
     protected ResponseEntity<Object> handleTypeMismatch(TypeMismatchException exception,
-        HttpHeaders headers, HttpStatusCode status, WebRequest request) {
+            HttpHeaders headers, HttpStatusCode status, WebRequest request) {
         String field = Optional.ofNullable(exception.getPropertyName()).orElse("parameter");
 
         ValidationErrorDetail detail = new ValidationErrorDetail(field, "has an invalid value");
 
         log.atDebug().addKeyValue("event.action", "api.parameter.type.mismatch")
-            .log("Type mismatch for {} on {}", field, path(request));
+                .log("Type mismatch for {} on {}", field, path(request));
 
         return buildResponse(ErrorCode.REQUEST_INVALID,
-            ErrorCode.REQUEST_INVALID.getDefaultMessage(), path(request), List.of(detail), headers);
+                ErrorCode.REQUEST_INVALID.getDefaultMessage(), path(request), List.of(detail),
+                headers);
     }
 
     /**
@@ -157,13 +161,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
      */
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<Object> handleConstraintViolation(ConstraintViolationException exception,
-        HttpServletRequest request) {
-        List<ValidationErrorDetail> details =
-            exception.getConstraintViolations().stream().map(this::toValidationDetail).toList();
+            HttpServletRequest request) {
+        List<ValidationErrorDetail> details = exception.getConstraintViolations().stream()
+                .map(this::toValidationDetail).toList();
 
         return buildResponse(ErrorCode.REQUEST_INVALID,
-            ErrorCode.REQUEST_INVALID.getDefaultMessage(), request.getRequestURI(), details,
-            HttpHeaders.EMPTY);
+                ErrorCode.REQUEST_INVALID.getDefaultMessage(), request.getRequestURI(), details,
+                HttpHeaders.EMPTY);
     }
 
     /**
@@ -171,8 +175,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
      */
     @Override
     protected ResponseEntity<Object> handleMissingServletRequestParameter(
-        MissingServletRequestParameterException exception, HttpHeaders headers,
-        HttpStatusCode status, WebRequest request) {
+            MissingServletRequestParameterException exception, HttpHeaders headers,
+            HttpStatusCode status, WebRequest request) {
         return invalidParameterResponse(exception.getParameterName(), path(request), headers);
     }
 
@@ -181,8 +185,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
      */
     @Override
     protected ResponseEntity<Object> handleMissingPathVariable(
-        MissingPathVariableException exception, HttpHeaders headers, HttpStatusCode status,
-        WebRequest request) {
+            MissingPathVariableException exception, HttpHeaders headers, HttpStatusCode status,
+            WebRequest request) {
         return invalidParameterResponse(exception.getVariableName(), path(request), headers);
     }
 
@@ -191,78 +195,78 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
      */
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<Object> handleDataIntegrityViolation(
-        DataIntegrityViolationException exception, HttpServletRequest request) {
+            DataIntegrityViolationException exception, HttpServletRequest request) {
         Optional<ErrorCode> resolved = constraintResolver.resolve(exception);
 
         if (resolved.isPresent()) {
             ErrorCode errorCode = resolved.get();
 
             log.atDebug().addKeyValue("event.action", "api.database.conflict")
-                .log("Database constraint conflict {} while processing {} {}",
-                errorCode.getCode(),
-                request.getMethod(),
-                request.getRequestURI());
+                    .log("Database constraint conflict {} while processing {} {}",
+                            errorCode.getCode(),
+                            request.getMethod(),
+                            request.getRequestURI());
 
             return buildResponse(errorCode, errorCode.getDefaultMessage(), request.getRequestURI(),
-                List.of(), HttpHeaders.EMPTY);
+                    List.of(), HttpHeaders.EMPTY);
         }
 
         /*
-         * Una violazione sconosciuta non deve diventare automaticamente
-         * un generico 409: potrebbe indicare un bug applicativo.
+         * Una violazione sconosciuta non deve diventare automaticamente un generico 409: potrebbe
+         * indicare un bug applicativo.
          */
         log.atError().addKeyValue("event.action", "api.database.integrity.failed")
-            .addKeyValue("errorType", exception.getClass().getSimpleName())
-            .log("Unhandled database integrity violation while processing {} {}",
-                request.getMethod(),
-                request.getRequestURI());
+                .addKeyValue("errorType", exception.getClass().getSimpleName())
+                .log("Unhandled database integrity violation while processing {} {}",
+                        request.getMethod(),
+                        request.getRequestURI());
 
         return buildResponse(ErrorCode.INTERNAL_ERROR, ErrorCode.INTERNAL_ERROR.getDefaultMessage(),
-            request.getRequestURI(), List.of(), HttpHeaders.EMPTY);
+                request.getRequestURI(), List.of(), HttpHeaders.EMPTY);
     }
-
 
     @ExceptionHandler({DataAccessException.class})
     public ResponseEntity<Object> handleDataAccessException(RuntimeException exception,
-        HttpServletRequest request) {
+            HttpServletRequest request) {
         if (availabilityClassifier.isConnectionFailure(exception)) {
             log.atWarn().addKeyValue("event.action", "api.database.connection.failed")
-                .addKeyValue("errorType", exception.getClass().getSimpleName())
-                .log("Database connection failure while processing {} {}",
-                request.getMethod(),
-                request.getRequestURI());
+                    .addKeyValue("errorType", exception.getClass().getSimpleName())
+                    .log("Database connection failure while processing {} {}",
+                            request.getMethod(),
+                            request.getRequestURI());
 
             return buildResponse(ErrorCode.SERVICE_UNAVAILABLE,
-                ErrorCode.SERVICE_UNAVAILABLE.getDefaultMessage(), request.getRequestURI(),
-                List.of(), HttpHeaders.EMPTY);
+                    ErrorCode.SERVICE_UNAVAILABLE.getDefaultMessage(), request.getRequestURI(),
+                    List.of(), HttpHeaders.EMPTY);
         }
 
         log.atError().addKeyValue("event.action", "api.database.failed")
-            .addKeyValue("errorType", exception.getClass().getSimpleName())
-            .log("Unhandled database error while processing {} {}",
-                request.getMethod(),
-                request.getRequestURI());
+                .addKeyValue("errorType", exception.getClass().getSimpleName())
+                .log("Unhandled database error while processing {} {}",
+                        request.getMethod(),
+                        request.getRequestURI());
 
         return buildResponse(ErrorCode.INTERNAL_ERROR, ErrorCode.INTERNAL_ERROR.getDefaultMessage(),
-            request.getRequestURI(), List.of(), HttpHeaders.EMPTY);
+                request.getRequestURI(), List.of(), HttpHeaders.EMPTY);
     }
 
     /*
      * Database non raggiungibile o transazione non avviabile.
      */
     @ExceptionHandler({CannotCreateTransactionException.class,
-        DataAccessResourceFailureException.class})
+            DataAccessResourceFailureException.class})
     public ResponseEntity<Object> handleDatabaseUnavailable(RuntimeException exception,
-        HttpServletRequest request) {
+            HttpServletRequest request) {
         log.atWarn().addKeyValue("event.action", "api.database.unavailable")
-            .addKeyValue("errorType", exception.getClass().getSimpleName())
-            .log("Database unavailable while processing {} {}",
-                request.getMethod(),
-                request.getRequestURI());
+                .addKeyValue("errorType", exception.getClass().getSimpleName())
+                .log("Database unavailable while processing {} {}",
+                        request.getMethod(),
+                        request.getRequestURI());
 
         return buildResponse(ErrorCode.SERVICE_UNAVAILABLE,
-            ErrorCode.SERVICE_UNAVAILABLE.getDefaultMessage(), request.getRequestURI(), List.of(),
-            HttpHeaders.EMPTY);
+                ErrorCode.SERVICE_UNAVAILABLE.getDefaultMessage(), request.getRequestURI(),
+                List.of(),
+                HttpHeaders.EMPTY);
     }
 
     /*
@@ -270,29 +274,28 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleUnexpectedException(Exception exception,
-        HttpServletRequest request) {
+            HttpServletRequest request) {
         log.atError().addKeyValue("event.action", "api.request.unexpected.failure")
-            .addKeyValue("errorType", exception.getClass().getSimpleName())
-            .log("Unexpected error while processing {} {}",
-                request.getMethod(),
-                request.getRequestURI());
+                .addKeyValue("errorType", exception.getClass().getSimpleName())
+                .log("Unexpected error while processing {} {}",
+                        request.getMethod(),
+                        request.getRequestURI());
 
         return buildResponse(ErrorCode.INTERNAL_ERROR, ErrorCode.INTERNAL_ERROR.getDefaultMessage(),
-            request.getRequestURI(), List.of(), HttpHeaders.EMPTY);
+                request.getRequestURI(), List.of(), HttpHeaders.EMPTY);
     }
-
 
     /**
      * Costruisce la risposta REST uniforme associata a un codice applicativo.
      */
     private ResponseEntity<Object> buildResponse(ErrorCode errorCode, String message, String path,
-        List<ValidationErrorDetail> details, HttpHeaders headers) {
+            List<ValidationErrorDetail> details, HttpHeaders headers) {
         log.atDebug().addKeyValue("event.action", "api.error.response")
-            .addKeyValue("errorCode", errorCode.getCode())
-            .addKeyValue("status", errorCode.getHttpStatus().value())
-            .log("API error response created");
-        ApiErrorResponse response =
-            new ApiErrorResponse(Instant.now(clock), errorCode.getHttpStatus().value(),
+                .addKeyValue("errorCode", errorCode.getCode())
+                .addKeyValue("status", errorCode.getHttpStatus().value())
+                .log("API error response created");
+        ApiErrorResponse response = new ApiErrorResponse(Instant.now(clock),
+                errorCode.getHttpStatus().value(),
                 errorCode.getCode(), message, path, List.copyOf(details));
 
         return new ResponseEntity<>(response, headers, errorCode.getHttpStatus());
@@ -302,8 +305,9 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
      * Seleziona il messaggio pubblico dell'errore applicativo.
      */
     private String publicMessage(ApplicationException exception, ErrorCode errorCode) {
-        return
-            exception.getMessage() == null ? errorCode.getDefaultMessage() : exception.getMessage();
+        return exception.getMessage() == null
+                ? errorCode.getDefaultMessage()
+                : exception.getMessage();
     }
 
     /**
@@ -321,10 +325,10 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
      * Costruisce una risposta di parametro non valido con dettaglio field-level.
      */
     private ResponseEntity<Object> invalidParameterResponse(String field, String path,
-        HttpHeaders headers) {
+            HttpHeaders headers) {
         return buildResponse(ErrorCode.REQUEST_INVALID,
-            ErrorCode.REQUEST_INVALID.getDefaultMessage(), path,
-            List.of(new ValidationErrorDetail(field, "is required")), headers);
+                ErrorCode.REQUEST_INVALID.getDefaultMessage(), path,
+                List.of(new ValidationErrorDetail(field, "is required")), headers);
     }
 
     /**
@@ -336,7 +340,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         String field = propertyPath.isBlank() ? "request" : propertyPath.substring(separator + 1);
 
         return new ValidationErrorDetail(field,
-            Objects.requireNonNullElse(violation.getMessage(), "invalid value"));
+                Objects.requireNonNullElse(violation.getMessage(), "invalid value"));
     }
 
 }

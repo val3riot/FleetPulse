@@ -11,7 +11,7 @@ public final class QueryParameterValidator {
         for (String name : parameterNames) {
             String[] values = request.getParameterValues(name);
             if (values != null && (values.length != 1 || values[0] == null
-                || values[0].isBlank())) {
+                    || values[0].isBlank())) {
                 throw new ApplicationException(ErrorCode.REQUEST_INVALID);
             }
         }

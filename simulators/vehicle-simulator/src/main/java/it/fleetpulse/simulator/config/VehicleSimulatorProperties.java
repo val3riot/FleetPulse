@@ -13,8 +13,7 @@ public record VehicleSimulatorProperties(
         Duration sendInterval,
         Duration shutdownGracePeriod,
         ReconnectProperties reconnect,
-        VehicleProperties vehicle
-) {
+        VehicleProperties vehicle) {
     public VehicleSimulatorProperties {
         requireConfigured(fleetApi, "fleetApi");
         requireConfigured(gateway, "gateway");
@@ -27,7 +26,7 @@ public record VehicleSimulatorProperties(
             throw new IllegalArgumentException("sendInterval must be greater than zero");
         }
         if (shutdownGracePeriod == null || shutdownGracePeriod.isZero() ||
-            shutdownGracePeriod.isNegative()) {
+                shutdownGracePeriod.isNegative()) {
             throw new IllegalArgumentException("shutdownGracePeriod must be greater than zero");
         }
     }

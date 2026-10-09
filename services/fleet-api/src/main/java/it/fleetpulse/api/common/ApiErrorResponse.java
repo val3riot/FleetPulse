@@ -11,6 +11,5 @@ public record ApiErrorResponse(
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String code,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String message,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String path,
-        @Schema(requiredMode = Schema.RequiredMode.REQUIRED) List<ValidationErrorDetail> details
-) {
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED) List<ValidationErrorDetail> details) {
 }

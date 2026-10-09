@@ -8,7 +8,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
 class TcpReadinessTest {
-    @Test void requiresPresentRunningTcpListener() {
+    @Test
+    void requiresPresentRunningTcpListener() {
         @SuppressWarnings("unchecked")
         ObjectProvider<TcpServerLifecycle> provider = mock(ObjectProvider.class);
         var check = new ReadinessConfiguration().tcpHealthIndicator(provider);

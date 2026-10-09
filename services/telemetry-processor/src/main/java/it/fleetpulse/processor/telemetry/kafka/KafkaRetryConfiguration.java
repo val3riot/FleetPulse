@@ -17,9 +17,9 @@ public class KafkaRetryConfiguration {
 
     @Bean
     DefaultErrorHandler kafkaErrorHandler(KafkaConsumerProperties properties,
-        KafkaRetryObservability observability, ConsumerRecordRecoverer recoverer) {
-        JitteredExponentialBackOff backOff =
-            new JitteredExponentialBackOff(properties.retryInitialBackoff(),
+            KafkaRetryObservability observability, ConsumerRecordRecoverer recoverer) {
+        JitteredExponentialBackOff backOff = new JitteredExponentialBackOff(
+                properties.retryInitialBackoff(),
                 properties.retryMaxBackoff(), properties.retryMaxAttempts(),
                 properties.retryMultiplier(), properties.retryJitterRatio());
 
@@ -27,10 +27,10 @@ public class KafkaRetryConfiguration {
 
         errorHandler.defaultFalse(true);
         errorHandler.addRetryableExceptions(TransientDataAccessException.class,
-            RecoverableDataAccessException.class, DataAccessResourceFailureException.class,
-            RetriableException.class, TelemetryTerminalPublicationException.class);
+                RecoverableDataAccessException.class, DataAccessResourceFailureException.class,
+                RetriableException.class, TelemetryTerminalPublicationException.class);
         errorHandler.addNotRetryableExceptions(UnsupportedTelemetryEventVersionException.class,
-            DataIntegrityViolationException.class);
+                DataIntegrityViolationException.class);
         errorHandler.setRetryListeners(observability);
         return errorHandler;
     }

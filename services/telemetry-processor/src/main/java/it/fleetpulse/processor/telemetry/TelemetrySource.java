@@ -5,8 +5,7 @@ import java.util.Objects;
 public record TelemetrySource(
         String topic,
         int partition,
-        long offset
-) {
+        long offset) {
 
     public TelemetrySource {
         Objects.requireNonNull(topic, "topic must not be null");

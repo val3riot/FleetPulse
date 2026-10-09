@@ -8,8 +8,7 @@ import org.mapstruct.ReportingPolicy;
 /**
  * Converte il read model PostgreSQL nel contratto REST dello storico.
  */
-@Mapper(componentModel = MappingConstants.ComponentModel.SPRING,
-    unmappedTargetPolicy = ReportingPolicy.ERROR)
+@Mapper(componentModel = MappingConstants.ComponentModel.SPRING, unmappedTargetPolicy = ReportingPolicy.ERROR)
 public interface TelemetrySampleMapper {
     TelemetrySampleResponse toResponse(TelemetrySampleEntity entity);
 }

@@ -58,15 +58,15 @@ class TelemetryDeadLetterPublishingIntegrationTest {
     @BeforeAll
     static void createTopicAndProducer() throws Exception {
         try (AdminClient admin = AdminClient.create(
-            Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers()))) {
+                Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers()))) {
             admin.createTopics(List.of(new NewTopic(REJECTED_TOPIC, 1, (short) 1),
-                new NewTopic(DEAD_LETTER_TOPIC, 1, (short) 1))).all().get(10, TimeUnit.SECONDS);
+                    new NewTopic(DEAD_LETTER_TOPIC, 1, (short) 1))).all().get(10, TimeUnit.SECONDS);
         }
 
         producerFactory = new DefaultKafkaProducerFactory<>(
-            Map.of(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers(),
-                ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class,
-                ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JacksonJsonSerializer.class));
+                Map.of(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers(),
+                        ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class,
+                        ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JacksonJsonSerializer.class));
     }
 
     @Test
@@ -74,7 +74,7 @@ class TelemetryDeadLetterPublishingIntegrationTest {
         ObjectMapper objectMapper = new ObjectMapper();
         TelemetryTerminalEventPublisher publisher = publisher();
         TelemetryRejectedEvent event = new TelemetryRejectedEvent(MESSAGE_ID, VEHICLE_ID,
-            TelemetryRejectionReason.UNKNOWN_VEHICLE, FAILED_AT, RAW_TOPIC, 2, 84L);
+                TelemetryRejectionReason.UNKNOWN_VEHICLE, FAILED_AT, RAW_TOPIC, 2, 84L);
 
         try (KafkaConsumer<String, String> consumer = consumer("rejected-publishing-test")) {
             TopicPartition partition = new TopicPartition(REJECTED_TOPIC, 0);
@@ -83,8 +83,8 @@ class TelemetryDeadLetterPublishingIntegrationTest {
 
             publisher.publishRejected(event);
 
-            ConsumerRecord<String, String> published =
-                awaitRecord(consumer, "Rejected record not received");
+            ConsumerRecord<String, String> published = awaitRecord(consumer,
+                    "Rejected record not received");
             JsonNode json = objectMapper.readTree(published.value());
 
             assertThat(published.key()).isEqualTo(VEHICLE_ID.toString());
@@ -109,9 +109,10 @@ class TelemetryDeadLetterPublishingIntegrationTest {
         KafkaTemplate<String, Object> kafkaTemplate = new KafkaTemplate<>(producerFactory);
         TelemetryTerminalEventPublisher publisher = publisher();
         TelemetryDeadLetterRecoverer recoverer = new TelemetryDeadLetterRecoverer(
-            new TelemetryDeadLetterEventFactory(Clock.fixed(FAILED_AT, ZoneOffset.UTC),
-                new KafkaOriginalPayloadResolver(objectMapper), new KafkaDeliveryAttemptResolver()),
-            publisher);
+                new TelemetryDeadLetterEventFactory(Clock.fixed(FAILED_AT, ZoneOffset.UTC),
+                        new KafkaOriginalPayloadResolver(objectMapper),
+                        new KafkaDeliveryAttemptResolver()),
+                publisher);
         ConsumerRecord<String, Map<String, Object>> sourceRecord = sourceRecord();
 
         try (KafkaConsumer<String, String> consumer = consumer("dead-letter-publishing-test")) {
@@ -121,8 +122,8 @@ class TelemetryDeadLetterPublishingIntegrationTest {
 
             recoverer.accept(sourceRecord, new RuntimeException("database unavailable"));
 
-            ConsumerRecord<String, String> published =
-                awaitRecord(consumer, "Dead-letter record not received");
+            ConsumerRecord<String, String> published = awaitRecord(consumer,
+                    "Dead-letter record not received");
             JsonNode json = objectMapper.readTree(published.value());
 
             assertThat(published.key()).isEqualTo(ORIGINAL_KEY);
@@ -132,27 +133,27 @@ class TelemetryDeadLetterPublishingIntegrationTest {
             assertThat(json.get("sourceOffset").asLong()).isEqualTo(42L);
             assertThat(json.get("attempts").asInt()).isEqualTo(4);
             assertThat(json.get("errorCode").stringValue()).isEqualTo(
-                "PROCESSING_RETRIES_EXHAUSTED");
+                    "PROCESSING_RETRIES_EXHAUSTED");
             assertThat(json.get("errorMessage").stringValue()).isEqualTo("database unavailable");
             assertThat(json.get("originalKey").stringValue()).isEqualTo(ORIGINAL_KEY);
             assertThat(json.get("originalPayload").get("messageId").stringValue()).isEqualTo(
-                "message-id");
+                    "message-id");
         }
     }
 
     private static TelemetryTerminalEventPublisher publisher() {
         return new KafkaTelemetryTerminalEventPublisher(new KafkaTemplate<>(producerFactory),
-            new KafkaTopicsProperties(RAW_TOPIC, REJECTED_TOPIC, DEAD_LETTER_TOPIC),
-            new KafkaTerminalPublishingProperties(Duration.ofSeconds(5)));
+                new KafkaTopicsProperties(RAW_TOPIC, REJECTED_TOPIC, DEAD_LETTER_TOPIC),
+                new KafkaTerminalPublishingProperties(Duration.ofSeconds(5)));
     }
 
     private static ConsumerRecord<String, Map<String, Object>> sourceRecord() {
-        ConsumerRecord<String, Map<String, Object>> record =
-            new ConsumerRecord<>(RAW_TOPIC, 1, 42L, ORIGINAL_KEY,
+        ConsumerRecord<String, Map<String, Object>> record = new ConsumerRecord<>(RAW_TOPIC, 1, 42L,
+                ORIGINAL_KEY,
                 Map.of("messageId", "message-id"));
 
         record.headers().add(KafkaHeaders.DELIVERY_ATTEMPT,
-            ByteBuffer.allocate(Integer.BYTES).putInt(4).array());
+                ByteBuffer.allocate(Integer.BYTES).putInt(4).array());
 
         return record;
     }
@@ -167,7 +168,7 @@ class TelemetryDeadLetterPublishingIntegrationTest {
     }
 
     private static ConsumerRecord<String, String> awaitRecord(
-        KafkaConsumer<String, String> consumer, String failureMessage) {
+            KafkaConsumer<String, String> consumer, String failureMessage) {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
 
         while (System.nanoTime() < deadline) {

@@ -26,31 +26,31 @@ public final class RawTelemetryEventListener {
     @KafkaListener(id = LISTENER_ID, idIsGroup = false, topics = "${fleetpulse.kafka.topics.raw}")
     public void onTelemetry(ConsumerRecord<String, TelemetryEvent> record) {
         Objects.requireNonNull(record, "record must not be null");
-        TelemetryEvent event =
-            Objects.requireNonNull(record.value(), "record value must not be null");
+        TelemetryEvent event = Objects.requireNonNull(record.value(),
+                "record value must not be null");
         log.atDebug().addKeyValue("event.action", "kafka.telemetry.record.received")
-            .addKeyValue("topic", record.topic())
-            .addKeyValue("partition", record.partition())
-            .addKeyValue("offset", record.offset())
-            .addKeyValue("vehicleId", event.vehicleId())
-            .addKeyValue("messageId", event.messageId())
-            .log("Kafka telemetry record received: topic={}, partition={}, offset={}, " +
-                "messageId={}", record.topic(), record.partition(),
-            record.offset(),
-            event.messageId());
-        TelemetrySource source =
-            new TelemetrySource(record.topic(), record.partition(), record.offset());
+                .addKeyValue("topic", record.topic())
+                .addKeyValue("partition", record.partition())
+                .addKeyValue("offset", record.offset())
+                .addKeyValue("vehicleId", event.vehicleId())
+                .addKeyValue("messageId", event.messageId())
+                .log("Kafka telemetry record received: topic={}, partition={}, offset={}, " +
+                        "messageId={}", record.topic(), record.partition(),
+                        record.offset(),
+                        event.messageId());
+        TelemetrySource source = new TelemetrySource(record.topic(), record.partition(),
+                record.offset());
         handler.handle(event, source);
         log.atInfo().addKeyValue("event.action", "kafka.telemetry.record.handled")
-            .addKeyValue("topic", record.topic())
-            .addKeyValue("partition", record.partition())
-            .addKeyValue("offset", record.offset())
-            .addKeyValue("vehicleId", event.vehicleId())
-            .addKeyValue("messageId", event.messageId())
-            .log("Kafka telemetry record handled: topic={}, partition={}, offset={}, " +
-                "messageId={}", record.topic(), record.partition(),
-            record.offset(),
-            event.messageId());
+                .addKeyValue("topic", record.topic())
+                .addKeyValue("partition", record.partition())
+                .addKeyValue("offset", record.offset())
+                .addKeyValue("vehicleId", event.vehicleId())
+                .addKeyValue("messageId", event.messageId())
+                .log("Kafka telemetry record handled: topic={}, partition={}, offset={}, " +
+                        "messageId={}", record.topic(), record.partition(),
+                        record.offset(),
+                        event.messageId());
 
     }
 }

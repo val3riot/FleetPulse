@@ -31,9 +31,9 @@ class TcpServerTest {
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         TestSocket client = new TestSocket();
         TcpServer server = new TcpServer(TestAcknowledgements::accepted,
-            new TcpServerProperties(true, 0, 1, Duration.ofSeconds(10), Duration.ofSeconds(5)),
-            new FrameDecoder(new ObjectMapper()), new TelemetryAckEncoder(new ObjectMapper()),
-            executor, registry);
+                new TcpServerProperties(true, 0, 1, Duration.ofSeconds(10), Duration.ofSeconds(5)),
+                new FrameDecoder(new ObjectMapper()), new TelemetryAckEncoder(new ObjectMapper()),
+                executor, registry);
 
         server.dispatchClient(client);
 
@@ -41,7 +41,7 @@ class TcpServerTest {
         assertEquals(0, server.activeClients());
         assertEquals(1, registry.counter("fleetpulse.gateway.connections.rejected").count());
         assertEquals(0,
-            registry.counter("fleetpulse.gateway.tcp.connections.capacity.rejected").count());
+                registry.counter("fleetpulse.gateway.tcp.connections.capacity.rejected").count());
         assertEquals(0, registry.get("fleetpulse.gateway.connections.active").gauge().value());
 
         TestSocket nextClient = new TestSocket();
@@ -50,7 +50,7 @@ class TcpServerTest {
         assertTrue(nextClient.isClosed());
         assertEquals(2, registry.counter("fleetpulse.gateway.connections.rejected").count());
         assertEquals(0,
-            registry.counter("fleetpulse.gateway.tcp.connections.capacity.rejected").count());
+                registry.counter("fleetpulse.gateway.tcp.connections.capacity.rejected").count());
     }
 
     @Test
@@ -62,8 +62,8 @@ class TcpServerTest {
         TcpServer server = new TcpServer(message -> {
             throw new IllegalStateException("unexpected handler failure");
         }, new TcpServerProperties(true, 0, 1, Duration.ofSeconds(10), Duration.ofSeconds(5)),
-            new FrameDecoder(objectMapper), new TelemetryAckEncoder(objectMapper), executor,
-            registry);
+                new FrameDecoder(objectMapper), new TelemetryAckEncoder(objectMapper), executor,
+                registry);
 
         server.dispatchClient(client);
         executor.shutdown();
@@ -81,9 +81,9 @@ class TcpServerTest {
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         ObjectMapper objectMapper = new ObjectMapper();
         TcpServer server = new TcpServer(TestAcknowledgements::accepted,
-            new TcpServerProperties(true, 0, 1, Duration.ofSeconds(10), Duration.ofSeconds(5)),
-            new FrameDecoder(objectMapper), new TelemetryAckEncoder(objectMapper), executor,
-            registry);
+                new TcpServerProperties(true, 0, 1, Duration.ofSeconds(10), Duration.ofSeconds(5)),
+                new FrameDecoder(objectMapper), new TelemetryAckEncoder(objectMapper), executor,
+                registry);
 
         TestSocket failingClient = new TestSocket(true);
         server.dispatchClient(failingClient);
@@ -91,7 +91,7 @@ class TcpServerTest {
         assertEquals(1, registry.counter("fleetpulse.gateway.connections.failures").count());
         assertEquals(0, registry.counter("fleetpulse.gateway.connections.accepted").count());
         assertEquals(0,
-            registry.counter("fleetpulse.gateway.tcp.connections.capacity.rejected").count());
+                registry.counter("fleetpulse.gateway.tcp.connections.capacity.rejected").count());
 
         TestSocket nextClient = new TestSocket();
         server.dispatchClient(nextClient);
@@ -100,7 +100,7 @@ class TcpServerTest {
         assertTrue(executor.awaitTermination(2, TimeUnit.SECONDS));
         assertEquals(1, registry.counter("fleetpulse.gateway.connections.accepted").count());
         assertEquals(0,
-            registry.counter("fleetpulse.gateway.tcp.connections.capacity.rejected").count());
+                registry.counter("fleetpulse.gateway.tcp.connections.capacity.rejected").count());
     }
 
     @Test
@@ -109,9 +109,9 @@ class TcpServerTest {
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
 
         TcpServer server = new TcpServer(TestAcknowledgements::accepted,
-            new TcpServerProperties(true, 0, 1, Duration.ofSeconds(10), Duration.ofSeconds(1)),
-            new FrameDecoder(new ObjectMapper()), new TelemetryAckEncoder(new ObjectMapper()),
-            executor, registry);
+                new TcpServerProperties(true, 0, 1, Duration.ofSeconds(10), Duration.ofSeconds(1)),
+                new FrameDecoder(new ObjectMapper()), new TelemetryAckEncoder(new ObjectMapper()),
+                executor, registry);
 
         assertDoesNotThrow(() -> {
             server.close();
@@ -122,33 +122,32 @@ class TcpServerTest {
         assertEquals(0, server.activeClients());
     }
 
-
     @Test
     void countsMalformedFrameOnceAndDoesNotCountCleanDisconnectAsRejection() throws Exception {
         ExecutorService executor = Executors.newSingleThreadExecutor();
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-        LengthPrefixedFrameCodec.write(new byte[] {'{'}, bytes);
+        LengthPrefixedFrameCodec.write(new byte[]{'{'}, bytes);
         TestSocket malformed = new TestSocket(new ByteArrayInputStream(bytes.toByteArray()));
         TestSocket disconnected = new TestSocket();
         TcpServer server = new TcpServer(TestAcknowledgements::accepted,
-            new TcpServerProperties(true, 0, 2, Duration.ofSeconds(10), Duration.ofSeconds(5)),
-            new FrameDecoder(new ObjectMapper()), new TelemetryAckEncoder(new ObjectMapper()),
-            executor, registry);
+                new TcpServerProperties(true, 0, 2, Duration.ofSeconds(10), Duration.ofSeconds(5)),
+                new FrameDecoder(new ObjectMapper()), new TelemetryAckEncoder(new ObjectMapper()),
+                executor, registry);
         server.dispatchClient(malformed);
         server.dispatchClient(disconnected);
         executor.shutdown();
         assertTrue(executor.awaitTermination(2, TimeUnit.SECONDS));
         assertEquals(1, registry.get("fleetpulse.gateway.frames.rejected")
-            .tag("reason", "malformed").counter().count());
+                .tag("reason", "malformed").counter().count());
         assertEquals(1, registry.find("fleetpulse.gateway.frames.rejected").counters()
-            .stream().mapToDouble(counter -> counter.count()).sum());
+                .stream().mapToDouble(counter -> counter.count()).sum());
         assertEquals(0, registry.get("fleetpulse.gateway.frames.received").counter().count());
         assertEquals(0, server.activeClients());
     }
 
     private static InputStream frame(ObjectMapper objectMapper,
-        TelemetryMessage message) throws IOException {
+            TelemetryMessage message) throws IOException {
         byte[] payload = objectMapper.writeValueAsBytes(message);
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         LengthPrefixedFrameCodec.write(payload, output);
@@ -157,9 +156,9 @@ class TcpServerTest {
 
     private static TelemetryMessage validMessage() {
         return new TelemetryMessage(ProtocolConstants.PROTOCOL_VERSION,
-            UUID.fromString("dc0fc799-0913-4e72-bd2d-8ee8ccf52e22"),
-            UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0"), 42,
-            Instant.parse("2026-08-01T10:15:30Z"), 72.4, 91.8, 12.6, 85312, 41.9028, 12.4964);
+                UUID.fromString("dc0fc799-0913-4e72-bd2d-8ee8ccf52e22"),
+                UUID.fromString("97e194a8-64b3-4885-b1e6-25fd482f58c0"), 42,
+                Instant.parse("2026-08-01T10:15:30Z"), 72.4, 91.8, 12.6, 85312, 41.9028, 12.4964);
     }
 
     private static final class TestSocket extends Socket {

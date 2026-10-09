@@ -24,8 +24,8 @@ public class MaintenanceAlertService {
     private final MaintenanceAlertRequestValidator requestValidator;
 
     public MaintenanceAlertService(MaintenanceAlertRepository alerts, VehicleRepository vehicles,
-        MaintenanceAlertMapper mapper, MaintenanceAlertPageableFactory pageableFactory,
-        MaintenanceAlertRequestValidator requestValidator) {
+            MaintenanceAlertMapper mapper, MaintenanceAlertPageableFactory pageableFactory,
+            MaintenanceAlertRequestValidator requestValidator) {
         this.alerts = alerts;
         this.vehicles = vehicles;
         this.mapper = mapper;
@@ -35,7 +35,7 @@ public class MaintenanceAlertService {
 
     @Transactional(readOnly = true)
     public PagedResponse<MaintenanceAlertResponse> findByVehicleId(UUID vehicleId,
-        MaintenanceAlertSearchRequest request) {
+            MaintenanceAlertSearchRequest request) {
         requestValidator.validate(request);
         Pageable pageable = pageableFactory.create(request.page(), request.size(), request.sort());
 
@@ -48,7 +48,7 @@ public class MaintenanceAlertService {
 
     @Transactional(readOnly = true)
     public PagedResponse<MaintenanceAlertResponse> search(UUID vehicleId,
-        MaintenanceAlertSearchRequest request) {
+            MaintenanceAlertSearchRequest request) {
         requestValidator.validate(request);
         Pageable pageable = pageableFactory.create(request.page(), request.size(), request.sort());
         return search(criteria(vehicleId, request), pageable);
@@ -57,32 +57,32 @@ public class MaintenanceAlertService {
     @Transactional(readOnly = true)
     public MaintenanceAlertResponse findById(UUID alertId) {
         MaintenanceAlertEntity alert = alerts.findById(alertId)
-            .orElseThrow(() -> new ApplicationException(ErrorCode.ALERT_NOT_FOUND));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.ALERT_NOT_FOUND));
         return mapper.toResponse(alert);
     }
 
     private PagedResponse<MaintenanceAlertResponse> search(
-        MaintenanceAlertSearchCriteria criteria, Pageable pageable) {
+            MaintenanceAlertSearchCriteria criteria, Pageable pageable) {
         Page<MaintenanceAlertEntity> result = alerts.findAll(
-            MaintenanceAlertSpecifications.from(criteria), pageable);
+                MaintenanceAlertSpecifications.from(criteria), pageable);
         log.atDebug().addKeyValue("event.action", "maintenance.alert.search.completed")
-            .addKeyValue("vehicleId", criteria.vehicleId())
-            .addKeyValue("page", pageable.getPageNumber())
-            .addKeyValue("size", pageable.getPageSize())
-            .addKeyValue("results", result.getNumberOfElements())
-            .addKeyValue("total", result.getTotalElements())
-            .log("Maintenance alert search completed: vehicleId={}, page={}, size={}, " +
-                "results={}, total={}", criteria.vehicleId(),
-            pageable.getPageNumber(),
-            pageable.getPageSize(),
-            result.getNumberOfElements(),
-            result.getTotalElements());
+                .addKeyValue("vehicleId", criteria.vehicleId())
+                .addKeyValue("page", pageable.getPageNumber())
+                .addKeyValue("size", pageable.getPageSize())
+                .addKeyValue("results", result.getNumberOfElements())
+                .addKeyValue("total", result.getTotalElements())
+                .log("Maintenance alert search completed: vehicleId={}, page={}, size={}, " +
+                        "results={}, total={}", criteria.vehicleId(),
+                        pageable.getPageNumber(),
+                        pageable.getPageSize(),
+                        result.getNumberOfElements(),
+                        result.getTotalElements());
         return PagedResponse.from(result, mapper::toResponse);
     }
 
     private MaintenanceAlertSearchCriteria criteria(UUID vehicleId,
-        MaintenanceAlertSearchRequest request) {
+            MaintenanceAlertSearchRequest request) {
         return new MaintenanceAlertSearchCriteria(vehicleId, request.status(), request.type(),
-            request.severity(), request.from(), request.to());
+                request.severity(), request.from(), request.to());
     }
 }

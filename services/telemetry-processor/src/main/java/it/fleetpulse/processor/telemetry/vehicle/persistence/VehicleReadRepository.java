@@ -16,10 +16,10 @@ public interface VehicleReadRepository extends Repository<VehicleReadEntity, UUI
     Optional<VehicleStatus> findStatus(@Param("vehicleId") UUID vehicleId);
 
     @Query("""
-        SELECT new it.fleetpulse.processor.telemetry.alert.AlertVehicle(
-            vehicle.id, vehicle.nextServiceAtKm)
-        FROM VehicleReadEntity vehicle
-        WHERE vehicle.id = :vehicleId
-        """)
+            SELECT new it.fleetpulse.processor.telemetry.alert.AlertVehicle(
+                vehicle.id, vehicle.nextServiceAtKm)
+            FROM VehicleReadEntity vehicle
+            WHERE vehicle.id = :vehicleId
+            """)
     Optional<AlertVehicle> findAlertVehicle(@Param("vehicleId") UUID vehicleId);
 }

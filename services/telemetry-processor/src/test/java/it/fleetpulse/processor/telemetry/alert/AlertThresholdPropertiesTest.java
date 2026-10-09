@@ -13,50 +13,49 @@ import static org.assertj.core.api.Assertions.assertThat;
 class AlertThresholdPropertiesTest {
     private static final String PREFIX = "fleetpulse.telemetry.alerts.";
     private final ApplicationContextRunner runner = new ApplicationContextRunner()
-        .withUserConfiguration(PropertiesConfiguration.class);
+            .withUserConfiguration(PropertiesConfiguration.class);
 
     @Test
     void bindsValidThresholdsAndCreatesEvaluator() {
         runner.withPropertyValues(
-            PREFIX + "maximum-engine-temperature-c=110.0",
-            PREFIX + "minimum-battery-voltage=11.8"
-        ).run(context -> {
-            assertThat(context).hasNotFailed();
-            var properties = context.getBean(AlertThresholdProperties.class);
-            assertThat(properties.maximumEngineTemperatureC()).isEqualTo(110.0);
-            assertThat(properties.minimumBatteryVoltage()).isEqualTo(11.8);
-            assertThat(context).hasSingleBean(AlertEvaluator.class);
-        });
+                PREFIX + "maximum-engine-temperature-c=110.0",
+                PREFIX + "minimum-battery-voltage=11.8").run(context -> {
+                    assertThat(context).hasNotFailed();
+                    var properties = context.getBean(AlertThresholdProperties.class);
+                    assertThat(properties.maximumEngineTemperatureC()).isEqualTo(110.0);
+                    assertThat(properties.minimumBatteryVoltage()).isEqualTo(11.8);
+                    assertThat(context).hasSingleBean(AlertEvaluator.class);
+                });
     }
 
     @Test
     void rejectsMissingMaximumTemperature() {
         runner.withPropertyValues(PREFIX + "minimum-battery-voltage=11.8")
-            .run(context -> assertThat(context).hasFailed());
+                .run(context -> assertThat(context).hasFailed());
     }
 
     @Test
     void rejectsMissingMinimumVoltage() {
         runner.withPropertyValues(PREFIX + "maximum-engine-temperature-c=110.0")
-            .run(context -> assertThat(context).hasFailed());
+                .run(context -> assertThat(context).hasFailed());
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"-273.16", "NaN", "Infinity", "-Infinity"})
     void rejectsInvalidMaximumTemperature(String value) {
         runner.withPropertyValues(
-            PREFIX + "maximum-engine-temperature-c=" + value,
-            PREFIX + "minimum-battery-voltage=11.8"
-        ).run(context -> assertThat(context).hasFailed());
+                PREFIX + "maximum-engine-temperature-c=" + value,
+                PREFIX + "minimum-battery-voltage=11.8")
+                .run(context -> assertThat(context).hasFailed());
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"0", "-0.1", "NaN", "Infinity", "-Infinity"})
     void rejectsInvalidMinimumVoltage(String value) {
         runner.withPropertyValues(
-            PREFIX + "maximum-engine-temperature-c=110.0",
-            PREFIX + "minimum-battery-voltage=" + value
-        ).run(context -> assertThat(context).hasFailed());
+                PREFIX + "maximum-engine-temperature-c=110.0",
+                PREFIX + "minimum-battery-voltage=" + value)
+                .run(context -> assertThat(context).hasFailed());
     }
 
     @Configuration(proxyBeanMethods = false)

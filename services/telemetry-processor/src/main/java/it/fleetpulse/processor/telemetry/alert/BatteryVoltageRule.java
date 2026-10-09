@@ -21,6 +21,6 @@ public final class BatteryVoltageRule implements AlertRule {
             return Optional.empty();
         }
         return Optional.of(new AlertCandidate(vehicle.id(), sample.messageId(),
-            AlertType.BATTERY_VOLTAGE_LOW, AlertSeverity.HIGH, DESCRIPTION));
+                AlertType.BATTERY_VOLTAGE_LOW, AlertSeverity.HIGH, DESCRIPTION));
     }
 }

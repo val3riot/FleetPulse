@@ -34,7 +34,8 @@ import it.fleetpulse.processor.telemetry.vehicle.VehicleEligibilityGuard;
 @Service
 public final class TelemetryEventProcessingService implements TelemetryEventHandler {
 
-    private static final Logger log = LoggerFactory.getLogger(TelemetryEventProcessingService.class);
+    private static final Logger log = LoggerFactory
+            .getLogger(TelemetryEventProcessingService.class);
 
     private final TelemetryAggregateWriter writer;
     private final TelemetryPersistenceFailureClassifier failureClassifier;
@@ -63,16 +64,16 @@ public final class TelemetryEventProcessingService implements TelemetryEventHand
         this.clock = Objects.requireNonNull(clock);
         this.failureClassifier = Objects.requireNonNull(failureClassifier);
         this.eligibilityGuard = Objects.requireNonNull(eligibilityGuard,
-            "eligibilityGuard must not be null");
+                "eligibilityGuard must not be null");
         this.latestStateProjection = Objects.requireNonNull(latestStateProjection,
                 "latestStateProjection must not be null");
         this.projectionObservability = Objects.requireNonNull(projectionObservability);
-        this.alertVehicleQuery =
-            Objects.requireNonNull(alertVehicleQuery, "alertVehicleQuery must not be null");
-        this.alertTelemetryMapper =
-            Objects.requireNonNull(alertTelemetryMapper, "alertTelemetryMapper must not be null");
+        this.alertVehicleQuery = Objects.requireNonNull(alertVehicleQuery,
+                "alertVehicleQuery must not be null");
+        this.alertTelemetryMapper = Objects.requireNonNull(alertTelemetryMapper,
+                "alertTelemetryMapper must not be null");
         this.alertEvaluator = Objects.requireNonNull(alertEvaluator,
-            "alertEvaluator must not be null");
+                "alertEvaluator must not be null");
     }
 
     @Override
@@ -98,7 +99,7 @@ public final class TelemetryEventProcessingService implements TelemetryEventHand
             Objects.requireNonNull(outcome, "outcome must not be null");
             if ((outcome == Outcome.PERSISTED) != (sample != null)) {
                 throw new IllegalArgumentException(
-                    "A sample is required exactly when the outcome is persisted");
+                        "A sample is required exactly when the outcome is persisted");
             }
         }
     }
@@ -114,30 +115,31 @@ public final class TelemetryEventProcessingService implements TelemetryEventHand
         Instant processedAt = clock.instant();
         TelemetrySampleEntity entity = mapper.toEntity(event, processedAt);
         AlertVehicle vehicle = alertVehicleQuery.findById(event.vehicleId())
-            .orElseThrow(() -> new IllegalStateException(
-                "Eligible vehicle is not available for alert evaluation: " + event.vehicleId()));
-        List<AlertCandidate> candidates =
-            alertEvaluator.evaluate(vehicle, alertTelemetryMapper.toSample(event));
+                .orElseThrow(() -> new IllegalStateException(
+                        "Eligible vehicle is not available for alert evaluation: "
+                                + event.vehicleId()));
+        List<AlertCandidate> candidates = alertEvaluator.evaluate(vehicle,
+                alertTelemetryMapper.toSample(event));
 
         TelemetrySampleEntity saved;
         try {
             saved = writer.insert(entity, candidates, processedAt).sample();
         } catch (DataIntegrityViolationException failure) {
             if (!failureClassifier.isDuplicateMessageId(failure) &&
-                !failureClassifier.isDuplicateAlertSourceType(failure)) {
+                    !failureClassifier.isDuplicateAlertSourceType(failure)) {
                 throw failure;
             }
 
             log.atInfo().addKeyValue("event.action", "duplicate.telemetry.aggregate.ignored")
-                .addKeyValue("messageId", event.messageId())
-                .addKeyValue("vehicleId", event.vehicleId())
-                .addKeyValue("sequenceNumber", event.sequenceNumber())
-                .log("Duplicate telemetry aggregate ignored: messageId={}, vehicleId={}," +
-                    " sequenceNumber={}",
+                    .addKeyValue("messageId", event.messageId())
+                    .addKeyValue("vehicleId", event.vehicleId())
+                    .addKeyValue("sequenceNumber", event.sequenceNumber())
+                    .log("Duplicate telemetry aggregate ignored: messageId={}, vehicleId={}," +
+                            " sequenceNumber={}",
 
-                event.messageId(),
-                event.vehicleId(),
-                event.sequenceNumber());
+                            event.messageId(),
+                            event.vehicleId(),
+                            event.sequenceNumber());
 
             return new ProcessingResult(Outcome.DUPLICATE, null);
         }
@@ -147,22 +149,24 @@ public final class TelemetryEventProcessingService implements TelemetryEventHand
         ProcessingResult result = new ProcessingResult(Outcome.PERSISTED, saved);
         Duration persistenceLatency = metrics.recordPersistence(event.receivedAt(), committedAt);
         log.atInfo().addKeyValue("event.action", "telemetry.event.persisted")
-            .addKeyValue("pipeline.persistence.completedAt", committedAt)
-            .addKeyValue("pipeline.persistence.latency.ms",
-                persistenceLatency == null ? null : persistenceLatency.toNanos() / 1_000_000.0)
-            .addKeyValue("pipeline.persistence.clock.valid", persistenceLatency != null)
-            .addKeyValue("sampleId", saved.getId())
-            .addKeyValue("alertCandidates", candidates.size())
-            .addKeyValue("messageId", saved.getMessageId())
-            .addKeyValue("vehicleId", saved.getVehicleId())
-            .addKeyValue("sequenceNumber", saved.getSequenceNumber())
-            .log("Telemetry event persisted: sampleId={}, messageId={}, vehicleId={}," +
-                " sequenceNumber={}",
+                .addKeyValue("pipeline.persistence.completedAt", committedAt)
+                .addKeyValue("pipeline.persistence.latency.ms",
+                        persistenceLatency == null
+                                ? null
+                                : persistenceLatency.toNanos() / 1_000_000.0)
+                .addKeyValue("pipeline.persistence.clock.valid", persistenceLatency != null)
+                .addKeyValue("sampleId", saved.getId())
+                .addKeyValue("alertCandidates", candidates.size())
+                .addKeyValue("messageId", saved.getMessageId())
+                .addKeyValue("vehicleId", saved.getVehicleId())
+                .addKeyValue("sequenceNumber", saved.getSequenceNumber())
+                .log("Telemetry event persisted: sampleId={}, messageId={}, vehicleId={}," +
+                        " sequenceNumber={}",
 
-                saved.getId(),
-                saved.getMessageId(),
-                saved.getVehicleId(),
-                saved.getSequenceNumber());
+                        saved.getId(),
+                        saved.getMessageId(),
+                        saved.getVehicleId(),
+                        saved.getSequenceNumber());
         // The writer's transactional proxy has committed before returning to this orchestrator.
         return result;
     }
