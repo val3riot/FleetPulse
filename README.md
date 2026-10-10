@@ -174,3 +174,6 @@ Accettazione del flusso nominale completo, alert, replay idempotente e guasti:
 
 Coerenza tra documentazione, OpenAPI, schema SQL, configurazione e diagrammi:
 [Controlli backend FP-055](infrastructure/consistency/README.md).
+
+Base Angular del client web e comandi di sviluppo:
+[Fleet Dashboard](frontend/fleet-dashboard/README.md).
