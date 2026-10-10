@@ -106,6 +106,25 @@ I nomi sono centralizzati nelle variabili `KAFKA_TOPIC_RAW`,
 `KAFKA_TOPIC_REJECTED` e `KAFKA_TOPIC_DEAD_LETTER`. Il replication factor `1`
 è adatto esclusivamente alla configurazione locale con un solo broker.
 
+### Budget producer del gateway — FP-056
+
+| Variabile ambiente | Default | Significato |
+|---|---|---|
+| `KAFKA_CONFIRMATION_TIMEOUT` | `5s` | Budget complessivo della decisione nel handler |
+| `GATEWAY_KAFKA_MAX_BLOCK_MS` | `1000` | Attesa sincrona metadata/buffer, millisecondi |
+| `GATEWAY_KAFKA_REQUEST_TIMEOUT_MS` | `1000` | Timeout singola richiesta broker, millisecondi |
+| `GATEWAY_KAFKA_DELIVERY_TIMEOUT_MS` | `4000` | Budget consegna e retry interni producer, millisecondi |
+| `GATEWAY_KAFKA_LINGER_MS` | `0` | Attesa batching, millisecondi |
+
+Compose inoltra queste variabili soltanto al gateway; il producer terminale del
+processor mantiene la propria configurazione. Il gateway rifiuta all’avvio
+configurazioni senza valori espliciti o fuori dai vincoli descritti nel
+[protocollo TCP](06_PROTOCOLLO_TCP.md#budget-di-risposta-durante-outage-kafka--fp-056).
+La idempotenza Kafka e `acks=all` restano attivi. I retry interni sono limitati
+nel tempo da delivery timeout, senza abbassare le garanzie di conferma.
+Override più lunghi richiedono coordinamento dei timeout client: gli E2E FP-056
+verificano esplicitamente la baseline locale `5s`, con lettura socket `7s`.
+
 ### TTL della latest-state projection (FP-030)
 
 Configurazione implementata in FP-030 secondo [ADR-009 — Contratto e aggiornamento della latest-state projection](adr/ADR-009-LATEST-STATE-PROJECTION.md):

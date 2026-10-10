@@ -56,7 +56,7 @@ class Alerts(Nominal):
         processor = self.stack.urls['telemetry-processor']
         before = metrics(processor)
         with socket.create_connection((self.stack.gateway[0], int(self.stack.gateway[1])), timeout=5) as stream:
-            stream.settimeout(5)
+            stream.settimeout(7)
             stream.sendall(frame(message))
             ack(stream, message)
         _, observed = self.kafka_event(message, previous)
@@ -94,7 +94,7 @@ class Alerts(Nominal):
             engineTemperatureC=maximum + 10, batteryVoltage=minimum + 1,
             odometerKm=10000, latitude=41.9, longitude=12.5)
         with socket.create_connection((self.stack.gateway[0], int(self.stack.gateway[1])), timeout=5) as stream:
-            stream.settimeout(5)
+            stream.settimeout(7)
             self.verify_message(stream, message)
         wait(lambda: len(self.snapshot(message)['alerts']) == 1, 'Alert missing')
         wait(lambda: self.stack.lag()['total'] == 0, 'Initial offset not committed')

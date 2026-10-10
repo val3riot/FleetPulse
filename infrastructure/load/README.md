@@ -29,6 +29,10 @@ late slots. The mixed scenario closes a connection halfway through a selected
 payload (1% probability), reconnects and resends the full message; independently
 it resends selected accepted messages unchanged (2%). Seed defaults to 47.
 Unexpected failures are retained rather than silently retried.
+FP-056 separates connect timeout (1s) from framed ACK read timeout
+(`--ack-timeout`, default 7s), allowing the 5s gateway decision budget plus
+transport margin. Custom gateway budgets require a larger ACK timeout.
+A longer socket timeout does not relax the latency or late-slot acceptance criteria.
 
 JSON artifacts contain frame IDs/results, raw resource samples, exact post-commit
 latencies, nearest-rank p50/p95/p99 and acceptance errors. Reconciliation covers

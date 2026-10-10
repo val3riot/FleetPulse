@@ -114,12 +114,17 @@ class Nominal:
         return event, dict(topic=self.stack.env['KAFKA_TOPIC_RAW'], partition=partition,
                            offset=previous[partition], key=key, event=event)
 
+    def service_time(self, app):
+        # Docker Desktop runs a separate clock; compare timestamps on the service host.
+        seconds = int(self.stack.call('exec', '-T', app, 'date', '+%s').strip())
+        return dt.datetime.fromtimestamp(seconds, UTC)
+
     def verify_message(self, stream, message):
         previous = self.offsets()
-        sent_at = dt.datetime.now(UTC)
+        sent_at = self.service_time('telemetry-gateway')
         stream.sendall(frame(message))
         ack(stream, message)
-        acknowledged_at = dt.datetime.now(UTC)
+        acknowledged_at = self.service_time('telemetry-gateway') + dt.timedelta(seconds=1)
         self.record('TCP ACK', dict(messageId=message['messageId'], status='ACCEPTED',
                                     protocolVersion=1, persistentConnection=True))
         event, observed = self.kafka_event(message, previous)
@@ -160,9 +165,9 @@ class Nominal:
         self.record('Redis projection BEFORE State API', dict(state=value, ttlSeconds=ttl))
         api = self.stack.urls['fleet-api']
         before = metrics(api)
-        started = dt.datetime.now(UTC)
+        started = self.service_time('fleet-api')
         code, _, body = request(api + '/api/v1/vehicles/' + message['vehicleId'] + '/state')
-        finished = dt.datetime.now(UTC)
+        finished = self.service_time('fleet-api') + dt.timedelta(seconds=1)
         require(code == 200, 'State API status mismatch')
         compare_state(body, message, api=True)
         require(type(body['stale']) is bool, 'State stale must be boolean')
@@ -208,7 +213,7 @@ class Nominal:
         maximum = float(self.stack.env['TELEMETRY_ALERT_MAXIMUM_ENGINE_TEMPERATURE_C'])
         minimum = float(self.stack.env['TELEMETRY_ALERT_MINIMUM_BATTERY_VOLTAGE'])
         with socket.create_connection((self.stack.gateway[0], int(self.stack.gateway[1])), timeout=5) as stream:
-            stream.settimeout(5)
+            stream.settimeout(7)
             for sequence in (0, 1):
                 message = dict(protocolVersion=1, messageId=str(uuid.uuid4()), vehicleId=vid,
                     sequenceNumber=sequence, observedAt=dt.datetime.now(UTC).isoformat(),

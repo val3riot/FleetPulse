@@ -8,6 +8,10 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
       properties:
+        max.block.ms: ${GATEWAY_KAFKA_MAX_BLOCK_MS:1000}
+        request.timeout.ms: ${GATEWAY_KAFKA_REQUEST_TIMEOUT_MS:1000}
+        delivery.timeout.ms: ${GATEWAY_KAFKA_DELIVERY_TIMEOUT_MS:4000}
+        linger.ms: ${GATEWAY_KAFKA_LINGER_MS:0}
         enable.idempotence: true
         spring.json.add.type.headers: false
 

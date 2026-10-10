@@ -94,6 +94,7 @@ def worker(vehicle, index, host, port, start, args, mixed):
     stream = None
     try:
         stream = socket.create_connection((host, port), timeout=1)
+        stream.settimeout(args.ack_timeout)
         for slot in range(round(args.duration / args.interval)):
             due = start + slot * args.interval
             time.sleep(max(0, due - time.monotonic()))
@@ -114,6 +115,7 @@ def worker(vehicle, index, host, port, start, args, mixed):
                     stream.sendall(packet[:len(packet)//2])
                     stream.close()
                     stream = socket.create_connection((host, port), timeout=1)
+                    stream.settimeout(args.ack_timeout)
                 stream.sendall(packet)
                 record['transmissions'] += 1
                 ack(stream, message)
@@ -128,6 +130,7 @@ def worker(vehicle, index, host, port, start, args, mixed):
                 # Never hide an ambiguous send with an unaccounted retry.
                 stream.close()
                 stream = socket.create_connection((host, port), timeout=1)
+                stream.settimeout(args.ack_timeout)
         time.sleep(max(0, start + args.duration - time.monotonic()))
     finally:
         if stream:
@@ -344,7 +347,7 @@ def scenario(stack, args, name):
     if alerts:
         errors.append('Unexpected alerts for normal telemetry')
     report = dict(scenario=name, vehicles=args.vehicles, durationSeconds=args.duration,
-                  intervalSeconds=args.interval, seed=args.seed, expected=wanted,
+                  intervalSeconds=args.interval, ackTimeoutSeconds=args.ack_timeout, seed=args.seed, expected=wanted,
                   offered=len(records), accepted=sum(r['accepted'] for r in records),
                   persisted=len(stored), duplicates=sum(r['duplicate'] for r in records),
                   disconnects=sum(r['disconnected'] for r in records), missedSlots=late,
@@ -368,10 +371,12 @@ def main():
     parser.add_argument('--interval', type=float, default=2)
     parser.add_argument('--vehicles', type=int, default=50)
     parser.add_argument('--seed', type=int, default=47)
+    parser.add_argument('--ack-timeout', type=float, default=7)
     parser.add_argument('--scenario', choices=['baseline', 'mixed', 'both'], default='both')
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
-    if (args.duration <= 0 or args.interval <= 0 or not 1 <= args.vehicles <= 50
+    if (args.duration <= 0 or args.interval <= 0 or not math.isfinite(args.ack_timeout)
+            or args.ack_timeout <= 0 or not 1 <= args.vehicles <= 50
             or not math.isclose(args.duration / args.interval, round(args.duration / args.interval))):
         parser.error('Require 1..50 vehicles and positive duration divisible by interval')
     args.output = args.output.resolve()

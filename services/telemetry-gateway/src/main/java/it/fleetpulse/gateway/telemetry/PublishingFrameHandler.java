@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
+import java.util.function.LongSupplier;
 
 import io.micrometer.core.instrument.Timer;
 
@@ -26,26 +27,43 @@ public final class PublishingFrameHandler implements FrameHandler {
     private final TelemetryPublisher publisher;
     private final KafkaPublisherProperties properties;
     private final TelemetryPublishingMetrics metrics;
+    private final LongSupplier nanoTime;
 
     public PublishingFrameHandler(TelemetryEventMapper mapper, TelemetryPublisher publisher,
             KafkaPublisherProperties properties, TelemetryPublishingMetrics metrics) {
+        this(mapper, publisher, properties, metrics, System::nanoTime);
+    }
+
+    PublishingFrameHandler(TelemetryEventMapper mapper, TelemetryPublisher publisher,
+            KafkaPublisherProperties properties, TelemetryPublishingMetrics metrics,
+            LongSupplier nanoTime) {
         this.mapper = Objects.requireNonNull(mapper, "mapper must not be null");
         this.publisher = Objects.requireNonNull(publisher, "publisher must not be null");
         this.properties = Objects.requireNonNull(properties, "properties must not be null");
         this.metrics = Objects.requireNonNull(metrics, "metrics must not be null");
+        this.nanoTime = Objects.requireNonNull(nanoTime, "nanoTime must not be null");
     }
 
     @Override
     public TelemetryAck handle(TelemetryMessage message) {
         Objects.requireNonNull(message, "message must not be null");
+        long started = nanoTime.getAsLong();
+        long budget = properties.confirmationTimeout().toNanos();
         TelemetryEvent event = mapper.map(message);
         Timer.Sample acknowledgement = metrics.startAcknowledgement();
         Timer.Sample publication = metrics.startPublication();
         boolean confirmed = false;
         try {
             try {
-                publisher.publish(event).toCompletableFuture()
-                        .get(properties.confirmationTimeout().toMillis(), TimeUnit.MILLISECONDS);
+                var confirmation = publisher.publish(event).toCompletableFuture();
+                long remaining = budget - (nanoTime.getAsLong() - started);
+                if (remaining <= 0) {
+                    throw new TimeoutException("Publication budget exhausted during send");
+                }
+                confirmation.get(remaining, TimeUnit.NANOSECONDS);
+                if (nanoTime.getAsLong() - started >= budget) {
+                    throw new TimeoutException("Publication confirmed after response budget");
+                }
                 confirmed = true;
             } finally {
                 metrics.completePublication(publication, confirmed);

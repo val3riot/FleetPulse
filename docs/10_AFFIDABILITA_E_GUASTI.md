@@ -167,6 +167,17 @@ Se la pubblicazione del rejection event fallisce, il record originale non deve
 essere perso. L'offset può avanzare soltanto dopo che l'esito è osservabile; il
 dettaglio della coordinazione Kafka è definito dalle ticket di implementazione.
 
+Il gateway applica un budget monotono complessivo alla decisione ACK/NACK:
+metadata/buffer e attesa della conferma condividono lo stesso limite, con
+configurazione producer verificata all’avvio. Valori e limiti:
+[Protocollo TCP — FP-056](06_PROTOCOLLO_TCP.md#budget-di-risposta-durante-outage-kafka--fp-056).
+Una socket in attesa occupa uno slot del semaforo (default massimo 100): budget
+più brevi limitano la permanenza durante outage, senza eliminare la necessità
+di limiti di connessione. Il gateway elabora un frame alla volta per socket;
+non crea un task aggiuntivo per ogni send e non accumula retry applicativi.
+Il buffer Kafka rimane finito (`buffer.memory` del client); quando è pieno,
+`max.block.ms` limita l’attesa. I payload sono limitati a 65.536 byte.
+
 ## 9. Backpressure
 
 Controlli previsti:

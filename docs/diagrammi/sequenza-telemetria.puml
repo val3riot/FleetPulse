@@ -10,8 +10,16 @@ queue "telemetry.rejected.v1" as Rejected
 Simulator -> Gateway : length + JSON payload
 Gateway -> Gateway : framing e validazione tecnica
 Gateway -> Kafka : telemetry.raw.v1(key=vehicleId)
-Kafka --> Gateway : producer acknowledgement
-Gateway --> Simulator : ACCEPTED (pubblicazione Kafka)
+alt conferma osservata entro budget handler (default 5s)
+    Kafka --> Gateway : producer acknowledgement
+    Gateway --> Simulator : ACCEPTED (pubblicazione Kafka)
+else errore o budget esaurito
+    Gateway --> Simulator : REJECTED / UPSTREAM_UNAVAILABLE
+    note over Simulator, Kafka
+        Possibile consegna tardiva anche dopo NACK.
+        Retry con stesso payload e messageId; deduplicazione sample/alert.
+    end note
+end
 Kafka -> Processor : telemetry event
 Processor -> PostgreSQL : lookup vehicle
 alt vehicle ACTIVE

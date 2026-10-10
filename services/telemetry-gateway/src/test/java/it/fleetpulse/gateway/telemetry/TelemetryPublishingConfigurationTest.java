@@ -18,7 +18,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import it.fleetpulse.gateway.telemetry.kafka.KafkaPublisherProperties;
-import org.springframework.kafka.core.ProducerFactory;
+import org.springframework.kafka.core.DefaultKafkaProducerFactory;
+import java.util.Map;
 
 import java.time.Duration;
 
@@ -73,10 +74,17 @@ public class TelemetryPublishingConfigurationTest {
                 .run(context -> assertNotNull(context.getStartupFailure()));
     }
 
+    @Test
+    void rejectsProducerWaitsOutsideResponseBudgetAtStartup() {
+        contextRunner.withPropertyValues("fleetpulse.kafka.topics.raw=telemetry.raw.v1",
+                "fleetpulse.kafka.publisher.confirmation-timeout=500ms")
+                .run(context -> assertNotNull(context.getStartupFailure()));
+    }
+
     private static KafkaTemplate<String, TelemetryEvent> kafkaTemplate() {
-        ProducerFactory<String, TelemetryEvent> producerFactory = () -> {
-            throw new AssertionError("Producer must not be created by a wiring test");
-        };
+        var producerFactory = new DefaultKafkaProducerFactory<String, TelemetryEvent>(Map.of(
+                "max.block.ms", 100, "request.timeout.ms", 100,
+                "delivery.timeout.ms", 500, "linger.ms", 0));
 
         return new KafkaTemplate<>(producerFactory);
     }

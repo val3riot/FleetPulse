@@ -171,3 +171,6 @@ Diagnosi per messageId, comandi di sola lettura, gestione guasti e aggiornamenti
 
 Accettazione del flusso nominale completo, alert, replay idempotente e guasti:
 [E2E backend](infrastructure/e2e/README.md).
+
+Coerenza tra documentazione, OpenAPI, schema SQL, configurazione e diagrammi:
+[Controlli backend FP-055](infrastructure/consistency/README.md).

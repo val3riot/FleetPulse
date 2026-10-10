@@ -22,6 +22,10 @@ stessi target mentre Maven lavora, usare un checkout/copia temporanea senza targ
 e senza compilazione IDE concorrente. Non occorre arrestare processi IDE o lo
 stack di lavoro; Testcontainers gestisce risorse dedicate.
 
+Per la chiusura del backend, applicare anche i
+[controlli di coerenza FP-055](../consistency/README.md) e la prova E2E Kafka
+warm/cold FP-056.
+
 ## Formatting
 
 Spotless Maven 3.10.4 usa Eclipse JDT 4.34 con profilo versionato

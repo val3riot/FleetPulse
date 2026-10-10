@@ -26,6 +26,11 @@ def require_upstream_rejection(body, message):
             'Expected correlated UPSTREAM_UNAVAILABLE, never ACCEPTED while Kafka is down')
 
 
+def require_bounded_rejection(body, message, duration):
+    require_upstream_rejection(body, message)
+    require(0 <= duration <= 6, 'Kafka outage exceeded 5s decision budget plus 1s transport margin')
+
+
 def reconcile(raw, samples, duplicates):
     require(raw in (6, 7) and samples == 6 and duplicates == raw - samples,
             'Unexpected final raw/sample/duplicate reconciliation')
@@ -144,15 +149,28 @@ class Failures(Nominal):
         wait(lambda: self.stack.call('exec', '-T', 'redis', 'redis-cli', 'ping').strip() == 'PONG', 'Redis not reachable')
         require(not self.redis(self.vehicle), 'Restarted nonpersistent Redis should have empty cache')
         baseline = metrics(api)
-        self.state(message)
-        repaired = self.projection(message)
+        def read_repaired():
+            # Server PING does not establish that the API Lettuce connection has recovered.
+            self.state(message)
+            raw = self.redis(self.vehicle)
+            if not raw:
+                return False
+            body = json.loads(raw)
+            compare_state(body, message)
+            return body
+        repaired = wait(read_repaired, 'API Redis read repair did not recover', timeout=30)
+        require(0 < int(self.redis(self.vehicle, 'TTL')) <= 300, 'Invalid repaired Redis TTL')
+        recovered = metrics(api)
+        fallbacks = recovered['fleetpulse_api_cache_fallback_total'] - baseline['fleetpulse_api_cache_fallback_total']
+        require(fallbacks >= 1, 'Recovery must perform SQL fallback and read repair')
         self.state(message)
         after = metrics(api)
-        require(after['fleetpulse_api_cache_fallback_total'] - baseline['fleetpulse_api_cache_fallback_total'] == 1
-                and after['fleetpulse_api_cache_hits_total'] - baseline['fleetpulse_api_cache_hits_total'] == 1,
-                'Expected read repair followed by cache hit')
+        require(after['fleetpulse_api_cache_fallback_total'] == recovered['fleetpulse_api_cache_fallback_total']
+                and after['fleetpulse_api_cache_hits_total'] - recovered['fleetpulse_api_cache_hits_total'] == 1,
+                'Expected repaired state served by cache hit without SQL fallback')
         require(self.starts() == starts, 'Application restarted during Redis recovery')
-        self.record('Redis recovery: read repair then cache hit without app restart', repaired)
+        self.record('Redis recovery: read repair then cache hit without app restart',
+                    dict(state=repaired, recoveryFallbacks=fallbacks))
         self.nominal(self.message(3))
         require(self.starts() == starts, 'Processor restarted to resume projection')
         self.record('New telemetry updates Redis after recovery', dict(sequence=3))
@@ -192,14 +210,15 @@ class Failures(Nominal):
         message = self.message(5)
         started = time.monotonic()
         with socket.create_connection((self.stack.gateway[0], int(self.stack.gateway[1])), timeout=5) as stream:
-            # Producer metadata acquisition can consume max.block.ms before confirmation wait.
-            stream.settimeout(75)
+            # Default gateway decision budget 5s plus 2s client/transport margin.
+            stream.settimeout(7)
             stream.sendall(frame(message))
             body = read_ack(stream)
-        require_upstream_rejection(body, message)
+        duration = time.monotonic() - started
+        require_bounded_rejection(body, message, duration)
         require(not self.rows(message), 'Kafka-down attempt unexpectedly persisted before recovery')
         self.record('Kafka down: correlated negative ACK and no false ACCEPTED',
-                    dict(ack=body, durationMs=(time.monotonic() - started) * 1000))
+                    dict(ack=body, durationMs=duration * 1000))
         self.stack.call('start', 'kafka')
         for app in ('telemetry-gateway', 'telemetry-processor'):
             self.probe(app, 'readiness', 200, 120)

@@ -276,10 +276,31 @@ readiness iniziale, traffico controllato e cleanup anche dopo fallimento:
 Un timeout di pubblicazione Kafka può lasciare un send in-flight: non dedurre
 assenza definitiva dal NACK. Riconciliare raw, sample, duplicati e terminal topic
 solo dopo il recupero e il drain; tollerare una consegna tardiva purché idempotente.
-Il budget generoso della socket comprende anche l'eventuale attesa metadata del
-producer e non equivale a uno SLA. Lo stop graceful del processor non sostituisce
+La regressione FP-056 richiede NACK entro il budget decisione `5s` più `1s`
+di margine di trasporto, con timeout socket `7s`. Lo stop graceful del processor non sostituisce
 la prova di crash FP-044 descritta in E2E-003. Verificatore e comandi:
 [infrastructure/e2e](../infrastructure/e2e/README.md#failure-scenarios--fp-052).
+
+### Budget outage Kafka e replay — FP-056
+
+- Test monotoni del handler: il tempo sincrono di send riduce il residuo per la
+  future; una conferma fuori budget non può produrre ACCEPTED.
+- Test della configurazione: valori espliciti e vincoli fra max.block, request,
+  delivery, linger e budget complessivo; configurazioni incoerenti bloccano startup.
+- Broker reale sospeso: producer warm confermato da un publish riuscito deve
+  raggiungere il send asincrono; producer nuovo senza metadata fallisce nel send
+  sincrono. Entrambi restituiscono NACK via TCP entro `6s` e recuperano con le
+  stesse istanze dopo unpause, senza restart applicativo.
+- E2E con Kafka stop/start warm e pause/unpause cold: baseline nominale,
+  producer già utilizzato e JVM gateway fresca avviata con broker sospeso. Lo start della JVM costruisce solo
+  la fixture cold: dopo il ripristino nessuna applicazione viene riavviata.
+- Retry dello stesso frame e replay esplicito dopo recovery: un solo sample e
+  un solo alert per messaggio, con ID e timestamp invariati, projection/API valide,
+  duplicate counter osservato e lag zero prima della riconciliazione finale.
+- Eventuali raw tardivi sono ammessi soltanto se riconciliati come duplicati,
+  senza effetti extra o falsi ACCEPTED durante l’outage.
+
+Comando e isolamento nel [verificatore E2E](../infrastructure/e2e/README.md#budget-kafka--fp-056).
 
 ### E2E-006 — Rifiuto asincrono del veicolo
 

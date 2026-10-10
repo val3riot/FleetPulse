@@ -144,9 +144,9 @@ ammette uno o due raw per l'ultimo messageId, ma richiede sempre un solo sample
 e l'eventuale duplicate processato. Totale atteso: 6 sample, 6 o 7 raw, 0 o 1
 duplicati coerenti, zero alert/rejected/DLT e lag zero.
 
-La socket durante Kafka down ha budget 75s per coprire l'eventuale attesa metadata
-producer oltre al confirmation timeout. È un limite del test, non uno SLA né
-una promessa che il confirmation timeout limiti l'intera chiamata sincrona.
+Da FP-056 la socket ha timeout `7s` e il verificatore richiede NACK entro `6s`
+(budget decisione `5s` più `1s` di margine). La baseline producer deve mantenere
+i valori coordinati definiti in `.env.example`.
 La chiusura del frame strutturalmente invalido è distinta dal NACK applicativo:
 non si inventa un ACK per un frame che non è stato decodificato.
 
@@ -155,3 +155,41 @@ checks/summary/failure/cleanup hanno lo stesso ruolo delle altre prove. La suite
 duplicati non elaborati, sample duplicati e cleanup su failure. PostgreSQL down,
 proxy/blackhole, capacity exhaustion e altri input invalidi rimangono nelle prove
 precedenti o in casi distinti: non sono nuovi requisiti impliciti di FP-052.
+
+## Budget Kafka — FP-056
+
+```bash
+python3 infrastructure/e2e/verify_kafka_budget.py --output tmp/fp056-budget
+```
+
+Usa la baseline locale: budget gateway `5s`, max.block `1000ms`, request `1000ms`,
+delivery `4000ms`, linger `0ms`. Requisiti/isolamento/cleanup dei precedenti E2E.
+Il test opera solo nel proprio progetto `fp056-<id>`: arresta Kafka con gateway
+warm, poi sospende Kafka e avvia una JVM gateway fresca per la fixture cold.
+La sospensione preserva il DNS Docker, che scompare quando il container viene
+arrestato, ma impedisce al broker di rispondere. Questo start costruisce la
+fixture cold senza metadata producer; non è un espediente di recovery.
+Durante entrambi i recuperi, start time delle tre applicazioni invariati.
+
+Ogni NACK è correlato e misurato dal send alla ricezione: massimo `6s`, timeout
+socket `7s`. Dopo Kafka ready ritenta lo stesso frame, verifica sample e alert
+HIGH, Redis e API, poi invia un duplicato esplicito. Richiede duplicate counter
+incrementato e lag zero prima di confrontare tutte le righe, ID e timestamp inclusi.
+Finale: 3 sample, 2 alert, 5–7 raw con duplicati esattamente `raw - 3`, nessun
+rejected/DLT. I raw tardivi restano possibili per semantica di consegna ambigua.
+
+La distinzione deterministica fra metadata disponibili e assenti è verificata
+anche nel test Java con broker sospeso: il producer warm deve restituire una
+future asincrona, quello cold deve fallire l’acquisizione sincrona dei metadata.
+Gli E2E stop/start warm e pause/unpause cold verificano l’intera pipeline; il
+broker può invalidare metadata precedentemente acquisiti durante lo stop.
+
+I controlli E2E dei timestamp usano l’orologio del container del servizio,
+con precisione al secondo, per evitare falsi negativi dovuti al clock della VM
+Docker Desktop. Il budget ACK/NACK resta misurato con `time.monotonic()` sul
+client, senza tolleranze aggiuntive per il disallineamento degli orologi.
+
+Nel recovery Redis, il ping del server precede talvolta la riconnessione del
+client API. Il verificatore ripete le richieste di stato entro `30s` fino alla
+read repair osservata, poi richiede un cache hit senza ulteriori fallback SQL
+e senza riavvii applicativi. I fallback intermedi vengono registrati.

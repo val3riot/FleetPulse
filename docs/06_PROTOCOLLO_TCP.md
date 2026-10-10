@@ -157,12 +157,36 @@ Il client può ritentare quando non riceve un ACK positivo.
 
 Il retry deve riutilizzare lo stesso `messageId`.
 
-Il `confirmation-timeout` limita l’attesa della future dopo `publish()`, non
-l’intera risposta TCP: la chiamata sincrona del producer può attendere metadata
-o spazio nel buffer prima di restituire la future. Il budget complessivo
-durante outage Kafka rimane un limite operativo aperto, da risolvere in FP-056.
-Un NACK o timeout non prova l’assenza di una consegna tardiva: il retry mantiene
-lo stesso `messageId` per permettere la deduplicazione del processor.
+### Budget di risposta durante outage Kafka — FP-056
+
+`fleetpulse.kafka.publisher.confirmation-timeout` (`KAFKA_CONFIRMATION_TIMEOUT`,
+default `5s`) limita la decisione di pubblicazione a partire dall’ingresso nel
+handler, dopo decodifica e validazione del frame. Il gateway usa un clock
+monotono: sottrae l’attesa sincrona di `send()` dal tempo disponibile per la
+future e restituisce NACK se la conferma arriva oltre il budget.
+
+Il producer gateway configura `max.block.ms=1000`, `request.timeout.ms=1000`,
+`delivery.timeout.ms=4000` e `linger.ms=0`. I vincoli verificati all’avvio sono
+`request.timeout.ms + linger.ms <= delivery.timeout.ms` e
+`max.block.ms + delivery.timeout.ms <= confirmation-timeout`, con timeout
+positivi e linger non negativo. Metadata mancanti o buffer pieno non possono
+quindi aggiungere i precedenti 60 secondi di attesa configurata.
+
+Il budget riguarda la decisione ACK/NACK, non il tempo per ricevere un frame
+incompleto o scrivere la risposta a un client bloccato. Non è una garanzia hard
+real-time: scheduling/GC, inizializzazione producer, risoluzione DNS e serializer
+possono aggiungere tempo non controllato da `max.block.ms`. Le prove TCP ammettono
+`1s` di margine sul budget di `5s`; i client E2E usano timeout `7s`.
+
+Un NACK o timeout non prova l’assenza di una consegna tardiva. La future non viene
+cancellata fingendo di ritirare il record da Kafka: il retry conserva payload e
+`messageId`, permettendo la deduplicazione dell’aggregato sample/alert. Il client
+limita i tentativi e usa backoff con jitter, senza ciclo immediato di reinvio.
+Per la configurazione locale, un client ACK-aware può usare massimo tre tentativi
+complessivi e full jitter su backoff esponenziale `250ms`, poi `500ms`; il timeout
+di lettura deve restare maggiore del budget del gateway. Gli harness ritentano
+esplicitamente dopo readiness Kafka e verificano anche un replay aggiuntivo.
+Il workload ordinario del simulatore non legge ACK e non applica questa policy.
 
 ## 11. Confine dei test di integrazione
 

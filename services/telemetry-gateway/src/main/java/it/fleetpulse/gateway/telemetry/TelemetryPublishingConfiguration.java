@@ -4,6 +4,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import it.fleetpulse.contracts.telemetry.TelemetryEvent;
 import it.fleetpulse.gateway.tcp.FrameHandler;
 import it.fleetpulse.gateway.telemetry.kafka.KafkaPublisherProperties;
+import it.fleetpulse.gateway.telemetry.kafka.KafkaSendBudget;
 import it.fleetpulse.gateway.telemetry.kafka.KafkaTelemetryPublisher;
 import it.fleetpulse.gateway.telemetry.kafka.KafkaTopicsProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -28,7 +29,9 @@ public class TelemetryPublishingConfiguration {
 
     @Bean
     TelemetryPublisher telemetryPublisher(KafkaTemplate<String, TelemetryEvent> kafkaTemplate,
-            KafkaTopicsProperties topics) {
+            KafkaTopicsProperties topics, KafkaPublisherProperties properties) {
+        KafkaSendBudget.validate(kafkaTemplate.getProducerFactory().getConfigurationProperties(),
+                properties.confirmationTimeout());
         return new KafkaTelemetryPublisher(kafkaTemplate, topics.raw());
     }
 

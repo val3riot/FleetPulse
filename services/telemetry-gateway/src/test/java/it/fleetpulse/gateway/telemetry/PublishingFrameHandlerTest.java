@@ -21,6 +21,8 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.TimeoutException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -177,6 +179,54 @@ public class PublishingFrameHandlerTest {
                 .tag("outcome", "confirmed").timer().totalTime(TimeUnit.MILLISECONDS), 0.01);
         assertEquals(120, registry.get("fleetpulse.gateway.ack.latency")
                 .timer().totalTime(TimeUnit.MILLISECONDS), 0.01);
+    }
+
+    @Test
+    void deductsSynchronousSendTimeFromConfirmationWait() throws Exception {
+        AtomicLong clock = new AtomicLong();
+        AtomicLong actualWait = new AtomicLong();
+        // Observe the exact wait passed to the future, without wall-clock timing assertions.
+        CompletableFuture<Void> observed = new CompletableFuture<>() {
+            @Override
+            public Void get(long timeout, TimeUnit unit) throws TimeoutException {
+                actualWait.set(unit.toNanos(timeout));
+                throw new TimeoutException();
+            }
+        };
+        var handler = new PublishingFrameHandler(
+                new TelemetryEventMapper(Clock.fixed(RECEIVED_AT, ZoneOffset.UTC)),
+                event -> {
+                    clock.set(TimeUnit.MILLISECONDS.toNanos(80));
+                    return observed;
+                },
+                new KafkaPublisherProperties(Duration.ofMillis(100)),
+                new TelemetryPublishingMetrics(new SimpleMeterRegistry()), clock::get);
+        assertRejected(handler.handle(message()));
+        assertEquals(TimeUnit.MILLISECONDS.toNanos(20), actualWait.get());
+    }
+
+    @Test
+    void rejectsConfirmationAlreadyCompletedAfterBudgetWasConsumedBySend() {
+        AtomicLong clock = new AtomicLong();
+        var handler = new PublishingFrameHandler(
+                new TelemetryEventMapper(Clock.fixed(RECEIVED_AT, ZoneOffset.UTC)),
+                event -> {
+                    clock.set(TimeUnit.MILLISECONDS.toNanos(100));
+                    return CompletableFuture.completedFuture(null);
+                }, new KafkaPublisherProperties(Duration.ofMillis(100)),
+                new TelemetryPublishingMetrics(new SimpleMeterRegistry()), clock::get);
+        assertRejected(handler.handle(message()));
+    }
+
+    @Test
+    void lateCompletionCannotChangeReturnedNackIntoAccepted() {
+        var publication = new CompletableFuture<Void>();
+        TelemetryAck rejected = handler(event -> publication, Duration.ofMillis(1))
+                .handle(message());
+        assertRejected(rejected);
+        publication.complete(null);
+        assertRejected(rejected);
+        assertFalse(publication.isCancelled());
     }
 
     private static void assertRejected(TelemetryAck result) {

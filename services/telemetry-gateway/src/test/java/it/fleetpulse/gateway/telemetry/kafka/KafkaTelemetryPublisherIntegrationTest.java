@@ -51,6 +51,10 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import it.fleetpulse.gateway.telemetry.TelemetryPublisher;
 
 @Testcontainers
 public class KafkaTelemetryPublisherIntegrationTest {
@@ -203,7 +207,7 @@ public class KafkaTelemetryPublisherIntegrationTest {
             TelemetryMessage input = message();
 
             try (Socket client = new Socket(InetAddress.getLoopbackAddress(), port)) {
-                client.setSoTimeout(3_000);
+                client.setSoTimeout(7_000);
 
                 LengthPrefixedFrameCodec.write(OBJECT_MAPPER.writeValueAsBytes(input),
                         client.getOutputStream());
@@ -222,6 +226,80 @@ public class KafkaTelemetryPublisherIntegrationTest {
         } finally {
             server.close();
             listener.join(2_000);
+        }
+    }
+
+    @Test
+    void boundsWarmAndColdMetadataOutagesAndRecoversSameProducerWithoutRestart() throws Exception {
+        Map<String, Object> config = Map.of(
+                ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers(),
+                ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class,
+                ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JacksonJsonSerializer.class,
+                ProducerConfig.MAX_BLOCK_MS_CONFIG, 1000,
+                ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, 1000,
+                ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, 4000,
+                ProducerConfig.LINGER_MS_CONFIG, 0,
+                ProducerConfig.ACKS_CONFIG, "all", ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
+        var warmFactory = new DefaultKafkaProducerFactory<String, TelemetryEvent>(config);
+        var coldFactory = new DefaultKafkaProducerFactory<String, TelemetryEvent>(config);
+        var warmPublisher = new KafkaTelemetryPublisher(new KafkaTemplate<>(warmFactory), TOPIC);
+        var coldPublisher = new KafkaTelemetryPublisher(new KafkaTemplate<>(coldFactory), TOPIC);
+        var clock = Clock.systemUTC();
+        var mapper = new TelemetryEventMapper(clock);
+        var properties = new KafkaPublisherProperties(Duration.ofSeconds(5));
+        var registry = new SimpleMeterRegistry();
+        boolean paused = false;
+        try {
+            // Positive barrier: this producer has successfully fetched the topic metadata.
+            warmPublisher.publish(event()).toCompletableFuture().get(10, TimeUnit.SECONDS);
+            KAFKA.getDockerClient().pauseContainerCmd(KAFKA.getContainerId()).exec();
+            paused = true;
+            AtomicBoolean warmReturnedFuture = new AtomicBoolean();
+            AtomicLong syncNanos = new AtomicLong();
+            TelemetryPublisher measuredWarm = event -> {
+                long started = System.nanoTime();
+                var result = warmPublisher.publish(event);
+                syncNanos.set(System.nanoTime() - started);
+                warmReturnedFuture.set(true);
+                return result;
+            };
+            var warmHandler = new PublishingFrameHandler(mapper, measuredWarm, properties,
+                    new TelemetryPublishingMetrics(registry));
+            long started = System.nanoTime();
+            TelemetryAck warmNack = exchangeOverTcp(warmHandler, message());
+            assertEquals(AckStatus.REJECTED, warmNack.status());
+            assertEquals(ProtocolErrorCode.UPSTREAM_UNAVAILABLE, warmNack.errorCode());
+            assertTrue(System.nanoTime() - started < TimeUnit.SECONDS.toNanos(6));
+            assertTrue(warmReturnedFuture.get(), "Cached metadata must reach asynchronous send");
+            assertTrue(syncNanos.get() < TimeUnit.SECONDS.toNanos(1));
+
+            AtomicBoolean coldReturnedFuture = new AtomicBoolean();
+            TelemetryPublisher measuredCold = event -> {
+                var result = coldPublisher.publish(event);
+                coldReturnedFuture.set(true);
+                return result;
+            };
+            var coldHandler = new PublishingFrameHandler(mapper, measuredCold, properties,
+                    new TelemetryPublishingMetrics(registry));
+            started = System.nanoTime();
+            TelemetryAck coldNack = exchangeOverTcp(coldHandler, message());
+            assertEquals(AckStatus.REJECTED, coldNack.status());
+            assertEquals(ProtocolErrorCode.UPSTREAM_UNAVAILABLE, coldNack.errorCode());
+            assertTrue(System.nanoTime() - started < TimeUnit.SECONDS.toNanos(6));
+            assertFalse(coldReturnedFuture.get(), "Fresh producer must fail metadata acquisition");
+
+            KAFKA.getDockerClient().unpauseContainerCmd(KAFKA.getContainerId()).exec();
+            paused = false;
+            // Same producer instances and the same failed messageId, no application restart.
+            assertEquals(AckStatus.ACCEPTED, exchangeOverTcp(warmHandler, message()).status());
+            assertEquals(AckStatus.ACCEPTED, exchangeOverTcp(coldHandler, message()).status());
+        } finally {
+            if (paused) {
+                KAFKA.getDockerClient().unpauseContainerCmd(KAFKA.getContainerId()).exec();
+            }
+            warmFactory.destroy();
+            coldFactory.destroy();
+            registry.close();
         }
     }
 
@@ -246,7 +324,7 @@ public class KafkaTelemetryPublisherIntegrationTest {
             int port = boundPort.get(2, TimeUnit.SECONDS);
 
             try (Socket client = new Socket(InetAddress.getLoopbackAddress(), port)) {
-                client.setSoTimeout(3_000);
+                client.setSoTimeout(7_000);
 
                 LengthPrefixedFrameCodec.write(OBJECT_MAPPER.writeValueAsBytes(input),
                         client.getOutputStream());
