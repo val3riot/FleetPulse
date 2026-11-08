@@ -1,0 +1,14 @@
+node_modules
+.angular
+dist
+coverage
+.git
+.env
+.env.*
+*.log
+**/*.spec.ts
+src/app/testing
+scripts/ui-fixture
+scripts/container
+scripts/*.test.mjs
+README.md

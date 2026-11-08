@@ -145,6 +145,23 @@ services:
       start_period: 20s
     restart: unless-stopped
 
+  fleet-dashboard:
+    build:
+      context: ./frontend/fleet-dashboard
+      dockerfile: Dockerfile
+    environment:
+      FLEET_API_UPSTREAM: ${FLEET_API_UPSTREAM:-http://fleet-api:8080}
+    ports:
+      - "127.0.0.1:${FLEET_DASHBOARD_PORT:-8083}:8080"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=32m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
   telemetry-gateway:
     build:
       context: .

@@ -73,8 +73,35 @@ Distribuire soltanto `dist/fleet-dashboard/browser/`. `browser-stats.json` resta
 nella directory superiore per il controllo degli artefatti; non pubblicarlo.
 La build applica budget, esclude diagnostica e non include fixture/test.
 
-Il server di distribuzione deve fornire fallback SPA e inoltro API. Il frontend
-non dispone ancora di immagine/servizio Compose; il proxy dev non viene distribuito.
+Il Dockerfile multi-stage esegue npm ci, build e controllo produzione; il runtime
+Nginx non-root contiene soltanto gli asset. Fallback SPA e proxy API sono inclusi;
+il proxy Angular di sviluppo non viene distribuito.
+
+Dalla radice del repository, con il backend già attivo:
+
+```bash
+docker compose up --build -d --no-deps fleet-dashboard
+```
+
+Aprire `http://127.0.0.1:8083`. `FLEET_DASHBOARD_PORT` cambia la porta host;
+`FLEET_API_UPSTREAM` seleziona l'origin HTTP del backend nella rete Docker
+(default `http://fleet-api:8080`), senza path o credenziali. Il client mantiene
+`/api/v1`: cambiare upstream richiede ricreazione del container, non rebuild.
+Non usare localhost per indicare un altro container.
+
+Healthcheck su `/healthz` con verifica del file index; non dipende dalla Fleet API.
+Filesystem read-only e tmpfs `/tmp` sono configurati nel Compose.
+
+Dalla directory frontend:
+
+```bash
+npm run test:container  # build e 13 verifiche HTTP Docker isolate con cleanup
+```
+
+Il comando richiede Docker e accesso al registry per le immagini fissate. Non usa
+lo stack/DB reale; usa porte dinamiche e una rete propria. `-- --image=TAG`
+verifica un'immagine già costruita senza eliminarla; senza opzione costruisce ed
+elimina un tag di prova. Il test container resta separato dal gate senza Docker.
 
 Dettagli tecnici: [architettura](../../docs/16_FRONTEND.md),
 [test](../../docs/12_STRATEGIA_DI_TEST.md), [accessibilità](../../docs/17_ACCESSIBILITA_FRONTEND.md).

@@ -6,11 +6,11 @@
 @startuml
 actor "Fleet Operator" as Operator
 node "Developer host" {
-  node "Fleet Dashboard\n(previsto)" as Dashboard
   node "Docker Compose network" {
     node "vehicle-simulator"
     node "telemetry-gateway"
     node "telemetry-processor"
+    node "fleet-dashboard\nNginx + Angular" as Dashboard
     node "fleet-api" as API
     database "postgres"
     database "redis"
@@ -24,8 +24,7 @@ Dashboard --> API : REST HTTP/JSON
 @enduml
 ```
 
-Il container `fleet-dashboard` è previsto ma verrà aggiunto quando il frontend
-sarà implementato. Non fa ancora parte dell'orchestrazione eseguibile.
+Il container `fleet-dashboard` serve file statici e inoltra `/api` alla Fleet API.
 
 ## 2. Dipendenze
 
@@ -35,7 +34,7 @@ sarà implementato. Non fa ancora parte dell'orchestrazione eseguibile.
 | Telemetry Processor | Kafka, PostgreSQL | Redis |
 | Fleet API | PostgreSQL | Redis |
 | Vehicle Simulator | Fleet API in fase di provisioning, Telemetry Gateway durante l'invio | Nessuna |
-| Fleet Dashboard | Fleet API | Nessuna |
+| Fleet Dashboard | Nessuna per i file statici | Fleet API per le operazioni sui dati |
 | Prometheus | Metrics endpoint | Nessuna |
 | Grafana | Prometheus | Nessuna |
 
@@ -185,13 +184,14 @@ docker compose ps
 
 Gli URL locali predefiniti sono:
 
+- Fleet Dashboard: `http://localhost:8083`;
 - Fleet API: `http://localhost:8080`;
 - Gateway Actuator: `http://localhost:8081/actuator`;
 - Processor Actuator: `http://localhost:8082/actuator`;
 - Prometheus: `http://localhost:9090`;
 - Grafana: `http://localhost:3000`.
 
-Il frontend non ha ancora un container. Flyway applica le migration versionate
+Flyway applica le migration versionate
 prima dell'avvio dei servizi che usano PostgreSQL; Hibernate è configurato per
 non generare o aggiornare automaticamente lo schema.
 
@@ -240,8 +240,7 @@ L'ambiente locale pubblica su `127.0.0.1`:
 - PostgreSQL, Redis e il listener esterno di Kafka per il workflow dall'IDE;
 - Prometheus e Grafana.
 
-Quando implementato, anche il Fleet Dashboard espone una porta HTTP. Il frontend
-non espone connessioni dirette verso database, broker, cache o servizi interni.
+Il Fleet Dashboard espone HTTP su loopback; non espone connessioni dirette verso database, broker, cache o servizi interni.
 
 La pubblicazione su loopback evita l'esposizione dei servizi sulle altre
 interfacce di rete della macchina di sviluppo.
@@ -421,3 +420,30 @@ e isolamento delle reti per ruolo. Prometheus non richiede autenticazione; Redis
 usa password senza TLS. Il pinning tramite digest, la scansione delle vulnerabilità
 e l'hardening finale delle immagini richiedono controlli dedicati. Non pubblicare questo
 Compose su interfacce pubbliche o tramite proxy/tunnel senza progettare tali controlli.
+
+## Container frontend
+
+`fleet-dashboard` usa un build context dedicato, Node solo nello stage di build e
+Nginx non-root nel runtime. Immagini base fissate per versione/digest nel Dockerfile;
+`npm ci` usa il lockfile e il controllo produzione precede la copia dei soli asset.
+
+```dotenv
+FLEET_DASHBOARD_PORT=8083
+FLEET_API_UPSTREAM=http://fleet-api:8080
+```
+
+La porta interna è 8080; il bind host resta 127.0.0.1. L'upstream è un origin HTTP
+interno (`http://host[:porta]`), senza path/credenziali. Il browser usa `/api/v1`:
+non servono CORS o configurazione JavaScript a runtime. Cambiare l'upstream
+richiede ricreare il solo frontend, non ricompilare gli asset. TLS pubblico va
+terminato da un ingresso dedicato; questa configurazione resta locale.
+
+Il runtime ha filesystem read-only, capabilities rimosse, no-new-privileges e
+solo `/tmp` scrivibile in tmpfs. Healthcheck verifica Nginx e presenza di index,
+non la salute dell'API. DNS Docker viene rivalutato per richieste al backend;
+indisponibilità e ricreazione dell'API non richiedono restart frontend.
+
+Fallback SPA per le rotte applicative; asset assenti restituiscono 404. `/api`
+non attiva fallback HTML, non intercetta errori e non ritenta le scritture.
+Index senza cache persistente; JS/CSS hash con cache immutable. Test su container
+isolati: `npm run test:container` nella directory frontend, Docker richiesto.

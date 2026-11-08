@@ -1,11 +1,11 @@
 @startuml
 actor "Fleet Operator" as Operator
 node "Developer host" {
-  node "Fleet Dashboard\n(previsto)" as Dashboard
   node "Docker Compose network" {
     node "vehicle-simulator"
     node "telemetry-gateway"
     node "telemetry-processor"
+    node "fleet-dashboard\nNginx + Angular" as Dashboard
     node "fleet-api" as API
     database "postgres"
     database "redis"

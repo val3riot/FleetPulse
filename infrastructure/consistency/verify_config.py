@@ -27,6 +27,7 @@ ports = {
     "redis": ("REDIS_PORT", 6379),
     "kafka": ("KAFKA_PORT", 9092),
     "fleet-api": ("FLEET_API_PORT", 8080),
+    "fleet-dashboard": ("FLEET_DASHBOARD_PORT", 8080),
     "telemetry-processor": ("PROCESSOR_HTTP_PORT", 8080),
     "prometheus": ("PROMETHEUS_PORT", 9090),
     "grafana": ("GRAFANA_PORT", 3000),
@@ -65,7 +66,7 @@ assert (
     config["services"]["kafka"]["environment"]["KAFKA_ADVERTISED_LISTENERS"]
     == "INTERNAL://kafka:19092,EXTERNAL://localhost:" + example["KAFKA_PORT"]
 )
-# FP-056 adds producer limits to the configuration contract checked by FP-055.
+# Producer limits participate in the deployment configuration contract.
 gateway = config["services"]["telemetry-gateway"]["environment"]
 yaml = Path(
     "services/telemetry-gateway/src/main/resources/application.yaml"
@@ -85,7 +86,12 @@ delivery = int(example["GATEWAY_KAFKA_DELIVERY_TIMEOUT_MS"])
 linger = int(example["GATEWAY_KAFKA_LINGER_MS"])
 assert request + linger <= delivery
 assert block + delivery <= 5000 and example["KAFKA_CONFIRMATION_TIMEOUT"] == "5s"
+frontend = config["services"]["fleet-dashboard"]
+assert frontend["environment"]["FLEET_API_UPSTREAM"] == example["FLEET_API_UPSTREAM"]
+assert frontend["build"]["context"].endswith("frontend/fleet-dashboard")
+assert frontend["read_only"] and frontend["cap_drop"] == ["ALL"]
+assert "no-new-privileges:true" in frontend["security_opt"]
 result = dict(
-    result="passed", hostPortMappings=9, topics=topics, envSnippetMatchesExample=True
+    result="passed", hostPortMappings=len(ports) + 2, topics=topics, envSnippetMatchesExample=True
 )
 print(result)

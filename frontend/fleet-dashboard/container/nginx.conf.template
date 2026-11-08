@@ -1,0 +1,61 @@
+worker_processes auto;
+pid /tmp/nginx.pid;
+error_log /dev/stderr warn;
+
+events { worker_connections 1024; }
+
+http {
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+    access_log /dev/stdout;
+    sendfile on;
+    server_tokens off;
+    client_body_temp_path /tmp/client_temp;
+    proxy_temp_path /tmp/proxy_temp;
+    fastcgi_temp_path /tmp/fastcgi_temp;
+    uwsgi_temp_path /tmp/uwsgi_temp;
+    scgi_temp_path /tmp/scgi_temp;
+
+    server {
+        listen 8080;
+        server_name _;
+        root /usr/share/nginx/html;
+        index index.html;
+        absolute_redirect off;
+        add_header X-Content-Type-Options nosniff always;
+        resolver 127.0.0.11 valid=2s ipv6=off;
+        resolver_timeout 2s;
+        set $fleet_api "${FLEET_API_UPSTREAM}";
+
+        location = /healthz {
+            access_log off;
+            default_type text/plain;
+            add_header Cache-Control no-store always;
+            return 200 'ok\n';
+        }
+        location = /api {
+            include /etc/nginx/proxy_params;
+            proxy_pass $fleet_api$request_uri;
+        }
+        location ^~ /api/ {
+            include /etc/nginx/proxy_params;
+            proxy_pass $fleet_api$request_uri;
+        }
+        location = /index.html {
+            add_header Cache-Control no-store always;
+            add_header X-Content-Type-Options nosniff always;
+            try_files $uri =404;
+        }
+        location ~* \.(?:js|css)$ {
+            add_header Cache-Control "public, max-age=31536000, immutable";
+            add_header X-Content-Type-Options nosniff always;
+            try_files $uri =404;
+        }
+        location ~* \.(?:map|json|mjs|txt|ico|png|jpg|jpeg|svg|webp|woff2?|ttf)$ {
+            try_files $uri =404;
+        }
+        location / {
+            try_files $uri $uri/ /index.html;
+        }
+    }
+}

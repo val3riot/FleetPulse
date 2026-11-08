@@ -117,6 +117,10 @@ di verifica. Nessun paragrafo transitorio di loading dopo il primo successo.
 La build produzione sostituisce le rotte dev con una lista vuota. Metadati di
 build fuori da `browser/`; il gate controlla grafo moduli, entrypoint, chunk,
 risorse HTML e assenza di diagnostica/fixture nella distribuzione.
+Il container Nginx serve la build con fallback SPA, `/api` in reverse proxy e
+healthcheck indipendente dal backend. Destinazione API configurabile all’avvio;
+base relativa del client invariata. Asset assenti non diventano HTML. Il runtime
+è non-root/read-only; Node resta soltanto nello stage di build.
 La fixture UI vive in un processo locale separato, senza inoltro al backend.
 
 Comandi e proxy: [README frontend](../frontend/fleet-dashboard/README.md).

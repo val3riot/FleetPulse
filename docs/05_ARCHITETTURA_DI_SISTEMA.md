@@ -67,13 +67,17 @@ valida esistenza o stato operativo del veicolo.
 - pubblica OpenAPI;
 - applica fallback PostgreSQL.
 
-### Fleet Dashboard (previsto, non ancora implementato)
+### Fleet Dashboard
 
 - offre agli operatori la vista funzionale della flotta;
 - mostra dashboard, veicoli, telemetria e alert;
 - registra nuovi veicoli tramite Fleet API;
 - aggiorna i dati con polling REST configurabile;
 - comunica esclusivamente con Fleet API tramite HTTP/JSON.
+
+Nel deployment Compose, Nginx non-root serve Angular e inoltra `/api` alla
+Fleet API. Il browser mantiene chiamate same-origin; il backend è configurabile
+all’avvio del container senza modificare il bundle.
 
 Non accede direttamente a gateway, processor, simulator, Kafka, PostgreSQL,
 Redis, Prometheus o Grafana. Grafana è un'interfaccia tecnica separata dedicata

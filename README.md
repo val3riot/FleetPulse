@@ -76,9 +76,9 @@ FleetPulse/
 ```
 
 I servizi, le librerie e il simulator fanno parte del reactor Maven. Il Fleet
-Dashboard dispone della base Angular e della navigazione; le funzionalità
-operative sono ancora da implementare e useranno esclusivamente Fleet API. Grafana è un'interfaccia tecnica distinta, riservata
-all'observability.
+Dashboard offre dashboard, veicoli, telemetria e alert tramite Fleet API.
+Il container frontend serve la build Angular e inoltra le chiamate REST.
+Grafana resta un'interfaccia tecnica separata.
 
 ## Avvio locale
 
@@ -109,6 +109,7 @@ docker compose up --build -d
 
 Servizi esposti sull'host con i valori predefiniti:
 
+- Fleet Dashboard: `http://localhost:8083`;
 - Fleet API: `http://localhost:8080`;
 - Telemetry Gateway (TCP): `localhost:7000`;
 - Telemetry Gateway Actuator: `http://localhost:8081/actuator`;
@@ -119,8 +120,7 @@ Servizi esposti sull'host con i valori predefiniti:
   e `localhost:9092`, per l'esecuzione dei servizi dall'IDE.
 
 I container usano `kafka:19092`, mentre i processi eseguiti sull'host usano
-`localhost:9092`. Il frontend non è incluso nel Compose finché non sarà
-implementato. Flyway applica le migration versionate prima dell'avvio dei
+`localhost:9092`. Flyway applica le migration versionate prima dell'avvio dei
 servizi che usano PostgreSQL; Hibernate non genera né aggiorna lo schema.
 
 Per arrestare i container:

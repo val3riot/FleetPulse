@@ -21,7 +21,8 @@
     "test:fixtures": "node --test scripts/ui-fixture/*.test.mjs",
     "test:coverage": "ng test --watch=false --coverage",
     "test:tooling": "node --test scripts/check-production.test.mjs",
-    "check:production": "node scripts/check-production.mjs"
+    "check:production": "node scripts/check-production.mjs",
+    "test:container": "node scripts/container/verify.mjs"
   },
   "private": true,
   "packageManager": "npm@10.9.8",
