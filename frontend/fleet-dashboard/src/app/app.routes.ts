@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { DEV_ROUTES } from './dev/dev.routes';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
@@ -26,6 +27,7 @@ export const routes: Routes = [
     loadComponent: () => import('./features/feature-preview').then((m) => m.FeaturePreview),
     data: { heading: 'Alert', description: 'La gestione degli alert sarà disponibile con FP-065.' },
   },
+  ...DEV_ROUTES,
   {
     path: '**',
     title: 'Pagina non trovata | FleetPulse',

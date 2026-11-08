@@ -3,6 +3,7 @@ import { provideRouter, Router } from '@angular/router';
 import { Title } from '@angular/platform-browser';
 import { App } from './app';
 import { routes } from './app.routes';
+import { DEV_ROUTES as productionDevRoutes } from './dev/dev.routes.production';
 
 describe('Navigazione FleetPulse', () => {
   beforeEach(() =>
@@ -76,6 +77,10 @@ describe('Navigazione FleetPulse', () => {
         url === '/non-esiste' ? 0 : 1,
       );
     }
+  });
+
+  it('esclude le rotte diagnostiche dalla configurazione di produzione', () => {
+    expect(productionDevRoutes).toEqual([]);
   });
 
   it('offre un collegamento per saltare la navigazione', async () => {

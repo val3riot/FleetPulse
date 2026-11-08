@@ -162,6 +162,7 @@ esclusa da Git.
 | [Observability](docs/11_OBSERVABILITY.md) | Log, metriche e health check |
 | [Strategia di test](docs/12_STRATEGIA_DI_TEST.md) | Unit, integration ed end-to-end test |
 | [Deployment](docs/13_DEPLOYMENT.md) | Topologia dei container e configurazione |
+| [Architettura frontend](docs/16_FRONTEND.md) | Layout, client REST, errori e configurazione frontend |
 | [ADR](docs/adr/) | Decisioni architetturali |
 
 ## Operazioni
