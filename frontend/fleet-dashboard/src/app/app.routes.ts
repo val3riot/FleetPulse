@@ -6,11 +6,7 @@ export const routes: Routes = [
   {
     path: 'dashboard',
     title: 'Dashboard | FleetPulse',
-    loadComponent: () => import('./features/feature-preview').then((m) => m.FeaturePreview),
-    data: {
-      heading: 'Dashboard',
-      description: 'La panoramica della flotta sarà disponibile con FP-063.',
-    },
+    loadComponent: () => import('./features/dashboard/dashboard').then((m) => m.Dashboard),
   },
   {
     path: 'vehicles',

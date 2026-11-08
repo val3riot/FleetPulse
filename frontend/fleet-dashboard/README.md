@@ -34,6 +34,15 @@ Se si modifica `FLEET_API_PORT`, aggiornare il target del proxy. Il proxy vale
 solo per `ng serve`. Un'origine API diversa richiede una configurazione CORS
 compatibile sul backend.
 
+## Configurazione aggiornamento periodico
+
+Dashboard e ultima telemetria usano `POLLING_CONFIG`, definita in
+`src/app/core/polling/polling-config.ts`. Il default è 5000 ms di attesa dopo
+ogni lettura conclusa. È possibile sostituire il token nei provider di
+`app.config.ts`; intervalMs deve essere un intero da 1 a 2147483647.
+La UI offre pausa, ripresa e aggiornamento manuale. Nuove letture automatiche
+sono sospese quando la scheda è nascosta.
+
 ## Comandi
 
 ```bash
@@ -63,7 +72,8 @@ npm run start:api-check # Angular con proxy.api-check.json
 ```
 
 La diagnostica è raggiungibile su `http://127.0.0.1:4200/dev/api` solo in sviluppo.
-La fixture non contatta il backend reale. Per usare Fleet API reale, avviare
+La fixture non contatta il backend reale e offre soltanto risposte dimostrative;
+per le pagine operative usare Fleet API reale. Per usare Fleet API reale, avviare
 lo stack dal repository e usare `npm start` con il proxy standard.
 
 Fermare prima un eventuale server Angular sulla porta 4200 oppure passare

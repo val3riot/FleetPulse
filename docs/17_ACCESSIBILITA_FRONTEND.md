@@ -15,19 +15,20 @@ definisce i requisiti stabili.
 
 ## Requisiti verificabili
 
-| Area       | Requisito                                                                                                                                                                      | Riferimenti WCAG           |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------- |
-| Struttura  | Lingua italiana del documento, titolo specifico della pagina, un h1 e landmark main/nav/header coerenti. Tabelle con caption e intestazioni associate.                         | 1.3.1, 2.4.2, 2.4.6, 3.1.1 |
-| Tastiera   | Tutte le operazioni disponibili senza mouse; ordine logico, link Vai al contenuto, nessuna trappola di focus.                                                                  | 2.1.1, 2.1.2, 2.4.1, 2.4.3 |
-| Focus      | Indicatore visibile e non oscurato. Cambio pagina: focus sul main dopo il rendering. Query/filtri e ancore esplicite mantengono il comportamento contestuale.                  | 2.4.3, 2.4.7, 2.4.11       |
-| Form       | Label associate ai campi, obbligatorietà esposta con required e legenda testuale, hint e messaggi collegati tramite aria-describedby.                                          | 1.3.1, 3.3.2, 4.1.2        |
-| Errori     | Descrizione testuale e aria-invalid; invio non valido porta al primo campo invalido dopo il rendering. Errori generali annunciabili, valori conservati e correzione possibile. | 3.3.1, 3.3.3, 4.1.3        |
-| Stato      | Caricamento, numero risultati, invio ed esito comunicati con regioni live appropriate. Lo stato non dipende soltanto dal colore.                                               | 1.4.1, 4.1.3               |
-| Contrasto  | Testo normale almeno 4,5:1; testo grande almeno 3:1. Informazioni necessarie a identificare controlli e stati almeno 3:1 rispetto ai colori adiacenti.                         | 1.4.3, 1.4.11              |
-| Reflow     | A 320 CSS px e zoom 400% nessuna perdita di contenuto o funzionalità. Testi fino ai limiti del contratto vanno a capo; tabelle possono scorrere nel proprio contenitore.       | 1.4.4, 1.4.10              |
-| Spaziatura | Aumentare interlinea e spaziatura di testo non deve troncare etichette, messaggi o azioni.                                                                                     | 1.4.12                     |
-| Target     | Rispettare 24×24 CSS px o le eccezioni del criterio; preferire almeno 44×44 per pulsanti, campi e navigazione principale.                                                      | 2.5.8                      |
-| Modali     | Nome e descrizione accessibili, focus iniziale appropriato, sfondo inerte e Tab/Shift+Tab contenuti. Chiusura ripristina il focus in un punto utile.                           | 2.1.1, 2.1.2, 2.4.3, 4.1.2 |
+| Area              | Requisito                                                                                                                                                                      | Riferimenti WCAG           |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------- |
+| Struttura         | Lingua italiana del documento, titolo specifico della pagina, un h1 e landmark main/nav/header coerenti. Tabelle con caption e intestazioni associate.                         | 1.3.1, 2.4.2, 2.4.6, 3.1.1 |
+| Tastiera          | Tutte le operazioni disponibili senza mouse; ordine logico, link Vai al contenuto, nessuna trappola di focus.                                                                  | 2.1.1, 2.1.2, 2.4.1, 2.4.3 |
+| Focus             | Indicatore visibile e non oscurato. Cambio pagina: focus sul main dopo il rendering. Query/filtri e ancore esplicite mantengono il comportamento contestuale.                  | 2.4.3, 2.4.7, 2.4.11       |
+| Form              | Label associate ai campi, obbligatorietà esposta con required e legenda testuale, hint e messaggi collegati tramite aria-describedby.                                          | 1.3.1, 3.3.2, 4.1.2        |
+| Errori            | Descrizione testuale e aria-invalid; invio non valido porta al primo campo invalido dopo il rendering. Errori generali annunciabili, valori conservati e correzione possibile. | 3.3.1, 3.3.3, 4.1.3        |
+| Stato             | Caricamento, numero risultati, invio ed esito comunicati con regioni live appropriate. Lo stato non dipende soltanto dal colore.                                               | 1.4.1, 4.1.3               |
+| Autoaggiornamento | Pausa/riprendi accessibili; i cicli non spostano il focus, non rimuovono il controllo focalizzato e non fanno annunciare tutta la tabella a ogni lettura.                      | 2.2.2, 2.4.3, 4.1.3        |
+| Contrasto         | Testo normale almeno 4,5:1; testo grande almeno 3:1. Informazioni necessarie a identificare controlli e stati almeno 3:1 rispetto ai colori adiacenti.                         | 1.4.3, 1.4.11              |
+| Reflow            | A 320 CSS px e zoom 400% nessuna perdita di contenuto o funzionalità. Testi fino ai limiti del contratto vanno a capo; tabelle possono scorrere nel proprio contenitore.       | 1.4.4, 1.4.10              |
+| Spaziatura        | Aumentare interlinea e spaziatura di testo non deve troncare etichette, messaggi o azioni.                                                                                     | 1.4.12                     |
+| Target            | Rispettare 24×24 CSS px o le eccezioni del criterio; preferire almeno 44×44 per pulsanti, campi e navigazione principale.                                                      | 2.5.8                      |
+| Modali            | Nome e descrizione accessibili, focus iniziale appropriato, sfondo inerte e Tab/Shift+Tab contenuti. Chiusura ripristina il focus in un punto utile.                           | 2.1.1, 2.1.2, 2.4.3, 4.1.2 |
 
 Per le conferme di cambio stato il focus iniziale è su Annulla. Esc annulla
 prima dell'invio; durante la richiesta i pulsanti e la chiusura sono bloccati,
@@ -106,6 +107,8 @@ Eventuali controlli non eseguiti vanno indicati nel resoconto dell'attività;
 non presentarli come superati perché lint o axe sono verdi.
 
 ## Riferimenti
+
+- [Pausa delle informazioni autoaggiornate](https://www.w3.org/WAI/WCAG22/Understanding/pause-stop-hide.html).
 
 - [Contrasto non testuale](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html).
 - [Identificazione degli errori](https://www.w3.org/WAI/WCAG22/Understanding/error-identification.html).

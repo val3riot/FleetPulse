@@ -1,0 +1,30 @@
+<section aria-labelledby="vehicle-state-title" class="state-panel">
+  <h2 id="vehicle-state-title">Ultima telemetria</h2>
+  <app-polling-controls [resource]="resource" label="telemetria" />
+  <p class="live-status" role="status">{{ statusMessage() }}</p>
+  @if (failure(); as error) {
+    <app-api-error-notice [error]="error" />
+    @if (resource.data()) {
+      <p>I valori visualizzati appartengono all'ultima lettura riuscita.</p>
+    }
+  }
+  @if (resource.data(); as data) {
+    <p>
+      <strong>{{
+        data.stale ? 'Misura non recente' : 'Misura recente all’ultima verifica'
+      }}</strong>
+    </p>
+    <p>
+      Istante della misura:
+      <time [attr.datetime]="data.lastSeenAt">{{
+        data.lastSeenAt | date: 'dd/MM/yyyy HH:mm:ss Z'
+      }}</time>
+    </p>
+    <dl>
+      @for (reading of readings(); track reading.label) {
+        <dt>{{ reading.label }}</dt>
+        <dd>{{ reading.value }} {{ reading.unit }}</dd>
+      }
+    </dl>
+  }
+</section>

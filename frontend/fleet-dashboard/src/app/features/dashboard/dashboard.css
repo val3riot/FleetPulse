@@ -1,0 +1,45 @@
+:host {
+  display: block;
+}
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  gap: 1rem;
+}
+.kpi {
+  border: 1px solid var(--color-control-border);
+  border-radius: 0.4rem;
+  background: var(--color-surface);
+  padding: 1rem;
+}
+dt {
+  font-weight: 600;
+}
+dd {
+  margin: 0.5rem 0 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+.table-scroll {
+  overflow: auto;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--color-surface);
+}
+caption {
+  text-align: left;
+  padding: 0.75rem 0;
+  font-weight: 600;
+}
+th,
+td {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--color-control-border);
+  text-align: left;
+  vertical-align: top;
+}
+td p {
+  margin: 0.5rem 0 0;
+}

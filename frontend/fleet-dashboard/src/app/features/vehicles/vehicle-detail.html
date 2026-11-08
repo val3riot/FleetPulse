@@ -62,6 +62,9 @@
     </button>
   </div>
 </dialog>
+@if (vehicle(); as item) {
+  <app-vehicle-state [vehicleId]="item.id" [suspended]="!!pendingStatus() || saving()" />
+}
 @if (mutationError(); as failure) {
   <app-api-error-notice [error]="failure" />
 }

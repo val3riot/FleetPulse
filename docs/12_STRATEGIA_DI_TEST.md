@@ -739,3 +739,11 @@ modale. I rapporti della palette sono calcolati separatamente sui token CSS real
 Tastiera, screen reader, target, text spacing e reflow richiedono le verifiche
 manuali definite in [Accessibilità frontend](17_ACCESSIBILITA_FRONTEND.md).
 Resoconti delle singole esecuzioni e accettazione delle issue restano in tmp.
+
+Il polling richiede clock simulato: prima lettura, attesa dalla conclusione,
+assenza di sovrapposizioni, pausa, visibilità, retry già gestiti dal client,
+conservazione snapshot, recovery, stop su errori non temporanei e cleanup.
+Dashboard e stato telemetrico coprono separatamente caricamento, vuoto, assenza
+telemetria, stale, errori e cambio identità. Test di integrazione verificano che
+la conferma del cambio stato sospenda la sezione telemetrica senza bloccare
+l'anagrafica. Non usare sleep reali per attestare il comportamento temporale.

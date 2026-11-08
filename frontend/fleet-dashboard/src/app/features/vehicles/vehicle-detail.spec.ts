@@ -1,3 +1,5 @@
+import { Component, input } from '@angular/core';
+import { VehicleState } from './vehicle-state';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
@@ -5,6 +7,12 @@ import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/route
 import { BehaviorSubject } from 'rxjs';
 import { API_CONFIG, DEFAULT_API_CONFIG } from '../../core/api/api-config';
 import { VehicleDetail } from './vehicle-detail';
+
+@Component({ selector: 'app-vehicle-state', template: '' })
+class VehicleStateStub {
+  readonly vehicleId = input.required<string>();
+  readonly suspended = input(false);
+}
 
 const vehicle = {
   id: 'id',
@@ -20,6 +28,10 @@ describe('Dettaglio e stato veicolo', () => {
   let params: BehaviorSubject<ReturnType<typeof convertToParamMap>>;
   beforeEach(() => {
     params = new BehaviorSubject(convertToParamMap({ id: 'id' }));
+    TestBed.overrideComponent(VehicleDetail, {
+      remove: { imports: [VehicleState] },
+      add: { imports: [VehicleStateStub] },
+    });
     TestBed.configureTestingModule({
       imports: [VehicleDetail],
       providers: [

@@ -1,0 +1,73 @@
+<h1>Dashboard</h1>
+<app-polling-controls [resource]="resource" label="dashboard" />
+<p class="live-status" role="status">{{ statusMessage() }}</p>
+@if (resource.error(); as failure) {
+  <app-api-error-notice [error]="failure" />
+  @if (resource.data()) {
+    <p>I dati visualizzati appartengono all'ultima lettura riuscita.</p>
+  }
+}
+@if (resource.data(); as data) {
+  <section aria-labelledby="fleet-summary-title">
+    <h2 id="fleet-summary-title">Panoramica flotta</h2>
+    <dl class="kpis">
+      @for (kpi of kpis(); track kpi.label) {
+        <div class="kpi">
+          <dt>{{ kpi.label }}</dt>
+          <dd>{{ kpi.value }}</dd>
+        </div>
+      }
+    </dl>
+    @if (data.totalVehicles === 0) {
+      <p>Nessun veicolo registrato. <a routerLink="/vehicles/new">Registra un veicolo</a>.</p>
+    }
+    <p>
+      Le rilevazioni recenti sono valutate nella finestra configurata dal servizio e possono
+      includere veicoli disabilitati.
+    </p>
+  </section>
+  <section aria-labelledby="relevant-alerts-title">
+    <h2 id="relevant-alerts-title">Alert rilevanti</h2>
+    <p>Include alert aperti e presi in carico, ordinati per rilevanza.</p>
+    @if (alerts().length) {
+      <div class="table-scroll" role="region" aria-label="Tabella alert rilevanti" tabindex="0">
+        <table>
+          <caption>
+            Alert della flotta
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Tipo e descrizione</th>
+              <th scope="col">Severità</th>
+              <th scope="col">Stato</th>
+              <th scope="col">Creato il</th>
+              <th scope="col">Veicolo</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (alert of alerts(); track alert.id) {
+              <tr>
+                <td>
+                  {{ alert.typeLabel }}
+                  <p>{{ alert.description }}</p>
+                </td>
+                <td>{{ alert.severityLabel }}</td>
+                <td>{{ alert.statusLabel }}</td>
+                <td>
+                  <time [attr.datetime]="alert.createdAt">{{
+                    alert.createdAt | date: 'dd/MM/yyyy HH:mm:ss Z'
+                  }}</time>
+                </td>
+                <td>
+                  <a [routerLink]="['/vehicles', alert.vehicleId]">Veicolo {{ alert.vehicleId }}</a>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <p>Nessun alert rilevante.</p>
+    }
+  </section>
+}

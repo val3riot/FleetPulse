@@ -25,10 +25,11 @@ import { ApiError } from '../../core/api/api-error';
 import { VehicleResponse, VehicleStatus } from '../../core/api/api-models';
 import { FleetApi } from '../../core/api/fleet-api';
 import { ApiErrorNotice } from '../../shared/api-error-notice';
+import { VehicleState } from './vehicle-state';
 
 @Component({
   selector: 'app-vehicle-detail',
-  imports: [DatePipe, RouterLink, ApiErrorNotice],
+  imports: [DatePipe, RouterLink, ApiErrorNotice, VehicleState],
   templateUrl: './vehicle-detail.html',
   styleUrl: './vehicle-pages.css',
 })

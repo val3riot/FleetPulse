@@ -22,12 +22,17 @@ describe('Accessibilità semantica delle pagine', () => {
 
   it.each([
     ['/dashboard', 'dashboard'],
+    ['/dashboard', 'dashboard con alert'],
+    ['/dashboard', 'dashboard in errore'],
+    ['/dashboard', 'dashboard in pausa'],
     ['/vehicles', 'elenco'],
     ['/vehicles', 'elenco vuoto'],
     ['/vehicles', 'errore API'],
     ['/vehicles/new', 'registrazione'],
     ['/vehicles/new', 'registrazione invalida'],
     ['/vehicles/id', 'dettaglio'],
+    ['/vehicles/id', 'telemetria assente'],
+    ['/vehicles/id', 'telemetria in errore'],
     ['/vehicles/id', 'modale'],
     ['/non-esiste', 'pagina non trovata'],
   ])('verifica %s nello stato %s', async (url, state) => {
@@ -57,11 +62,68 @@ describe('Accessibilità semantica delle pagine', () => {
         ),
       );
     }
+    if (state === 'dashboard con alert') {
+      api.getDashboard.mockReturnValue(
+        of({
+          totalVehicles: 1,
+          vehiclesByStatus: { ACTIVE: 1, DISABLED: 0 },
+          recentlyReportingVehicles: 1,
+          openAlerts: 1,
+          relevantAlerts: [
+            {
+              id: 'alert',
+              vehicleId: 'id',
+              type: 'SERVICE_DUE',
+              severity: 'HIGH',
+              status: 'OPEN',
+              description: 'Manutenzione richiesta',
+              createdAt: '2026-11-08T10:00:00Z',
+            },
+          ],
+        }),
+      );
+    }
+    if (state === 'dashboard in errore') {
+      api.getDashboard.mockReturnValue(
+        throwError(
+          () =>
+            new ApiError(
+              'SERVICE_UNAVAILABLE',
+              503,
+              'Servizio temporaneamente non disponibile.',
+              true,
+            ),
+        ),
+      );
+    }
+    if (state === 'telemetria assente' || state === 'telemetria in errore') {
+      api.getVehicleState.mockReturnValue(
+        throwError(() =>
+          state === 'telemetria assente'
+            ? new ApiError(
+                'VEHICLE_STATE_NOT_AVAILABLE',
+                404,
+                'Nessuna telemetria disponibile.',
+                false,
+              )
+            : new ApiError(
+                'SERVICE_UNAVAILABLE',
+                503,
+                'Servizio temporaneamente non disponibile.',
+                true,
+              ),
+        ),
+      );
+    }
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
     await TestBed.inject(Router).navigateByUrl(url);
     await fixture.whenStable();
 
+    if (state === 'dashboard in pausa') {
+      fixture.nativeElement.querySelector('app-polling-controls button:nth-child(2)').click();
+      await fixture.whenStable();
+    }
     if (state === 'registrazione invalida') {
       fixture.nativeElement.querySelector('form button[type="submit"]').click();
       await fixture.whenStable();

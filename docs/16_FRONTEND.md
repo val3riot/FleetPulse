@@ -96,8 +96,8 @@ L'intervallo manutenzione rispetta il limite Integer del backend; la prossima
 manutenzione è limitata al massimo intero sicuro JavaScript per evitare perdita
 di precisione. Il successo apre il dettaglio del veicolo restituito dal server.
 
-Il dettaglio distingue lo stato amministrativo dalla telemetria, che sarà
-aggiunta separatamente. Il cambio ACTIVE/DISABLED richiede conferma in una modale nativa `<dialog>`
+Il dettaglio separa l’anagrafica e lo stato amministrativo dalla sezione
+dell’ultima telemetria, che si aggiorna autonomamente. Il cambio ACTIVE/DISABLED richiede conferma in una modale nativa `<dialog>`
 aperta con `showModal()` e aggiorna lo stato mostrato solo dopo il successo della PATCH. Un cambio di identificativo
 annulla le richieste della precedente pagina. Le date mostrano il fuso locale
 con offset esplicito.
@@ -133,6 +133,75 @@ limiti sono coerenti con il contratto REST e le colonne VARCHAR del database.
 I massimi numerici sono tecnici; eventuali limiti operativi più stretti richiedono
 una regola di dominio condivisa anche dal backend. I campi obbligatori sono
 indicati con asterisco, legenda e attributo required.
+
+## Dashboard e ultima telemetria
+
+La dashboard legge una singola risorsa aggregata da `GET /dashboard`: totale,
+ACTIVE/DISABLED, veicoli con rilevazioni recenti, conteggio OPEN e alert rilevanti.
+I conteggi non vengono ricostruiti sul client. Il KPI delle rilevazioni recenti
+può includere DISABLED e non è una misura di veicoli online. La finestra temporale
+rimane configurata sul backend, senza un valore fisso dichiarato nel template.
+
+Gli alert mantengono l'ordine del backend e mostrano tipo, descrizione, severità,
+stato, data e collegamento al veicolo. Il contratto non espone codice/targa:
+si usa vehicleId senza richieste per riga o estensioni implicite del DTO. La UI
+non introduce collegamenti a un dettaglio alert ancora non implementato.
+
+`VehicleState` è una sezione standalone distinta dall'anagrafica. Mostra velocità,
+temperatura, batteria, odometro e coordinate con unità e formattazione italiana.
+La freshness segue il flag stale del backend; ACTIVE/DISABLED rimane un'altra
+informazione. lastSeenAt identifica la misura, non il momento della lettura HTTP.
+
+`VEHICLE_STATE_NOT_AVAILABLE` rappresenta assenza di telemetria: i valori non
+vengono sostituiti con zeri e le verifiche periodiche continuano. `VEHICLE_NOT_FOUND`
+cancella il dato della sezione e interrompe il ciclo. L'errore della sola sezione
+telemetrica non blocca l'anagrafica o il cambio stato.
+
+## Polling e conservazione dell'ultimo risultato
+
+`createPollingResource` in `core/polling/polling-resource.ts` crea una risorsa locale per ogni componente.
+Non è uno store globale né una cache fra pagine. Espone signals in sola lettura
+per dati, errore, richiesta in corso, pausa e ultimo successo; i riepiloghi della
+UI usano computed. L'effetto Angular collega identità/abilitazione alle API
+imperative HTTP e timer, senza tracciare come dipendenze i risultati delle letture.
+
+`POLLING_CONFIG` in `core/polling/polling-config.ts` definisce intervalMs, default 5000. Il valore deve essere un intero fra 1 e 2147483647 ms, entro il range dei
+timer JavaScript. Può essere sostituito nei provider applicativi o nei test.
+
+- Prima lettura immediata se la sezione è visibile e abilitata. Ogni successiva
+  attende l'intervallo configurato dopo la conclusione della lettura precedente,
+  inclusi i retry HTTP. Non vengono accumulati tick o richieste.
+- Il client FleetApi conserva la responsabilità di timeout e retry per lettura;
+  il polling non aggiunge ulteriori retry alla stessa richiesta.
+- La sola preferenza di pausa è conservata in memoria da
+  PollingSessionPreferences, separata negli ambiti dashboard e telemetry.
+  Rimane durante navigazione e cambi di veicolo; una nuova istanza dell'app
+  riparte attiva. Non usa localStorage/sessionStorage né conserva snapshot HTTP.
+- Entrando in una pagina visibile e abilitata viene letta una singola fotografia
+  anche se la preferenza è in pausa: evita una pagina senza dati al rientro.
+  Il polling periodico rimane fermo finché l'operatore non sceglie Riprendi.
+- Pausa blocca la pianificazione, lasciando terminare una lettura in corso.
+  Aggiorna resta utilizzabile in pausa. Riprendi rilegge subito quando possibile.
+- La scheda nascosta sospende nuovi cicli; tornare visibili rilegge subito se
+  non esiste una lettura in corso e l'utente non ha messo in pausa.
+- La conferma di cambio stato sospende la sezione telemetrica. Chiusura della
+  conferma e cambio di identità sono gestiti senza sovrapposizioni; cambiare
+  veicolo cancella richiesta, timer e dati della precedente identità.
+- Uscire dalla pagina cancella timer, richiesta e listener visibilitychange.
+- Gli errori temporanei conservano ultimo snapshot e data del precedente successo;
+  la risposta successiva può recuperare automaticamente. Una verifica fallita
+  non aggiorna la data dell'ultimo successo né rende attuali i dati conservati.
+- Errori non retryable, incluso INTERNAL_ERROR e risposte proxy/codici sconosciuti,
+  fermano l'automatismo per evitare loop; l'utente può riprovare esplicitamente.
+  L'assenza di telemetria è l'eccezione di dominio che continua a essere verificata.
+
+I controlli di aggiornamento rimangono nel DOM. Quando una lettura è in corso,
+aria-disabled indica l'indisponibilità del refresh e l'handler impedisce un
+secondo invio, mantenendo il pulsante focusabile. I cicli non spostano il focus,
+non smontano i dati validi e non rendono live l'intera tabella o tutti i valori.
+I messaggi persistenti annunciano primo caricamento, errore, disponibilità dopo
+recupero e variazioni della pausa; non viene letto un timestamp a ogni ciclo.
+In pausa la freshness mostrata si riferisce esplicitamente all'ultima verifica.
 
 ## Diagnostica di sviluppo
 

@@ -37,7 +37,7 @@ describe('Navigazione FleetPulse', () => {
   });
 
   it.each([
-    ['/dashboard', 'Dashboard', 'FP-063'],
+    ['/dashboard', 'Dashboard', ''],
     ['/vehicles', 'Veicoli', ''],
     ['/alerts', 'Alert', 'FP-065'],
   ])('apre %s e aggiorna titolo e navigazione', async (url, heading, ticket) => {

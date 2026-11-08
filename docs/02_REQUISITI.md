@@ -161,6 +161,16 @@ Il Fleet Dashboard deve aggiornare i dati tramite polling REST configurabile. Un
 intervallo di 3–5 secondi è indicativo per il deployment locale e non costituisce
 un requisito rigido.
 
+L'intervallo rappresenta l'attesa dopo la conclusione della lettura precedente,
+compresi gli eventuali retry HTTP. Non sono consentite richieste sovrapposte.
+L'operatore deve poter sospendere e riprendere gli aggiornamenti e richiedere
+una lettura manuale. La scheda nascosta sospende nuove letture automatiche;
+il ritorno in primo piano rispetta la pausa scelta dall'operatore.
+La pausa è conservata durante la navigazione nella sessione applicativa,
+con preferenze separate per dashboard e telemetria. Al rientro è consentita
+una singola lettura iniziale; gli aggiornamenti periodici restano sospesi.
+
+
 ## 2. Requisiti non funzionali
 
 ### RNF-001 — Carico concorrente
