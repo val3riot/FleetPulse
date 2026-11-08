@@ -19,6 +19,12 @@ export const routes: Routes = [
     loadComponent: () => import('./features/vehicles/vehicle-create').then((m) => m.VehicleCreate),
   },
   {
+    path: 'vehicles/:id/telemetry',
+    title: 'Storico telemetria | FleetPulse',
+    loadComponent: () =>
+      import('./features/vehicles/history/vehicle-history').then((m) => m.VehicleHistory),
+  },
+  {
     path: 'vehicles/:id',
     title: 'Dettaglio veicolo | FleetPulse',
     loadComponent: () => import('./features/vehicles/vehicle-detail').then((m) => m.VehicleDetail),

@@ -1,16 +1,14 @@
-import { DatePipe } from '@angular/common';
+import { UtcDateTime } from '../../shared/utc-date-time';
 import { Component, computed, inject, input } from '@angular/core';
 import { FleetApi } from '../../core/api/fleet-api';
 import { createPollingResource } from '../../core/polling/polling-resource';
 import { ApiErrorNotice } from '../../shared/api-error-notice';
 import { PollingControls } from '../../shared/polling-controls';
-
-const metrics = new Intl.NumberFormat('it-IT', { maximumFractionDigits: 2 });
-const coordinates = new Intl.NumberFormat('it-IT', { maximumFractionDigits: 6 });
+import { formatMetric, formatCoordinate } from '../../shared/telemetry-format';
 
 @Component({
   selector: 'app-vehicle-state',
-  imports: [DatePipe, ApiErrorNotice, PollingControls],
+  imports: [UtcDateTime, ApiErrorNotice, PollingControls],
   templateUrl: './vehicle-state.html',
   styleUrl: './vehicle-state.css',
 })
@@ -40,12 +38,12 @@ export class VehicleState {
     const data = this.resource.data();
     if (!data) return [];
     return [
-      { label: 'Velocità', value: metrics.format(data.speedKmh), unit: 'km/h' },
-      { label: 'Temperatura motore', value: metrics.format(data.engineTemperatureC), unit: '°C' },
-      { label: 'Tensione batteria', value: metrics.format(data.batteryVoltage), unit: 'V' },
-      { label: 'Odometro', value: metrics.format(data.odometerKm), unit: 'km' },
-      { label: 'Latitudine', value: coordinates.format(data.latitude), unit: '°' },
-      { label: 'Longitudine', value: coordinates.format(data.longitude), unit: '°' },
+      { label: 'Velocità', value: formatMetric(data.speedKmh), unit: 'km/h' },
+      { label: 'Temperatura motore', value: formatMetric(data.engineTemperatureC), unit: '°C' },
+      { label: 'Tensione batteria', value: formatMetric(data.batteryVoltage), unit: 'V' },
+      { label: 'Odometro', value: formatMetric(data.odometerKm), unit: 'km' },
+      { label: 'Latitudine', value: formatCoordinate(data.latitude), unit: '°' },
+      { label: 'Longitudine', value: formatCoordinate(data.longitude), unit: '°' },
     ];
   });
 }

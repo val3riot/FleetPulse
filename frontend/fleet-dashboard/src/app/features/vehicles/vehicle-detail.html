@@ -25,6 +25,7 @@
       <dd>{{ item.id }}</dd>
     </dl>
     <div class="actions">
+      <a [routerLink]="['/vehicles', item.id, 'telemetry']">Storico telemetria</a>
       <button
         type="button"
         #statusChangeButton

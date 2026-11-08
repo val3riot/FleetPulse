@@ -1,4 +1,4 @@
-import { DatePipe } from '@angular/common';
+import { UtcDateTime } from '../../shared/utc-date-time';
 import { Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { FleetApi } from '../../core/api/fleet-api';
@@ -26,7 +26,7 @@ const statuses: Record<string, string> = {
 
 @Component({
   selector: 'app-dashboard',
-  imports: [DatePipe, RouterLink, ApiErrorNotice, PollingControls],
+  imports: [UtcDateTime, RouterLink, ApiErrorNotice, PollingControls],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
 })

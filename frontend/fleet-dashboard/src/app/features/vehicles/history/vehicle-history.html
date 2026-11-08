@@ -1,0 +1,204 @@
+<a [routerLink]="['/vehicles', vehicleId()]">Torna al dettaglio veicolo</a>
+<h1>Storico telemetria</h1>
+@if (vehicle(); as item) {
+  <p>{{ item.externalCode }} · {{ item.plate }}</p>
+}
+<p id="history-help">
+  Gli orari corrispondono a quelli del database. Intervallo inclusivo. I campi con * sono
+  obbligatori. Alla prima apertura sono proposte le ultime 24 ore.
+</p>
+<form
+  #historyForm
+  [formGroup]="form"
+  (ngSubmit)="applyFilters()"
+  aria-label="Filtri storico"
+  aria-describedby="history-help"
+  novalidate
+>
+  <div class="filters">
+    <div>
+      <label for="history-from">Da *</label>
+      <input
+        id="history-from"
+        type="datetime-local"
+        step="1"
+        required
+        formControlName="from"
+        [attr.aria-invalid]="fieldError('from') ? 'true' : null"
+        aria-describedby="history-from-error"
+      />
+      <p id="history-from-error" class="field-error">{{ fieldError('from') }}</p>
+    </div>
+    <div>
+      <label for="history-to">A *</label>
+      <input
+        id="history-to"
+        type="datetime-local"
+        step="1"
+        required
+        formControlName="to"
+        [attr.aria-invalid]="fieldError('to') ? 'true' : null"
+        aria-describedby="history-to-error"
+      />
+      <p id="history-to-error" class="field-error">{{ fieldError('to') }}</p>
+    </div>
+    <div>
+      <label for="history-size">Misure per pagina *</label>
+      <input
+        id="history-size"
+        type="number"
+        min="1"
+        [max]="pageLimit"
+        step="1"
+        required
+        formControlName="size"
+        [attr.aria-invalid]="fieldError('size') ? 'true' : null"
+        aria-describedby="history-size-error"
+      />
+      <p id="history-size-error" class="field-error">{{ fieldError('size') }}</p>
+    </div>
+    <div>
+      <label for="history-sort">Data di rilevazione *</label>
+      <select
+        id="history-sort"
+        required
+        formControlName="sort"
+        [attr.aria-invalid]="fieldError('sort') ? 'true' : null"
+        aria-describedby="history-sort-error"
+      >
+        <option value="observedAt,desc">Dalla più recente</option>
+        <option value="observedAt,asc">Dalla meno recente</option>
+      </select>
+      <p id="history-sort-error" class="field-error">{{ fieldError('sort') }}</p>
+    </div>
+  </div>
+  <p>Date e orari sono visualizzati fino ai secondi.</p>
+  <button type="submit">Applica filtri</button>
+</form>
+@if (queryIssues().length) {
+  <section role="alert" aria-label="Parametri storico non validi">
+    <p>Correggi i filtri e applicali per caricare lo storico.</p>
+    <ul>
+      @for (issue of queryIssues(); track $index) {
+        <li>{{ issue.message }}</li>
+      }
+    </ul>
+  </section>
+}
+<section
+  #resultsRegion
+  tabindex="-1"
+  aria-labelledby="history-results-title"
+  [attr.aria-busy]="loading()"
+>
+  <h2 id="history-results-title">Misure telemetriche</h2>
+  @if (applied(); as query) {
+    <p class="interval">
+      Intervallo applicato: {{ formatTime(query.from) }} – {{ formatTime(query.to) }}.
+    </p>
+    <p>
+      Ordine applicato:
+      {{ query.sort === 'observedAt,asc' ? 'dalla meno recente' : 'dalla più recente' }}.
+    </p>
+  }
+  <p class="live-status" role="status">{{ statusMessage() }}</p>
+  @if (error(); as failure) {
+    <app-api-error-notice [error]="failure" />
+  }
+  @if (applied()) {
+    <button type="button" [attr.aria-disabled]="loading()" (click)="reload()">
+      {{ error() ? 'Riprova' : 'Aggiorna risultati' }}
+    </button>
+  }
+  @if (result(); as page) {
+    @if (page.content.length) {
+      <p id="history-scroll-help">
+        La tabella può scorrere orizzontalmente. Da tastiera, porta il focus sulla tabella e usa le
+        frecce.
+      </p>
+      <div
+        class="table-scroll"
+        tabindex="0"
+        role="region"
+        aria-label="Tabella storico telemetria"
+        aria-describedby="history-scroll-help"
+      >
+        <table>
+          <caption>
+            Misure del veicolo · pagina
+            {{
+              page.page + 1
+            }}
+            di
+            {{
+              page.totalPages
+            }}
+          </caption>
+          <thead>
+            <tr>
+              <th
+                scope="col"
+                [attr.aria-sort]="applied()?.sort === 'observedAt,asc' ? 'ascending' : 'descending'"
+              >
+                Rilevata il
+              </th>
+              <th scope="col">Sequenza</th>
+              <th scope="col">Velocità (km/h)</th>
+              <th scope="col">Temperatura motore (°C)</th>
+              <th scope="col">Batteria (V)</th>
+              <th scope="col">Contachilometri (km)</th>
+              <th scope="col">Latitudine (°)</th>
+              <th scope="col">Longitudine (°)</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of rows(); track row.id) {
+              <tr>
+                <th scope="row">
+                  <time [attr.datetime]="row.observedAt">{{ row.time }}</time>
+                </th>
+                <td>{{ row.sequenceNumber }}</td>
+                <td>{{ row.speed }}</td>
+                <td>{{ row.temperature }}</td>
+                <td>{{ row.battery }}</td>
+                <td>{{ row.odometer }}</td>
+                <td>{{ row.latitudeText }}</td>
+                <td>{{ row.longitudeText }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else if (page.totalElements === 0) {
+      <p>Nessuna misura presente nell’intervallo selezionato.</p>
+    } @else {
+      <p>Questa pagina non contiene misure. Torna alla prima pagina.</p>
+    }
+    <nav class="pagination" aria-label="Paginazione storico">
+      <p>
+        Pagina {{ page.page + 1 }} di {{ page.totalPages || 1 }} · {{ page.totalElements }} misure
+      </p>
+      <button
+        type="button"
+        [attr.aria-disabled]="loading() || page.page === 0"
+        (click)="page.page > 0 && changePage(0)"
+      >
+        Prima pagina
+      </button>
+      <button
+        type="button"
+        [attr.aria-disabled]="loading() || page.first || page.page === 0"
+        (click)="!page.first && page.page > 0 && changePage(page.page - 1)"
+      >
+        Precedente
+      </button>
+      <button
+        type="button"
+        [attr.aria-disabled]="loading() || page.last"
+        (click)="!page.last && changePage(page.page + 1)"
+      >
+        Successiva
+      </button>
+    </nav>
+  }
+</section>

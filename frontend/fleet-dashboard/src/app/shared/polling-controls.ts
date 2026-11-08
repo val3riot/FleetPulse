@@ -1,10 +1,10 @@
-import { DatePipe } from '@angular/common';
+import { UtcDateTime } from './utc-date-time';
 import { Component, computed, input } from '@angular/core';
 import { PollingControlsState } from '../core/polling/polling-resource';
 
 @Component({
   selector: 'app-polling-controls',
-  imports: [DatePipe],
+  imports: [UtcDateTime],
   template: `
     <div role="group" [attr.aria-label]="'Aggiornamento ' + label()" class="controls">
       <button type="button" [attr.aria-disabled]="busy()" (click)="resource().refresh()">
@@ -21,7 +21,7 @@ import { PollingControlsState } from '../core/polling/polling-resource';
     @if (resource().lastSuccessfulAt(); as time) {
       <p>
         Ultima lettura riuscita:
-        <time [attr.datetime]="time.toISOString()">{{ time | date: 'dd/MM/yyyy HH:mm:ss Z' }}</time>
+        <time [attr.datetime]="time.toISOString()">{{ time | utcDateTime }}</time>
       </p>
     }
   `,

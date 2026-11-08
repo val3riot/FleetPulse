@@ -164,4 +164,22 @@ describe('Dashboard operativa', () => {
     expect(component.resource.stopped()).toBe(true);
     expect(fixture.nativeElement.textContent).toContain('Puoi riprovare manualmente');
   });
+  it('mostra date degli alert e ultima lettura in UTC fino ai secondi', () => {
+    const { fixture, http } = setup();
+    const instant = '2026-11-08T20:00:01.123456Z';
+    http
+      .expectOne('/api/v1/dashboard')
+      .flush(
+        { ...dashboard, relevantAlerts: [{ ...dashboard.relevantAlerts[0], createdAt: instant }] },
+        { headers: { Date: 'Sun, 08 Nov 2026 20:00:02 GMT' } },
+      );
+    fixture.detectChanges();
+    const alertTime = fixture.nativeElement.querySelector('tbody time') as HTMLTimeElement;
+    expect(alertTime.textContent).toBe('08/11/2026 20:00:01');
+    expect(alertTime.dateTime).toBe(instant);
+    const readTime = fixture.nativeElement.querySelector(
+      'app-polling-controls time',
+    ) as HTMLTimeElement;
+    expect(readTime.textContent).toMatch(/^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}:\d{2}$/);
+  });
 });

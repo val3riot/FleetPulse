@@ -87,6 +87,26 @@ ogni stile calcolato o futuro abbinamento di colori. Nei test del dialog
 showModal/close sono simulati; trapping e backdrop si verificano nel browser.
 Queste esclusioni sono limiti dello strumento, non deroghe ai requisiti.
 
+## Storico telemetrico
+
+- Filtri con label, asterisco e `required`, istruzioni sugli orari del database, errori associati con
+  `aria-describedby` e `aria-invalid`. L'applicazione invalida porta il focus
+  al primo campo errato, senza effettuare richieste.
+- Regione di risultati con titolo, `aria-busy` e messaggio `role=status`
+  persistente. Gli errori usano il componente comune `role=alert`; la tabella
+  completa non è una regione live.
+- Tabella nativa con caption, intestazioni `scope=col|row`, unità esplicite,
+  `aria-sort` sulla data e date fino ai secondi, senza suffisso del fuso nel testo visibile.
+- Contenitore della tabella nominato, focusabile e scorrevole orizzontalmente.
+  Le righe e i singoli valori non ricevono tabindex. Il form si adatta alla
+  larghezza disponibile; lo scorrimento è limitato al contenitore della tabella.
+- Navigazione pagine nominata e controlli con `aria-disabled` e guardie negli
+  handler. Dopo il cambio pagina il focus va alla regione dei risultati; se
+  l'operatore si è spostato ai filtri durante l'attesa, il focus resta sul campo.
+- Test di focus, errori e annullamento richieste, più axe su successo, vuoto,
+  errore API, URL invalida e form invalido. Scroll, zoom, controlli data nativi
+  e lettura con screen reader richiedono la verifica manuale sotto descritta.
+
 ## Accettazione manuale di una pagina
 
 - Usare solo tastiera: Tab, Shift+Tab, Invio, Spazio e, per le modali, Esc.

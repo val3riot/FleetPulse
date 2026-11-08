@@ -2,6 +2,8 @@ import { vi } from 'vitest';
 import { of } from 'rxjs';
 import {
   DashboardResponse,
+  TelemetryResponse,
+  TelemetryQuery,
   Page,
   VehicleResponse,
   VehicleStateResponse,
@@ -37,6 +39,33 @@ export const TEST_STATE: VehicleStateResponse = {
   longitude: 12.4964,
 };
 
+export const TEST_TELEMETRY: TelemetryResponse = {
+  id: 1,
+  messageId: 'message-1',
+  vehicleId: 'id',
+  sequenceNumber: 42,
+  observedAt: '2026-11-08T20:00:00.123456Z',
+  receivedAt: '2026-11-08T20:00:01Z',
+  processedAt: '2026-11-08T20:00:02Z',
+  speedKmh: 72.4,
+  engineTemperatureC: 91.8,
+  batteryVoltage: 12.6,
+  odometerKm: 85312,
+  latitude: 41.9028,
+  longitude: 12.4964,
+};
+export function telemetryPage(query: TelemetryQuery): Page<TelemetryResponse> {
+  return {
+    content: [TEST_TELEMETRY],
+    page: query.page ?? 0,
+    size: query.size ?? 50,
+    totalElements: 1,
+    totalPages: 1,
+    first: true,
+    last: true,
+  };
+}
+
 export function createFleetApiStub() {
   const page: Page<VehicleResponse> = {
     content: [TEST_VEHICLE],
@@ -48,6 +77,7 @@ export function createFleetApiStub() {
     last: true,
   };
   return {
+    getTelemetry: vi.fn((_id: string, query: TelemetryQuery) => of(telemetryPage(query))),
     getDashboard: vi.fn(() => of(TEST_DASHBOARD)),
     getVehicleState: vi.fn((vehicleId: string) => of({ ...TEST_STATE, vehicleId })),
     getVehicles: vi.fn(() => of(page)),

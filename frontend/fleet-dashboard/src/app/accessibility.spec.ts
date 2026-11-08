@@ -34,6 +34,11 @@ describe('Accessibilità semantica delle pagine', () => {
     ['/vehicles/id', 'telemetria assente'],
     ['/vehicles/id', 'telemetria in errore'],
     ['/vehicles/id', 'modale'],
+    ['/vehicles/id/telemetry', 'storico'],
+    ['/vehicles/id/telemetry', 'storico vuoto'],
+    ['/vehicles/id/telemetry', 'storico in errore'],
+    ['/vehicles/id/telemetry?size=101', 'storico URL invalida'],
+    ['/vehicles/id/telemetry', 'storico form invalido'],
     ['/non-esiste', 'pagina non trovata'],
   ])('verifica %s nello stato %s', async (url, state) => {
     if (state === 'elenco vuoto') {
@@ -115,6 +120,32 @@ describe('Accessibilità semantica delle pagine', () => {
         ),
       );
     }
+    if (state === 'storico vuoto') {
+      api.getTelemetry.mockReturnValue(
+        of({
+          content: [],
+          page: 0,
+          size: 50,
+          totalElements: 0,
+          totalPages: 0,
+          first: true,
+          last: true,
+        }),
+      );
+    }
+    if (state === 'storico in errore') {
+      api.getTelemetry.mockReturnValue(
+        throwError(
+          () =>
+            new ApiError(
+              'SERVICE_UNAVAILABLE',
+              503,
+              'Servizio temporaneamente non disponibile.',
+              true,
+            ),
+        ),
+      );
+    }
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
     await TestBed.inject(Router).navigateByUrl(url);
@@ -122,6 +153,13 @@ describe('Accessibilità semantica delle pagine', () => {
 
     if (state === 'dashboard in pausa') {
       fixture.nativeElement.querySelector('app-polling-controls button:nth-child(2)').click();
+      await fixture.whenStable();
+    }
+    if (state === 'storico form invalido') {
+      const input = fixture.nativeElement.querySelector('#history-from') as HTMLInputElement;
+      input.value = '';
+      input.dispatchEvent(new Event('input'));
+      fixture.nativeElement.querySelector('form button[type="submit"]').click();
       await fixture.whenStable();
     }
     if (state === 'registrazione invalida') {

@@ -16,9 +16,7 @@
     </p>
     <p>
       Istante della misura:
-      <time [attr.datetime]="data.lastSeenAt">{{
-        data.lastSeenAt | date: 'dd/MM/yyyy HH:mm:ss Z'
-      }}</time>
+      <time [attr.datetime]="data.lastSeenAt">{{ data.lastSeenAt | utcDateTime }}</time>
     </p>
     <dl>
       @for (reading of readings(); track reading.label) {

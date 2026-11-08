@@ -54,9 +54,7 @@
                 <td>{{ alert.severityLabel }}</td>
                 <td>{{ alert.statusLabel }}</td>
                 <td>
-                  <time [attr.datetime]="alert.createdAt">{{
-                    alert.createdAt | date: 'dd/MM/yyyy HH:mm:ss Z'
-                  }}</time>
+                  <time [attr.datetime]="alert.createdAt">{{ alert.createdAt | utcDateTime }}</time>
                 </td>
                 <td>
                   <a [routerLink]="['/vehicles', alert.vehicleId]">Veicolo {{ alert.vehicleId }}</a>

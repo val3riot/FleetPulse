@@ -203,6 +203,48 @@ I messaggi persistenti annunciano primo caricamento, errore, disponibilità dopo
 recupero e variazioni della pausa; non viene letto un timestamp a ogni ciclo.
 In pausa la freshness mostrata si riferisce esplicitamente all'ultima verifica.
 
+## Storico telemetrico
+
+La pagina lazy `/vehicles/:id/telemetry` è raggiungibile dal dettaglio e usa il
+layout comune. Presenta una tabella, senza grafici né polling. L'anagrafica è
+letta una volta per il contesto corrente; le pagine successive interrogano solo
+`FleetApi.getTelemetry`. Cambiare veicolo cancella richieste e dati precedenti.
+
+- `from` e `to` sono obbligatori e inclusivi su `observedAt`; gli istanti uguali
+  sono ammessi. Non è imposto un limite aggiuntivo alla durata del range.
+- Alla prima apertura senza intervallo vengono fissate le ultime 24 ore, una
+  sola volta. I default sono pagina 0, dimensione 50 e data decrescente.
+- Filtri applicati, pagina, dimensione e ordinamento sono nell'URL. La prima
+  normalizzazione usa `replaceUrl`; refresh e navigazione della cronologia
+  ripristinano gli stessi criteri. Parametri invalidi o duplicati vengono
+  segnalati senza chiamate HTTP o sostituzioni silenziose.
+- Il form mantiene una bozza distinta dalla ricerca applicata. Applica filtri
+  riparte da pagina 0; la paginazione usa i criteri applicati. Aggiorna risultati
+  e Riprova rileggono l'intervallo fisso, senza spostarne la fine.
+- Date di filtro e tabella sono interpretate in UTC, coerenti con il database
+  dell'ambiente di riferimento (`TimeZone=UTC`, `observed_at` di tipo
+  `timestamp with time zone`). PostgreSQL memorizza istanti: il suo fuso di
+  sessione regola la visualizzazione, non aggiunge un fuso al dato.
+- I controlli nativi consentono secondi e vengono interpretati in UTC,
+  senza conversioni nel fuso del browser. Gli istanti originali dell'URL sono
+  preservati se il campo non cambia, anche con micro/nanosecondi; confronto del
+  range e richieste mantengono la precisione originale. Date e orari visibili
+  usano il formato `dd/MM/yyyy HH:mm:ss`, senza suffisso del fuso né frazioni di secondo,
+  condiviso con dashboard e ultima telemetria.
+  Non viene estesa implicitamente la fine dell'intervallo.
+- Dimensione pagina da 1 a 100; ordinamento solo `observedAt,asc|desc`.
+  Conteggi, ordine e pagine sono forniti dal server, incluso il tie-breaker su
+  `id`; il frontend non riordina né aggrega i risultati. Le unità sono nelle
+  intestazioni e la formattazione numerica è condivisa con l'ultima telemetria.
+- `switchMap` cancella letture superate; la distruzione del componente annulla
+  la richiesta. Una nuova ricerca nasconde il risultato precedente. Vuoto
+  valido, pagina oltre l'ultima, veicolo assente ed errore restano distinti.
+  Riprova usa il mapping errori, timeout e retry del client comune.
+
+Lo storico non modifica le preferenze di pausa della dashboard/ultima telemetria.
+Le pagine del backend non costituiscono uno snapshot transazionale: nuovi dati
+possono cambiare conteggi o distribuzione delle righe fra richieste distinte.
+
 ## Diagnostica di sviluppo
 
 La rotta `/dev/api` esegue soltanto letture di dashboard e veicoli tramite lo
