@@ -255,4 +255,28 @@ describe('Registrazione veicolo', () => {
     expect(document.activeElement).toBe(back);
     expect(component.form.getRawValue()).toEqual(values);
   });
+  it.each([
+    ['externalCode', 'x'.repeat(65), 'Massimo 64 caratteri.'],
+    ['plate', 'x'.repeat(17), 'Massimo 16 caratteri.'],
+    ['serviceIntervalKm', 1.5, 'Inserisci un numero intero valido.'],
+    ['serviceIntervalKm', 0, 'Inserisci un intero maggiore di zero.'],
+    ['nextServiceAtKm', -1, 'Inserisci un intero maggiore o uguale a zero.'],
+    ['serviceIntervalKm', 2147483648, 'Il valore massimo è 2147483647 km.'],
+    ['nextServiceAtKm', Number.MAX_SAFE_INTEGER + 1, 'Inserisci un numero intero valido.'],
+  ])('mostra il messaggio specifico per %s invalido', (field, value, message) => {
+    const { component, fixture, http } = setup();
+    component.form.setValue(values);
+    component.form.get(field as string)!.setValue(value);
+    component.submit();
+    fixture.detectChanges();
+    const control = (fixture.nativeElement as HTMLElement).querySelector(
+      `[formControlName="${field}"]`,
+    )!;
+    expect(control.getAttribute('aria-invalid')).toBe('true');
+    const errorId = control.getAttribute('aria-describedby')!.split(' ').at(-1)!;
+    expect((fixture.nativeElement as HTMLElement).querySelector('#' + errorId)?.textContent).toBe(
+      message,
+    );
+    http.expectNone((request) => request.method === 'POST');
+  });
 });

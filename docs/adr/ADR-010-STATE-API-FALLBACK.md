@@ -5,7 +5,7 @@
 Accettata nel confronto con l'utente il 2026-09-08, con revisione del percorso
 iniziale: Redis viene letto prima di PostgreSQL. Per il progetto di studio si
 accetta temporaneamente una chiave orfana fino alla scadenza, nei limiti indicati
-sotto. Implementazione e test appartengono a FP-031.
+sotto.
 
 ## Decisioni
 
@@ -41,7 +41,7 @@ del dispositivo. Il clock UTC già disponibile nella Fleet API è iniettabile.
 ## Repair e concorrenza
 
 Dopo un fallback riuscito, Fleet API prova a ripopolare Redis usando lo stesso
-JSON di FP-030. Confronto, scrittura e TTL usano `WATCH/MULTI/EXEC` sulla stessa
+JSON della latest-state projection. Confronto, scrittura e TTL usano `WATCH/MULTI/EXEC` sulla stessa
 connessione. Una misura più recente scritta dal processor durante il fallback
 non viene sostituita da un candidato precedente. Un JSON corrotto o associato
 a un altro veicolo può essere sostituito sotto `WATCH`: una modifica concorrente
@@ -90,7 +90,7 @@ La soglia `1m` non impedisce di restituire dati più vecchi, anche di ore.
 Dopo oltre un minuto dalla misura, anche un hit relativo a un veicolo cancellato
 ha `stale=true`; la cancellazione non cambia il timestamp né il flag direttamente.
 La dashboard dovrà rendere visibili flag e orario della misura all'operatore:
-l'API espone il segnale, ma non realizza la visualizzazione (fuori FP-031).
+l'API espone il segnale e la presentazione appartiene al frontend.
 L'anagrafica e la telemetria hanno semantiche distinte: disabilitare un veicolo
 non elimina la telemetria già persistita.
 

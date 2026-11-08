@@ -1,4 +1,4 @@
-# E2E backend FleetPulse — FP-050 / FP-051 / FP-052
+# E2E backend FleetPulse
 
 Accettazione di [E2E-001](../../docs/12_STRATEGIA_DI_TEST.md#e2e-001--flusso-nominale):
 registrazione REST → TCP → ACK → Kafka → PostgreSQL → Redis → Fleet API.
@@ -15,7 +15,7 @@ python3 infrastructure/e2e/verify_nominal.py --output tmp/fp050-nominale
 
 Usare una directory output nuova. Lo script risolve la configurazione Compose,
 compila le immagini backend e avvia PostgreSQL, Flyway, Kafka/topic, Redis e i tre
-servizi in un progetto `fp050-<id>` dedicato. Riusa l'harness di isolamento FP-047:
+servizi in un progetto `fp050-<id>` dedicato. Riusa l'harness di isolamento del carico:
 porte loopback dinamiche, volumi dedicati, nessuna risorsa esterna o container
 utente modificato. Simulator, frontend, Grafana e server Prometheus non vengono
 avviati; le metriche vengono lette direttamente dagli endpoint applicativi.
@@ -25,7 +25,7 @@ configurazione risolta per scegliere valori nominali.
 
 Il primo avvio può richiedere download/build. Attese di disponibilità e comandi
 hanno deadline; il test non necessita porte host fisse. Non usare l'output come
-benchmark o misura del requisito p95<2s, coperto da FP-047.
+benchmark o misura del requisito p95<2s, che richiede la prova di carico.
 
 ## Cosa viene verificato
 
@@ -78,10 +78,10 @@ python3 -m unittest discover -s infrastructure/e2e -p 'test_*.py' -v
 
 Le regressioni controllano che dati errati, stato precedente, veicolo diverso e
 campi tecnici estranei non vengano accettati e che i timestamp equivalenti siano
-confrontati come istanti. Alert/replay appartengono a FP-051 e i guasti a FP-052;
-questa prova mantiene il flusso nominale senza restart o interruzioni dei servizi.
+confrontati come istanti. Alert/replay e guasti sono prove separate;
+il flusso nominale non prevede restart o interruzioni dei servizi.
 
-## Alert e replay — FP-051
+## Alert e replay
 
 ```bash
 python3 infrastructure/e2e/verify_alerts.py --output tmp/fp051-alert-replay
@@ -91,7 +91,7 @@ Stessi prerequisiti/isolamento del nominale, progetto dedicato `fp051-<id>` e
 directory output nuova. Lo scenario registra un veicolo, invia una temperatura
 oltre la soglia configurata e mantiene batteria/odometro nominali per ottenere
 esattamente un `ENGINE_TEMPERATURE_HIGH`, severity `HIGH` e stato `OPEN`.
-Verifica il flusso TCP/Kafka/SQL/Redis/State API riusando FP-050, poi controlla
+Verifica il flusso TCP/Kafka/SQL/Redis/State API nominale, poi controlla
 l'alert SQL, le collection REST scoped/globale e il dettaglio.
 
 Ripubblica due volte lo **stesso frame** con lo stesso messageId: prima con alert
@@ -110,9 +110,9 @@ dell'alert a conteggio invariato, riapertura, duplicazione e cleanup su failure.
 Questa è una ripubblicazione TCP, non un reset offset o recupero DLT. I vincoli
 transazionali e i test di crash precedenti completano la copertura: questo E2E
 non certifica da solo ogni interleaving concorrente, tutti i tipi di alert,
-le transizioni CLOSED o i failure scenarios FP-052. Nessun servizio Java modificato.
+le transizioni CLOSED o i guasti infrastrutturali.
 
-## Failure scenarios — FP-052
+## Failure scenarios
 
 ```bash
 python3 infrastructure/e2e/verify_failures.py --output tmp/fp052-guasti
@@ -136,7 +136,7 @@ I backend si avviano prima con telemetria nominale. Dopo il restart del processo
 la porta HTTP dinamica viene riletta; i contatori di quel processo ripartono.
 Redis usa stop/start senza ricreazione: la prova riguarda endpoint stabile e non
 certifica ogni cambio IP/DNS. L'arresto processor è graceful: non sostituisce il
-crash deterministico post-commit/pre-offset già provato in FP-044.
+crash deterministico post-commit/pre-offset.
 
 Il NACK Kafka significa pubblicazione **non confermata**, non garanzia di mancata
 consegna. Un send in timeout può arrivare dopo il ripristino: il verificatore
@@ -144,7 +144,7 @@ ammette uno o due raw per l'ultimo messageId, ma richiede sempre un solo sample
 e l'eventuale duplicate processato. Totale atteso: 6 sample, 6 o 7 raw, 0 o 1
 duplicati coerenti, zero alert/rejected/DLT e lag zero.
 
-Da FP-056 la socket ha timeout `7s` e il verificatore richiede NACK entro `6s`
+La socket ha timeout `7s` e il verificatore richiede NACK entro `6s`
 (budget decisione `5s` più `1s` di margine). La baseline producer deve mantenere
 i valori coordinati definiti in `.env.example`.
 La chiusura del frame strutturalmente invalido è distinta dal NACK applicativo:
@@ -154,9 +154,9 @@ checks/summary/failure/cleanup hanno lo stesso ruolo delle altre prove. La suite
 `test_*.py` include regressioni contro falsi ACCEPTED, correlazioni errate,
 duplicati non elaborati, sample duplicati e cleanup su failure. PostgreSQL down,
 proxy/blackhole, capacity exhaustion e altri input invalidi rimangono nelle prove
-precedenti o in casi distinti: non sono nuovi requisiti impliciti di FP-052.
+separate.
 
-## Budget Kafka — FP-056
+## Budget Kafka
 
 ```bash
 python3 infrastructure/e2e/verify_kafka_budget.py --output tmp/fp056-budget

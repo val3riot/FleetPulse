@@ -1,4 +1,4 @@
-# Operations runbook — FleetPulse (FP-049)
+# Operations runbook — FleetPulse
 
 Procedure per lo stack locale del repository. Contratti: [guasti](../../docs/10_AFFIDABILITA_E_GUASTI.md),
 [observability](../../docs/11_OBSERVABILITY.md), [deployment](../../docs/13_DEPLOYMENT.md).

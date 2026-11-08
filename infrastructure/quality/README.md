@@ -1,4 +1,4 @@
-# Quality gate backend — FP-053
+# Quality gate backend
 
 Dalla radice del repository, con JDK 21, Python 3.9+ e Docker attivo per i test
 Testcontainers. Maven è fornito dal wrapper (3.9.16); il gate accetta Maven
@@ -22,9 +22,8 @@ stessi target mentre Maven lavora, usare un checkout/copia temporanea senza targ
 e senza compilazione IDE concorrente. Non occorre arrestare processi IDE o lo
 stack di lavoro; Testcontainers gestisce risorse dedicate.
 
-Per la chiusura del backend, applicare anche i
-[controlli di coerenza FP-055](../consistency/README.md) e la prova E2E Kafka
-warm/cold FP-056.
+Applicare anche i [controlli di coerenza](../consistency/README.md)
+e la prova E2E Kafka warm/cold.
 
 ## Formatting
 

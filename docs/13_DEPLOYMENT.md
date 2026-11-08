@@ -106,7 +106,7 @@ I nomi sono centralizzati nelle variabili `KAFKA_TOPIC_RAW`,
 `KAFKA_TOPIC_REJECTED` e `KAFKA_TOPIC_DEAD_LETTER`. Il replication factor `1`
 è adatto esclusivamente alla configurazione locale con un solo broker.
 
-### Budget producer del gateway — FP-056
+### Budget producer del gateway
 
 | Variabile ambiente | Default | Significato |
 |---|---|---|
@@ -119,15 +119,15 @@ I nomi sono centralizzati nelle variabili `KAFKA_TOPIC_RAW`,
 Compose inoltra queste variabili soltanto al gateway; il producer terminale del
 processor mantiene la propria configurazione. Il gateway rifiuta all’avvio
 configurazioni senza valori espliciti o fuori dai vincoli descritti nel
-[protocollo TCP](06_PROTOCOLLO_TCP.md#budget-di-risposta-durante-outage-kafka--fp-056).
+[protocollo TCP](06_PROTOCOLLO_TCP.md#budget-di-risposta-durante-outage-kafka).
 La idempotenza Kafka e `acks=all` restano attivi. I retry interni sono limitati
 nel tempo da delivery timeout, senza abbassare le garanzie di conferma.
-Override più lunghi richiedono coordinamento dei timeout client: gli E2E FP-056
-verificano esplicitamente la baseline locale `5s`, con lettura socket `7s`.
+Override più lunghi richiedono coordinamento dei timeout client. La baseline
+locale usa un budget di `5s` e una lettura socket di `7s`.
 
-### TTL della latest-state projection (FP-030)
+### TTL della latest-state projection
 
-Configurazione implementata in FP-030 secondo [ADR-009 — Contratto e aggiornamento della latest-state projection](adr/ADR-009-LATEST-STATE-PROJECTION.md):
+Configurazione secondo [ADR-009 — Contratto e aggiornamento della latest-state projection](adr/ADR-009-LATEST-STATE-PROJECTION.md):
 
 | Property | Tipo | Default | Validazione all'avvio |
 |---|---|---|---|
@@ -147,7 +147,7 @@ con `1`, un conflitto concorrente causa subito un fallimento osservabile della
 proiezione, senza rollback PostgreSQL o retry Kafka. I warning sono limitati
 a uno ogni 30 secondi per istanza; le metriche contano tutti i fallimenti.
 
-### Soglie alert (FP-033)
+### Soglie alert
 
 | Property | Tipo | Default | Validazione all'avvio |
 |---|---|---:|---|
@@ -246,7 +246,7 @@ non espone connessioni dirette verso database, broker, cache o servizi interni.
 La pubblicazione su loopback evita l'esposizione dei servizi sulle altre
 interfacce di rete della macchina di sviluppo.
 
-### Prometheus locale — FP-042
+### Prometheus locale
 
 La porta Prometheus è pubblicata soltanto su loopback (`PROMETHEUS_PORT`,
 default 9090); lo scrape usa i nomi DNS interni dei tre servizi, porta 8080.
@@ -260,7 +260,7 @@ questa configurazione serve alla verifica locale, non all'archiviazione.
 Il contratto di raccolta è descritto in
 [Observability](11_OBSERVABILITY.md#raccolta-delle-metriche).
 
-### Grafana locale — FP-043
+### Grafana locale
 
 Compose monta provisioning e dashboard JSON in sola lettura e conserva il DB
 Grafana nel volume `grafana-data`. Il provider carica **FleetPulse Overview**
@@ -280,7 +280,7 @@ UID datasource `fleetpulse-prometheus`, dashboard `fleetpulse-overview`,
 folder `fleetpulse`; nessuna dipendenza da ID numerici assegnati dal DB.
 
 Il contratto della dashboard è descritto in
-[Observability](11_OBSERVABILITY.md#5-dashboard-grafana--fp-043).
+[Observability](11_OBSERVABILITY.md#5-dashboard-grafana).
 
 ## 9. Produzione
 
@@ -307,7 +307,7 @@ In produzione servirebbero:
 
 - [ADR-009 — Contratto e aggiornamento della latest-state projection](adr/ADR-009-LATEST-STATE-PROJECTION.md)
 
-## State API (FP-031)
+## State API
 
 | Property | Override ambiente | Default |
 |---|---|---|
@@ -327,7 +327,7 @@ sample e deve essere applicata dal servizio Flyway prima dell'avvio.
 
 Contratto: [ADR-010](adr/ADR-010-STATE-API-FALLBACK.md).
 
-## Dashboard API — configurazione FP-037
+## Dashboard API
 
 | Property | Variabile ambiente | Default | Limiti |
 |---|---|---|---|
@@ -343,7 +343,7 @@ Compose rimane quella condivisa dal servizio Fleet API per gli altri endpoint.
 
 Contratto: [Dashboard REST](09_SPECIFICA_API.md#4-dashboard).
 
-## Formato dei log — FP-040
+## Formato dei log
 
 Le quattro applicazioni emettono JSON ECS sulla console per default, anche con
 profilo `local`. Compose inoltra `FLEETPULSE_LOG_FORMAT` a ciascuna applicazione.
@@ -351,7 +351,7 @@ Per testo locale impostare esplicitamente `FLEETPULSE_LOG_FORMAT=`; rimuovere
 l'override per tornare a ECS. La variabile può essere impostata anche avviando
 il JAR direttamente. Non serve configurare un file Logback custom.
 
-## Distribuzione delle latenze — FP-041
+## Distribuzione delle latenze
 
 Fleet API, gateway e processor espongono gli histogram selezionati dal catalogo
 in docs/11. Compose inoltra queste proprietà, impostabili anche avviando il JAR:
@@ -369,12 +369,12 @@ non confondere queste proprietà con timeout, retry o gate prestazionali.
 Modifiche ai bucket aumentano/riducono le serie e richiedono verifica delle
 query Grafana/Prometheus. Nessun nuovo exporter o tracing è richiesto.
 
-### Probe del deployment locale — FP-048
+### Probe del deployment locale
 
 I tre backend hanno healthcheck Compose su `/actuator/health/readiness`, con
 intervallo 5 s, timeout 5 s, start period 20 s e 12 tentativi. Il simulatore
 attende API e gateway healthy. Una porta HTTP aperta o uno scrape riuscito non
-sostituiscono queste probe; anche l'harness FP-047 attende readiness UP.
+sostituiscono queste probe; anche l'harness di carico attende readiness UP.
 
 API e processor attendono che il container Redis sia avviato (`service_started`),
 non healthy: cache/projection opzionali non devono bloccare il ruolo applicativo.
@@ -384,9 +384,9 @@ non promette cold start senza DB, necessario alla validazione Hibernate.
 Un container unhealthy non viene automaticamente riavviato da Compose: la
 restart policy riguarda l'uscita del processo. Le probe non sospendono da sole
 traffico TCP, richieste REST o consumer Kafka. La matrice delle dipendenze e i
-timeout sono definiti in [Observability](11_OBSERVABILITY.md#health-liveness-e-readiness--fp-048).
+timeout sono definiti in [Observability](11_OBSERVABILITY.md#health-liveness-e-readiness).
 
-## Security baseline locale — FP-054
+## Security baseline locale
 
 Lo stack Compose è destinato allo sviluppo su una macchina fidata. Tutte le porte
 pubblicate sono associate a `127.0.0.1`; i servizi comunicano nella rete Compose.
@@ -419,5 +419,5 @@ autorizzazione REST/TCP, TLS e autenticazione Kafka, separazione dei privilegi D
 (il ruolo locale è condiviso con Flyway), gestione/rotazione centralizzata dei segreti
 e isolamento delle reti per ruolo. Prometheus non richiede autenticazione; Redis
 usa password senza TLS. Il pinning tramite digest, la scansione delle vulnerabilità
-e l'hardening finale delle immagini appartengono a FP-072. Non pubblicare questo
+e l'hardening finale delle immagini richiedono controlli dedicati. Non pubblicare questo
 Compose su interfacce pubbliche o tramite proxy/tunnel senza progettare tali controlli.

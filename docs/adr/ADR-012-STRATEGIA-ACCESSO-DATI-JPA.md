@@ -2,9 +2,7 @@
 
 ## Stato
 
-Accettata: registra la scelta dell'utente del 2026-10-07 di usare JPA per
-FP-037 e uniformare gli adapter PostgreSQL esistenti. Implementazioni nei
-commit `ec117f2` e `256a0ce`; non introduce una nuova riscrittura delle query.
+Accettata. Gli adapter PostgreSQL usano Spring Data JPA.
 
 ## Contesto
 

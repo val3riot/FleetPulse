@@ -46,15 +46,7 @@ build(parent): initialize Maven multi-module build
 docs(frontend): define Fleet Dashboard functional scope
 ```
 
-Esempio completo con riferimento alla ticket:
-
-```text
-build(repository): initialize FleetPulse project structure
-
-Refs: FP-001
-```
-
-## 2. Logging applicativo — FP-040
+## 2. Logging applicativo
 
 - Usare SLF4J fluent (`atInfo`, `atDebug`, `atWarn`, `atError`) con
   `addKeyValue` per dati interrogabili; le coppie nel testo non sostituiscono
@@ -73,7 +65,7 @@ Refs: FP-001
 - ECS è il default in tutti i profili; testo solo con override esplicito.
   Header UUID X-Request-ID e limiti di dispatch in docs/11 e ADR-013.
 
-## 3. Metriche applicative — FP-041
+## 3. Metriche applicative
 
 - Iniettare MeterRegistry nei componenti di osservabilità; evitare registry
   statici/globali o una nuova metrica equivalente a quella già strumentata.

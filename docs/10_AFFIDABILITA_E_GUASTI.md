@@ -85,7 +85,7 @@ attiva una policy con:
 
 Un errore di scrittura chiude la socket. Il frame ambiguo non viene reinviato
 automaticamente: il retry dello stesso `messageId` richiede la gestione completa
-dell'ACK applicativo e non appartiene a FP-016.
+dell'ACK applicativo; non basta il retry automatico del producer.
 
 ## 5. Cache failure
 
@@ -170,7 +170,7 @@ dettaglio della coordinazione Kafka è definito dalle ticket di implementazione.
 Il gateway applica un budget monotono complessivo alla decisione ACK/NACK:
 metadata/buffer e attesa della conferma condividono lo stesso limite, con
 configurazione producer verificata all’avvio. Valori e limiti:
-[Protocollo TCP — FP-056](06_PROTOCOLLO_TCP.md#budget-di-risposta-durante-outage-kafka--fp-056).
+[Protocollo TCP](06_PROTOCOLLO_TCP.md#budget-di-risposta-durante-outage-kafka).
 Una socket in attesa occupa uno slot del semaforo (default massimo 100): budget
 più brevi limitano la permanenza durante outage, senza eliminare la necessità
 di limiti di connessione. Il gateway elabora un frame alla volta per socket;
@@ -212,7 +212,7 @@ La degradazione deve essere visibile tramite log e metriche.
 - [ADR-008 — Significato di lastSeenAt e freshness dello stato](adr/ADR-008-LAST-SEEN-AT-E-FRESHNESS.md)
 
 
-## Ripristino della cache State API — FP-039
+## Ripristino della cache State API
 
 Un guasto Redis attiva il fallback PostgreSQL; il repair fallito non modifica
 la risposta riuscita. Alla rimozione del guasto, la stessa istanza Fleet API
@@ -223,7 +223,7 @@ chiavi e non richiede un restart dell'API.
 La prova isolata usa un proxy di rete per interrompere connessioni o bloccare
 risposte lasciando stabile l'endpoint. Le metriche distinguono miss, failure
 lettura, fallback e failure repair; i warning restano limitati secondo ADR-010.
-La verifica riguarda la State API e non decide readiness/health durante il
-guasto Redis (FP-048). Nessun circuit breaker o repair asincrono è introdotto.
+Readiness e health durante il guasto Redis sono definite in
+[Observability](11_OBSERVABILITY.md). Nessun circuit breaker o repair asincrono è introdotto.
 
-Evidenze: [Strategia di test — resilienza della cache](12_STRATEGIA_DI_TEST.md#cache-resilience--verifiche-fp-039-fp-045-e-fp-046).
+Evidenze: [Strategia di test — resilienza della cache](12_STRATEGIA_DI_TEST.md#cache-resilience).

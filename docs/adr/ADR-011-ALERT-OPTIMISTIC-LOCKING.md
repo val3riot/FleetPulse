@@ -2,8 +2,7 @@
 
 ## Stato
 
-Accettata nel confronto con l'utente il 2026-09-14. Implementazione e test
-appartengono a FP-036.
+Accettata.
 
 ## Contesto
 
@@ -23,7 +22,7 @@ riga durante l'intera elaborazione del comando.
 
 ## Decisione
 
-`maintenance_alerts` usa optimistic locking JPA. FP-036 aggiunge tramite Flyway
+`maintenance_alerts` usa optimistic locking JPA. La migrazione Flyway aggiunge
 una colonna `version BIGINT NOT NULL DEFAULT 0`; la relativa proprietà della
 entity Fleet API è annotata con `@Version`. PostgreSQL rimane l'autorità sul
 confronto della versione al momento dell'update.
@@ -124,7 +123,7 @@ sulle metriche custom e non usa `alertId` come tag.
 
 ## Verifica richiesta
 
-FP-036 deve dimostrare con test unitari e PostgreSQL reale:
+I test unitari e PostgreSQL reali devono dimostrare:
 
 - tutte le transizioni consentite e vietate;
 - idempotenza senza variazione dei timestamp;

@@ -1,8 +1,9 @@
+import { filter, firstValueFrom } from 'rxjs';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
-import { provideRouter, Router } from '@angular/router';
+import { provideRouter, Router, NavigationEnd } from '@angular/router';
 import { App } from '../../app';
 import { routes } from '../../app.routes';
 import { API_CONFIG, DEFAULT_API_CONFIG } from '../../core/api/api-config';
@@ -53,8 +54,11 @@ describe('Integrazione HTTP elenco alert', () => {
     vi.useRealTimers();
     const component = fixture.debugElement.query(By.directive(AlertList))
       .componentInstance as AlertList;
+    const navigation = firstValueFrom(
+      TestBed.inject(Router).events.pipe(filter((event) => event instanceof NavigationEnd)),
+    );
     component.changePage(1);
-    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    await navigation;
     const next = http.expectOne((request) => request.url === '/api/v1/alerts');
     expect(next.request.params.get('page')).toBe('1');
     expect(next.request.params.get('from')).toBe(query.from);

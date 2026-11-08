@@ -181,7 +181,7 @@ I virtual threads non eliminano la necessità di timeout, limiti e backpressure.
 ## Accesso PostgreSQL tramite JPA
 
 Fleet API e telemetry-processor usano Spring Data JPA anche per gli adapter
-latest-state, registry veicoli e soglia manutenzione (FP-031, FP-018, FP-033).
+latest-state, registry veicoli e soglia manutenzione.
 Le porte applicative restano separate dai repository. I nomi PostgreSql degli
 adapter identificano il database, mentre l'implementazione delega a JPA.
 

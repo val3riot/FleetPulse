@@ -1,8 +1,9 @@
+import { filter, firstValueFrom } from 'rxjs';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
-import { provideRouter, Router } from '@angular/router';
+import { provideRouter, Router, NavigationEnd } from '@angular/router';
 import { App } from '../../../app';
 import { routes } from '../../../app.routes';
 import { API_CONFIG, DEFAULT_API_CONFIG } from '../../../core/api/api-config';
@@ -52,8 +53,11 @@ describe('Integrazione HTTP storico', () => {
       expect(first.request.params.getAll(key)).toEqual([String(value)]);
     first.flush(telemetryPage(query));
     await fixture.whenStable();
+    const navigation = firstValueFrom(
+      TestBed.inject(Router).events.pipe(filter((event) => event instanceof NavigationEnd)),
+    );
     component.changePage(1);
-    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    await navigation;
     const second = http.expectOne((request) => request.url === path);
     expect(second.request.params.get('page')).toBe('1');
     expect(second.request.params.get('from')).toBe(query.from);
@@ -84,8 +88,11 @@ describe('Integrazione HTTP storico', () => {
     const { fixture, http, component } = await setup();
     const old = http.expectOne((request) => request.url === path);
     component.form.controls.sort.setValue('observedAt,asc');
+    const navigation = firstValueFrom(
+      TestBed.inject(Router).events.pipe(filter((event) => event instanceof NavigationEnd)),
+    );
     component.applyFilters();
-    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    await navigation;
     expect(old.cancelled).toBe(true);
     const current = http.expectOne((request) => request.url === path);
     expect(current.request.params.get('sort')).toBe('observedAt,asc');

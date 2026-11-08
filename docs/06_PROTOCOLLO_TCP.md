@@ -157,7 +157,7 @@ Il client può ritentare quando non riceve un ACK positivo.
 
 Il retry deve riutilizzare lo stesso `messageId`.
 
-### Budget di risposta durante outage Kafka — FP-056
+### Budget di risposta durante outage Kafka
 
 `fleetpulse.kafka.publisher.confirmation-timeout` (`KAFKA_CONFIRMATION_TIMEOUT`,
 default `5s`) limita la decisione di pubblicazione a partire dall’ingresso nel

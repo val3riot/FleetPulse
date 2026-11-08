@@ -1,4 +1,5 @@
-import { createFleetApiStub } from './testing/fleet-api.stub';
+import { of } from 'rxjs';
+import { createFleetApiStub, TEST_ALERT, TEST_DASHBOARD } from './testing/fleet-api.stub';
 import { FleetApi } from './core/api/fleet-api';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
@@ -135,5 +136,29 @@ describe('Navigazione FleetPulse', () => {
       '#main-content',
     );
     expect(fixture.nativeElement.querySelector('main').id).toBe('main-content');
+  });
+  it('il link dashboard apre il dettaglio dell’alert con un UUID valido', async () => {
+    TestBed.overrideProvider(FleetApi, {
+      useValue: {
+        ...createFleetApiStub(),
+        getDashboard: () => of({ ...TEST_DASHBOARD, relevantAlerts: [TEST_ALERT] }),
+      },
+    });
+    const fixture = await open('/dashboard');
+    fixture.nativeElement.querySelector(`a[href="/alerts/${TEST_ALERT.id}"]`).click();
+    await fixture.whenStable();
+    expect(TestBed.inject(Router).url).toBe('/alerts/' + TEST_ALERT.id);
+    expect(fixture.nativeElement.querySelector('h1').textContent).toBe('Dettaglio alert');
+    expect(fixture.nativeElement.textContent).toContain(TEST_ALERT.description);
+  });
+  it('il link dal veicolo apre la lista alert con il filtro del veicolo applicato', async () => {
+    const fixture = await open('/vehicles/' + TEST_ALERT.vehicleId);
+    fixture.nativeElement.querySelector('a[href^="/alerts?vehicleId="]').click();
+    await fixture.whenStable();
+    const params = TestBed.inject(Router).parseUrl(TestBed.inject(Router).url).queryParams;
+    expect(params['vehicleId']).toBe(TEST_ALERT.vehicleId);
+    expect(params['page']).toBe('0');
+    const input = fixture.nativeElement.querySelector('#alert-vehicleId') as HTMLInputElement;
+    expect(input.value).toBe(TEST_ALERT.vehicleId);
   });
 });

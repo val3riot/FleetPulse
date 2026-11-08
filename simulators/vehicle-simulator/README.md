@@ -50,7 +50,7 @@ configurati, il workload del veicolo termina e registra l'errore.
 
 Una scrittura TCP fallita è ambigua: parte del frame potrebbe essere arrivata.
 Il simulator chiude la socket ma non reinvia automaticamente lo stesso
-messaggio, perché il retry guidato da ACK è fuori dallo scope di FP-016. Lo
+messaggio: il simulator non implementa il retry guidato da ACK. Lo
 stato e il sequence number avanzano solo dopo una scrittura completata.
 
 ## Shutdown
@@ -84,7 +84,7 @@ che include il `PublishingFrameHandler` di produzione. Il simulator può quindi
 alimentare il flusso verso Kafka, processor, PostgreSQL e Redis. La dashboard
 Grafana provisionata permette di osservare le metriche di questa attività;
 il relativo contratto è descritto in
-[Observability](../../docs/11_OBSERVABILITY.md#5-dashboard-grafana--fp-043).
+[Observability](../../docs/11_OBSERVABILITY.md#5-dashboard-grafana).
 
 ## Test
 
@@ -96,5 +96,5 @@ La suite comprende unit test deterministici per configurazione, provisioning,
 profilo, codec, backoff e lifecycle, più uno smoke test che avvia il contesto
 Spring, simula Fleet API e verifica un frame su una socket TCP reale.
 
-Non fanno parte di FP-016 retry basato su ACK, profili di guasto, accesso
+Il simulator non supporta retry basato su ACK, profili di guasto, accesso
 diretto a PostgreSQL, Kafka awareness o metriche custom del simulator.

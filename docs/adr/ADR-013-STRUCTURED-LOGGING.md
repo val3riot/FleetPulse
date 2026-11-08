@@ -1,7 +1,6 @@
 # ADR-013 — Structured logging ECS e correlazione
 
 - Stato: accettato
-- Riferimento: FP-040
 - Data: 2026-10-07
 
 ## Contesto

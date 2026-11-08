@@ -1,4 +1,4 @@
-# FP-048 health acceptance verifier
+# Health acceptance verifier
 
 From the repository root, with Docker available and the project `.env` configured:
 
@@ -7,7 +7,7 @@ python3 infrastructure/health/verify.py --output tmp/fp048-health-new
 ```
 
 Python uses only the standard library and shares isolated-stack setup with the
-FP-047 harness. The output directory must be new. The verifier builds the backend,
+load-test harness. The output directory must be new. The verifier builds the backend,
 uses a unique `fp048-*` Compose project with dynamic loopback ports and owned
 volumes, and removes those resources on exit, including failure/SIGINT. It does
 not stop the user's stack. A private resolved Compose configuration is removed
@@ -25,10 +25,10 @@ Dynamic application ports are rediscovered after that intentional restart.
 on success, and `failure.json` on failure. Java tests additionally cover TCP and
 consumer lifecycle, application availability states, metadata validation and
 bounded Kafka timeouts. The project contracts are in
-[Observability](../../docs/11_OBSERVABILITY.md#health-liveness-e-readiness--fp-048)
-and [the test strategy](../../docs/12_STRATEGIA_DI_TEST.md#health-e-readiness--fp-048).
+[Observability](../../docs/11_OBSERVABILITY.md#health-liveness-e-readiness)
+and [the test strategy](../../docs/12_STRATEGIA_DI_TEST.md#health-e-readiness).
 
-A shortened FP-047 smoke can verify readiness-based startup without repeating
+A shortened load-test smoke can verify readiness-based startup without repeating
 the full reference load:
 
 ```bash

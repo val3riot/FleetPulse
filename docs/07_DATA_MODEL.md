@@ -253,7 +253,7 @@ iniziale zero senza modificare le migration precedenti.
 - [ADR-009 — Contratto e aggiornamento della latest-state projection](adr/ADR-009-LATEST-STATE-PROJECTION.md)
 - [ADR-011 — Transizioni alert con optimistic locking](adr/ADR-011-ALERT-OPTIMISTIC-LOCKING.md)
 
-## Latest sample per State API (FP-031)
+## Latest sample per State API
 
 La query di fallback ordina per `observed_at DESC, sequence_number DESC, id DESC`
 e seleziona una sola riga del veicolo. La migration V2 aggiunge
@@ -262,7 +262,7 @@ e seleziona una sola riga del veicolo. La migration V2 aggiunge
 Il tie-breaker `id` non entra nella recency Redis. Contratto di lettura e repair:
 [ADR-010](adr/ADR-010-STATE-API-FALLBACK.md).
 
-## Indice dashboard — FP-037
+## Indice dashboard
 
 La migration `V5__dashboard_reporting_index.sql` aggiunge
 `ix_telemetry_samples_observed_at_vehicle` su `(observed_at, vehicle_id)`.

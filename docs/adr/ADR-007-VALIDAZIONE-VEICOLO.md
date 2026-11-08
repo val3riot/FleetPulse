@@ -157,11 +157,3 @@ perdita. Il dettaglio transazionale è demandato alle ticket di implementazione.
 Un registry locale event-driven nel gateway potrà essere rivalutato se sarà
 necessario fornire feedback sincrono al client. L'evoluzione richiederà eventi
 autorevoli sul lifecycle dei veicoli, bootstrap e riconciliazione espliciti.
-
-## Ticket di implementazione collegate
-
-- FP-010 finalizza i contratti TCP coerenti con questa decisione;
-- FP-018 implementa la validazione del veicolo nel processor;
-- FP-020 definisce i topic Kafka normativi;
-- FP-022 introduce il consumer baseline del processor;
-- FP-026 implementa la pubblicazione dei rifiuti e delle dead-letter.

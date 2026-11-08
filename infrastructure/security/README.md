@@ -1,4 +1,4 @@
-# Verifica security baseline locale — FP-054
+# Verifica security baseline locale
 
 Dalla radice del progetto, con Docker attivo, Python 3.9+ e `.env` configurato:
 
@@ -27,5 +27,5 @@ Non viene modificato lo stack di lavoro. Un'interruzione non gestibile, come
 SIGKILL, può richiedere pulizia manuale del solo progetto riportato nell'output.
 
 La baseline e i limiti di sicurezza sono definiti in
-[Deployment](../../docs/13_DEPLOYMENT.md#security-baseline-locale--fp-054).
+[Deployment](../../docs/13_DEPLOYMENT.md#security-baseline-locale).
 Questa verifica non è un penetration test né una scansione CVE.

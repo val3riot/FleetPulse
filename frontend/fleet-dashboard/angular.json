@@ -52,7 +52,8 @@
                   "replace": "src/app/dev/dev.routes.ts",
                   "with": "src/app/dev/dev.routes.production.ts"
                 }
-              ]
+              ],
+              "statsJson": true
             },
             "development": {
               "optimization": false,
@@ -79,7 +80,12 @@
           }
         },
         "test": {
-          "builder": "@angular/build:unit-test"
+          "builder": "@angular/build:unit-test",
+          "options": {
+            "coverageInclude": ["src/app/**/*.ts"],
+            "coverageExclude": ["src/**/*.spec.ts", "src/app/testing/**", "src/app/dev/**"],
+            "coverageReporters": ["text-summary", "html", "json-summary", "lcovonly"]
+          }
         }
       }
     }

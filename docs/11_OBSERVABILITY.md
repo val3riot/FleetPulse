@@ -15,7 +15,7 @@ I segnali operativi devono permettere di rispondere a:
 
 ## 2. Structured logging
 
-FP-040 adotta JSON ECS sulla console in `fleet-api`, `telemetry-gateway`,
+I servizi adottano JSON ECS sulla console in `fleet-api`, `telemetry-gateway`,
 `telemetry-processor` e `vehicle-simulator`, in tutti i profili. Si usa il supporto
 nativo di Spring Boot con SLF4J fluent key/value; non sono necessarie dipendenze
 aggiuntive. Ogni record occupa una riga JSON.
@@ -49,7 +49,7 @@ Non loggare payload completi, coordinate/valori di telemetria, credenziali,
 request body, header arbitrari o messaggi/stacktrace di eccezioni applicative
 che possono contenere questi dati. Le failure riportano la classe dell'errore.
 L'aumento dei livelli delle librerie richiede una verifica separata dei dati
-emessi; FP-040 non abilita DEBUG/TRACE delle librerie.
+emessi; DEBUG/TRACE delle librerie rimangono disabilitati.
 
 ### Correlazione HTTP
 
@@ -80,7 +80,7 @@ Per sviluppo locale è disponibile un override esplicito al testo:
 `FLEETPULSE_LOG_FORMAT=''`. Il profilo `local` mantiene ECS per default.
 Vedi [ADR-013](adr/ADR-013-STRUCTURED-LOGGING.md).
 
-## 3. Metriche — contratto FP-041
+## 3. Metriche
 
 Questo catalogo è normativo. I nomi Micrometer usano punti; Prometheus converte
 in underscore, aggiunge `_total` ai Counter e `_seconds` ai Timer. I Counter
@@ -148,7 +148,7 @@ failure/recovery Kafka, non dal contatore events. Non dedurre nuovi eventi
 persistiti dal numero di record consegnati al listener o dagli offset.
 
 Questa latenza è lavoro locale del processor, non gateway→commit end-to-end:
-l'attesa in Kafka e il requisito RNF-003/FP-047 richiedono una misura distinta.
+l'attesa in Kafka e il requisito RNF-003 richiedono una misura distinta.
 `fleetpulse.pipeline.persistence.latency` soddisfa questo confine: parte dal
 mapping del frame valido nel gateway, prima della pubblicazione Kafka, e termina
 subito dopo il ritorno del proxy transazionale del writer, senza transazione
@@ -181,7 +181,7 @@ Contratti domain/projection: [ADR-006](adr/ADR-006-AT-LEAST-ONCE-E-IDEMPOTENCY.m
 | `fleetpulse.api.cache.repair.failures` | Counter | Repair cache fallito | Nessuna |
 
 Non introdurre `fleetpulse.api.request.latency`: duplicherebbe
-`http.server.requests`. Conservare i contatori FP-031 senza tag dinamici e il
+`http.server.requests`. Conservare i contatori della State API senza tag dinamici e il
 warning condiviso limitato a uno ogni 30 secondi. Contratto:
 [ADR-010](adr/ADR-010-STATE-API-FALLBACK.md).
 
@@ -203,8 +203,8 @@ Per un Counter come `fleetpulse.processor.events`, l'export è
 `fleetpulse_processor_events_total`; per la Gauge connections.active è
 `fleetpulse_gateway_connections_active`. Ogni Timer esporta almeno
 `<nome>_seconds_count`, `_seconds_sum`, `_seconds_bucket` con la label `le`;
-`max` può essere disponibile secondo registry. FP-042 verifica la raccolta
-server e i target; FP-041 verifica il formato esportato dall'endpoint reale.
+`max` può essere disponibile secondo registry. Verificare separatamente
+il formato esportato, la raccolta Prometheus e lo stato dei target.
 
 Esempio p95 di elaborazione riuscita, aggregato sulle istanze:
 
@@ -219,7 +219,7 @@ combinazione di tag: abilitarli solo sui Timer del catalogo. Nessuna label
 messageId/vehicleId/requestId/connectionId/offset, payload, error.message, codice
 veicolo o URI con UUID/query. I nomi route HTTP provengono dal framework; gli
 outcome/reason applicativi sono enumerati. Non aggiungere tag per topic o
-partition in FP-041. I campi ad alta cardinalità rimangono nei log FP-040.
+partition. I campi ad alta cardinalità rimangono nei log.
 
 Fonti: [Spring Boot metrics](https://docs.spring.io/spring-boot/reference/actuator/metrics.html),
 [Micrometer histogram](https://docs.micrometer.io/micrometer/reference/concepts/histogram-quantiles.html).
@@ -256,7 +256,7 @@ Esempi:
 - il processor non è ready a persistere se PostgreSQL è down;
 - il gateway dipende dalla disponibilità del listener e dalla capacità di pubblicare.
 
-## 5. Dashboard Grafana — FP-043
+## 5. Dashboard Grafana
 
 La dashboard **FleetPulse Overview**, UID `fleetpulse-overview`, è provisionata
 automaticamente nella cartella **FleetPulse**. Contiene 18 pannelli e 25 query
@@ -310,7 +310,7 @@ Per un `messageId` devono essere individuabili:
 
 - [ADR-009 — Contratto e aggiornamento della latest-state projection](adr/ADR-009-LATEST-STATE-PROJECTION.md)
 
-## Health, liveness e readiness — FP-048
+## Health, liveness e readiness
 
 I tre servizi espongono `/actuator/health`, `/actuator/health/liveness` e
 `/actuator/health/readiness` sulla stessa porta HTTP applicativa. Le probe sono

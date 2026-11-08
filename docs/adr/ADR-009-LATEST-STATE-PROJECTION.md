@@ -2,9 +2,8 @@
 
 ## Stato
 
-Accettata il 2026-09-08. Adapter di lettura e scrittura, integrazione dopo commit,
-osservabilità e test implementati in FP-030. Fallback e repair della Fleet API sono descritti in
-[ADR-010](ADR-010-STATE-API-FALLBACK.md) (FP-031).
+Accettata. Fallback e repair della Fleet API sono descritti in
+[ADR-010](ADR-010-STATE-API-FALLBACK.md).
 
 ## Contesto
 
@@ -134,7 +133,7 @@ operazioni in una transazione PostgreSQL.
 
 Duplicate e rejection non generano update.
 Il fallimento Redis viene gestito senza rilanciarlo verso Kafka dopo il commit.
-Il recupero delle letture tramite fallback appartiene a FP-031.
+Il recupero delle letture tramite fallback segue ADR-010.
 
 ## 6. Log e metriche bounded
 
@@ -200,4 +199,3 @@ catalogo: ogni fallimento incrementa anche questa metrica, senza tag dinamici.
 - [Configurazione e deployment](../13_DEPLOYMENT.md)
 - [ADR-005](ADR-005-REDIS-CACHE-RICOSTRUIBILE.md)
 - [ADR-008](ADR-008-LAST-SEEN-AT-E-FRESHNESS.md)
-- FP-030 e FP-031.

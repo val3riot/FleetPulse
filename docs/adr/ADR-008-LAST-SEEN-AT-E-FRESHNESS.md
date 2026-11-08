@@ -73,6 +73,5 @@ del TTL non devono rendere artificialmente recente una misura vecchia.
 - [ADR-005 — Redis come cache ricostruibile](ADR-005-REDIS-CACHE-RICOSTRUIBILE.md)
 - [Modello dati](../07_DATA_MODEL.md)
 - [Specifica API](../09_SPECIFICA_API.md)
-- Ticket FP-030 e FP-031.
 
 - [ADR-009 — Latest-state projection](ADR-009-LATEST-STATE-PROJECTION.md)

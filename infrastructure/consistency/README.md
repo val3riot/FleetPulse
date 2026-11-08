@@ -1,4 +1,4 @@
-# Controlli di coerenza backend — FP-055
+# Controlli di coerenza backend
 
 Eseguire dalla radice del repository con JDK 21, Docker attivo e `.env`
 configurato. Le verifiche runtime costruiscono uno stack isolato e lo rimuovono
@@ -23,5 +23,5 @@ confronta `.env.example`, Compose e deployment; quello dei link controlla file
 e anchor Markdown locali, senza richieste HTTP ai link esterni.
 
 Questi controlli affiancano il [quality gate](../quality/README.md) e gli
-[E2E](../e2e/README.md), inclusa la prova Kafka warm/cold di FP-056. Un fallimento
-impedisce la chiusura. Gli script usano asserzioni: non eseguirli con `python -O`.
+[E2E](../e2e/README.md), inclusa la prova Kafka warm/cold. Un fallimento
+impedisce il superamento del gate. Gli script usano asserzioni: non eseguirli con `python -O`.

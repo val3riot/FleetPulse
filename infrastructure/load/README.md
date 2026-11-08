@@ -1,4 +1,4 @@
-# FP-047 load acceptance harness
+# Load acceptance harness
 
 Python 3 standard library, Docker Compose and the project's `.env` are required.
 Run from any directory; the harness resolves the repository root itself.
@@ -11,7 +11,7 @@ python3 infrastructure/load/run.py --output tmp/fp047-reference
 
 The default runs a warm-up, then the full 50-vehicle baseline and mixed scenario
 (300 seconds each, one unique frame every 2 seconds). A shortened run is marked
-`fullReference: false` and cannot close FP-047. Output directories must be new.
+`fullReference: false` and does not certify the reference workload. Output directories must be new.
 The command exits unsuccessfully if acceptance criteria fail.
 
 The harness derives an isolated Compose stack from the project's configuration,
@@ -29,7 +29,7 @@ late slots. The mixed scenario closes a connection halfway through a selected
 payload (1% probability), reconnects and resends the full message; independently
 it resends selected accepted messages unchanged (2%). Seed defaults to 47.
 Unexpected failures are retained rather than silently retried.
-FP-056 separates connect timeout (1s) from framed ACK read timeout
+The harness separates connect timeout (1s) from framed ACK read timeout
 (`--ack-timeout`, default 7s), allowing the 5s gateway decision budget plus
 transport margin. Custom gateway budgets require a larger ACK timeout.
 A longer socket timeout does not relax the latency or late-slot acceptance criteria.
@@ -41,6 +41,6 @@ Resource sampling waits five seconds between collections; actual spacing also
 includes collection time, and consumer lag is sampled every six collections.
 Resources include Docker working set/CPU and application JVM/GC/pool/connection
 metrics; the contract and operational budgets are in
-[the project test strategy](../../docs/12_STRATEGIA_DI_TEST.md#contratto-di-accettazione-fp-047).
+[the project test strategy](../../docs/12_STRATEGIA_DI_TEST.md#carico-di-riferimento).
 The latency requires synchronized gateway/processor clocks. Historical processor
 Grafana p95 remains the local handler latency, a different measurement.

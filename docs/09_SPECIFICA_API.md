@@ -28,8 +28,7 @@ integrazione di security.
 
 La specifica OpenAPI pubblicata descrive gli endpoint operativi di veicoli,
 stato corrente, dashboard, storico telemetrico e alert, incluse le transizioni
-di stato degli alert. I contratti delle sezioni seguenti sono implementati da
-FP-004–FP-008 e FP-031–FP-037; FP-038 ne verifica i contratti di lettura.
+di stato degli alert.
 
 ### 1.1 Error response
 
@@ -353,7 +352,7 @@ Restituisce la panoramica funzionale della flotta.
 }
 ```
 
-L'endpoint è implementato da FP-037 e non accetta filtri o parametri di paginazione.
+L'endpoint non accetta filtri o parametri di paginazione.
 Un database vuoto restituisce `200`, conteggi zero, entrambe le chiavi `ACTIVE`
 e `DISABLED` e `relevantAlerts: []`. Tutti i conteggi sono interi a 64 bit.
 
@@ -623,7 +622,7 @@ Gli endpoint operativi non fanno parte del base path `/api/v1` e non devono
 esporre informazioni sensibili nell'ambiente locale. Health/probe restituiscono
 payload Actuator (`status` e, per health principale, i nomi dei gruppi), senza
 dettagli/componenti e senza il formato di errore REST del dominio. Semantica
-per servizio e mapping HTTP: [Observability](11_OBSERVABILITY.md#health-liveness-e-readiness--fp-048).
+per servizio e mapping HTTP: [Observability](11_OBSERVABILITY.md#health-liveness-e-readiness).
 
 ## 8. Mappatura sintetica degli errori
 
