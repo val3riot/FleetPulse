@@ -37,7 +37,8 @@ token, semantica axe e test dei comportamenti di focus.
 `src/app/core/api/fleet-api.ts` centralizza le 11 operazioni REST: veicoli,
 stato corrente, dashboard, storico, alert e relative scritture. I DTO sono in
 `api-models.ts`. I timestamp restano stringhe UTC del contratto; la presentazione
-in fuso locale sarà responsabilità delle pagine. La tipizzazione non sostituisce
+è responsabilità delle pagine; dashboard, telemetria e alert usano UTC
+internamente e mostrano le date senza suffisso del fuso. La tipizzazione non sostituisce
 una validazione runtime delle risposte di successo.
 
 ## Configurazione API
@@ -253,6 +254,57 @@ letta una volta per il contesto corrente; le pagine successive interrogano solo
 Lo storico non modifica le preferenze di pausa della dashboard/ultima telemetria.
 Le pagine del backend non costituiscono uno snapshot transazionale: nuovi dati
 possono cambiare conteggi o distribuzione delle righe fra richieste distinte.
+
+## Consultazione e gestione degli alert
+
+`/alerts` e `/alerts/:id` sono pagine standalone lazy nello stesso layout.
+Lista e dettaglio leggono all'ingresso e su richiesta manuale, senza polling;
+le preferenze di pausa dashboard/telemetria restano indipendenti. Dashboard e
+dettaglio veicolo collegano rispettivamente il dettaglio alert e la lista con
+`vehicleId` precompilato. Il link al veicolo resta disponibile nelle righe.
+
+L'elenco usa `FleetApi.getAlerts`, senza letture anagrafiche per riga. Filtri
+opzionali combinati AND: UUID veicolo, stato, tipo, severità, Da e A su
+`createdAt`. Ciascuna data può essere usata da sola; nessun intervallo è imposto
+quando entrambe sono assenti. Limiti inclusivi, uguaglianza ammessa e rifiuto
+locale di un intervallo inverso, senza introdurre altre restrizioni temporali.
+
+- Default tutti gli stati e nessun filtro, pagina 0, size 50, data decrescente.
+  Size da 1 a 100; sort solo `createdAt,asc|desc`, eseguito dal server.
+- Filtri applicati e paginazione sono nell'URL, con normalizzazione `replaceUrl`
+  dei default mancanti. Il dettaglio conserva i parametri validi nel link di
+  ritorno alla lista, senza URL di ritorno esterni o stato globale.
+- Applicare/azzerare riparte da pagina 0. Le modifiche in bozza non generano
+  HTTP; paginazione e refresh usano i criteri applicati. URL invalida o con
+  parametri duplicati viene segnalata prima della richiesta, senza correzioni
+  silenziose. Il form consente una nuova ricerca valida.
+- Date/formato riusano i controlli e formatter condivisi con lo storico:
+  immissione fino ai secondi e conservazione di eventuale precisione superiore
+  dei parametri originali non modificati. Nessuna conversione nel fuso browser.
+- L'UUID filtro senza corrispondenze produce una lista vuota secondo l'API
+  globale. Vuoto, pagina oltre ultima ed errore rimangono distinti.
+- Il dettaglio legge `getAlert`; i timestamp nullable restano assenze esplicite.
+  Etichette di tipo, stato e severità sono condivise con la dashboard.
+
+Le azioni risiedono nel dettaglio e richiedono conferma con dialog nativo:
+`OPEN` consente presa in carico o chiusura, `ACKNOWLEDGED` soltanto chiusura,
+`CLOSED` nessuna modifica. Non è prevista riapertura. Durante la scrittura si
+impediscono doppio invio e chiusura del dialog. Lo stato visibile cambia solo
+con il DTO restituito dalla PATCH, senza aggiornamenti ottimistici.
+
+Un `409 ALERT_STATUS_TRANSITION_CONFLICT` chiude la conferma, mantiene il
+messaggio e avvia una GET dello stato corrente; i comandi restano sospesi fino
+alla rilettura riuscita. Non si reinvia automaticamente la PATCH e non si
+riapre la conferma. Un errore della rilettura consente il recupero manuale.
+Rete, timeout o 5xx in scrittura sono esiti incerti: nuovi comandi sono bloccati
+finché l'operatore non aggiorna lo stato con successo. `404 ALERT_NOT_FOUND`
+rimuove le azioni e resta distinto dalla lista vuota. I dati conservati dopo
+un errore di lettura sono indicati come appartenenti all'ultimo successo.
+
+Letture superate, cambio identità e distruzione cancellano le sottoscrizioni.
+Annullare un'operazione HTTP non garantisce rollback server: una nuova visita
+rilegge sempre lo stato. La semantica di concorrenza resta quella dell'API e di
+[ADR-011](adr/ADR-011-ALERT-OPTIMISTIC-LOCKING.md), senza versioni JPA nel frontend.
 
 ## Diagnostica di sviluppo
 

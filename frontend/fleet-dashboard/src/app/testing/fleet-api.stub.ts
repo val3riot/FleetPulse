@@ -2,6 +2,9 @@ import { vi } from 'vitest';
 import { of } from 'rxjs';
 import {
   DashboardResponse,
+  AlertQuery,
+  AlertTargetStatus,
+  MaintenanceAlertResponse,
   TelemetryResponse,
   TelemetryQuery,
   Page,
@@ -66,6 +69,30 @@ export function telemetryPage(query: TelemetryQuery): Page<TelemetryResponse> {
   };
 }
 
+export const TEST_ALERT: MaintenanceAlertResponse = {
+  id: 'f2607610-5100-4723-93d0-e6bbdcf00da0',
+  vehicleId: '97e194a8-64b3-4885-b1e6-25fd482f58c0',
+  sourceMessageId: 'message',
+  type: 'ENGINE_TEMPERATURE_HIGH',
+  severity: 'HIGH',
+  description: 'Temperatura motore oltre soglia',
+  status: 'OPEN',
+  createdAt: '2026-11-08T20:00:00.123456Z',
+  acknowledgedAt: null,
+  closedAt: null,
+};
+export function alertsPage(query: AlertQuery = {}): Page<MaintenanceAlertResponse> {
+  return {
+    content: [TEST_ALERT],
+    page: query.page ?? 0,
+    size: query.size ?? 50,
+    totalElements: 1,
+    totalPages: 1,
+    first: true,
+    last: true,
+  };
+}
+
 export function createFleetApiStub() {
   const page: Page<VehicleResponse> = {
     content: [TEST_VEHICLE],
@@ -77,6 +104,17 @@ export function createFleetApiStub() {
     last: true,
   };
   return {
+    getAlerts: vi.fn((query: AlertQuery = {}) => of(alertsPage(query))),
+    getAlert: vi.fn((id: string) => of({ ...TEST_ALERT, id })),
+    changeAlertStatus: vi.fn((id: string, status: AlertTargetStatus) =>
+      of({
+        ...TEST_ALERT,
+        id,
+        status,
+        acknowledgedAt: status === 'ACKNOWLEDGED' ? '2026-11-08T20:01:00Z' : null,
+        closedAt: status === 'CLOSED' ? '2026-11-08T20:02:00Z' : null,
+      }),
+    ),
     getTelemetry: vi.fn((_id: string, query: TelemetryQuery) => of(telemetryPage(query))),
     getDashboard: vi.fn(() => of(TEST_DASHBOARD)),
     getVehicleState: vi.fn((vehicleId: string) => of({ ...TEST_STATE, vehicleId })),

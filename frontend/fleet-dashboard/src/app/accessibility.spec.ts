@@ -6,7 +6,7 @@ import { App } from './app';
 import { routes } from './app.routes';
 import { ApiError } from './core/api/api-error';
 import { FleetApi } from './core/api/fleet-api';
-import { createFleetApiStub } from './testing/fleet-api.stub';
+import { createFleetApiStub, TEST_ALERT } from './testing/fleet-api.stub';
 
 describe('Accessibilità semantica delle pagine', () => {
   let api: ReturnType<typeof createFleetApiStub>;
@@ -39,6 +39,17 @@ describe('Accessibilità semantica delle pagine', () => {
     ['/vehicles/id/telemetry', 'storico in errore'],
     ['/vehicles/id/telemetry?size=101', 'storico URL invalida'],
     ['/vehicles/id/telemetry', 'storico form invalido'],
+    ['/alerts', 'elenco alert'],
+    ['/alerts', 'alert vuoti'],
+    ['/alerts', 'alert errore'],
+    ['/alerts', 'filtri alert invalidi'],
+    ['/alerts?status=UNKNOWN', 'URL alert invalida'],
+    ['/alerts/f2607610-5100-4723-93d0-e6bbdcf00da0', 'alert OPEN'],
+    ['/alerts/f2607610-5100-4723-93d0-e6bbdcf00da0', 'alert ACKNOWLEDGED'],
+    ['/alerts/f2607610-5100-4723-93d0-e6bbdcf00da0', 'alert CLOSED'],
+    ['/alerts/f2607610-5100-4723-93d0-e6bbdcf00da0', 'alert mancante'],
+    ['/alerts/f2607610-5100-4723-93d0-e6bbdcf00da0', 'dialog alert'],
+    ['/alerts/f2607610-5100-4723-93d0-e6bbdcf00da0', 'conflitto alert'],
     ['/non-esiste', 'pagina non trovata'],
   ])('verifica %s nello stato %s', async (url, state) => {
     if (state === 'elenco vuoto') {
@@ -146,6 +157,58 @@ describe('Accessibilità semantica delle pagine', () => {
         ),
       );
     }
+    if (state === 'alert vuoti')
+      api.getAlerts.mockReturnValue(
+        of({
+          content: [],
+          page: 0,
+          size: 50,
+          totalElements: 0,
+          totalPages: 0,
+          first: true,
+          last: true,
+        }),
+      );
+    if (state === 'alert errore')
+      api.getAlerts.mockReturnValue(
+        throwError(
+          () =>
+            new ApiError(
+              'SERVICE_UNAVAILABLE',
+              503,
+              'Servizio temporaneamente non disponibile.',
+              true,
+            ),
+        ),
+      );
+    if (state === 'alert mancante')
+      api.getAlert.mockReturnValue(
+        throwError(() => new ApiError('ALERT_NOT_FOUND', 404, 'Alert non trovato.', false)),
+      );
+    if (state === 'alert ACKNOWLEDGED')
+      api.getAlert.mockReturnValue(
+        of({ ...TEST_ALERT, status: 'ACKNOWLEDGED', acknowledgedAt: '2026-11-08T20:01:00Z' }),
+      );
+    if (state === 'alert CLOSED')
+      api.getAlert.mockReturnValue(
+        of({ ...TEST_ALERT, status: 'CLOSED', closedAt: '2026-11-08T20:02:00Z' }),
+      );
+    if (state === 'conflitto alert') {
+      api.getAlert
+        .mockReturnValueOnce(of(TEST_ALERT))
+        .mockReturnValue(of({ ...TEST_ALERT, status: 'CLOSED', closedAt: '2026-11-08T20:02:00Z' }));
+      api.changeAlertStatus.mockReturnValue(
+        throwError(
+          () =>
+            new ApiError(
+              'ALERT_STATUS_TRANSITION_CONFLICT',
+              409,
+              'Lo stato dell’alert è cambiato. Aggiorna i dati.',
+              false,
+            ),
+        ),
+      );
+    }
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
     await TestBed.inject(Router).navigateByUrl(url);
@@ -166,7 +229,14 @@ describe('Accessibilità semantica delle pagine', () => {
       fixture.nativeElement.querySelector('form button[type="submit"]').click();
       await fixture.whenStable();
     }
-    if (state === 'modale') {
+    if (state === 'filtri alert invalidi') {
+      const input = fixture.nativeElement.querySelector('#alert-vehicleId') as HTMLInputElement;
+      input.value = 'invalido';
+      input.dispatchEvent(new Event('input'));
+      fixture.nativeElement.querySelector('form button[type="submit"]').click();
+      await fixture.whenStable();
+    }
+    if (state === 'modale' || state === 'dialog alert' || state === 'conflitto alert') {
       const dialog: HTMLDialogElement = fixture.nativeElement.querySelector('dialog');
       // jsdom lacks the native dialog API. Keyboard containment is a browser acceptance check.
       Object.defineProperties(dialog, {
@@ -175,6 +245,10 @@ describe('Accessibilità semantica delle pagine', () => {
       });
       fixture.nativeElement.querySelector('.panel .actions button').click();
       await fixture.whenStable();
+      if (state === 'conflitto alert') {
+        fixture.nativeElement.querySelector('dialog button').click();
+        await fixture.whenStable();
+      }
     }
 
     const report = await axe.run(document.documentElement, {

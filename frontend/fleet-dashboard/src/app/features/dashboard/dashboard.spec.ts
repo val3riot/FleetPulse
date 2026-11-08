@@ -72,8 +72,12 @@ describe('Dashboard operativa', () => {
     const rows: HTMLElement[] = [...fixture.nativeElement.querySelectorAll('tbody tr')];
     expect(rows[0].textContent).toContain('Critica');
     expect(rows[1].textContent).toContain('Preso in carico');
-    expect(rows[0].querySelector('a')!.getAttribute('href')).toBe('/vehicles/first-vehicle');
-    expect(rows[1].querySelector('a')!.getAttribute('href')).toBe('/vehicles/second-vehicle');
+    expect(rows[0].querySelector('a[href^="/vehicles/"]')!.getAttribute('href')).toBe(
+      '/vehicles/first-vehicle',
+    );
+    expect(rows[1].querySelector('a[href^="/vehicles/"]')!.getAttribute('href')).toBe(
+      '/vehicles/second-vehicle',
+    );
     expect(fixture.nativeElement.textContent).toContain('possono includere veicoli disabilitati');
     http.expectNone((r) => r.url.includes('/vehicles/'));
   });

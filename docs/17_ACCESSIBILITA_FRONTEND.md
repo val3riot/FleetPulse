@@ -107,6 +107,27 @@ Queste esclusioni sono limiti dello strumento, non deroghe ai requisiti.
   errore API, URL invalida e form invalido. Scroll, zoom, controlli data nativi
   e lettura con screen reader richiedono la verifica manuale sotto descritta.
 
+## Alert
+
+- Filtri con label visibili, istruzioni sui campi facoltativi e asterisco/required
+  per size e sort; errori associati e focus al primo controllo invalido.
+- Tabella con caption, scope, stato/severità testuali, data con `aria-sort` e
+  contenitore scorrevole nominato e focusabile. Nessun tabindex sulle righe.
+- Paginazione nominata, messaggi di caricamento/conteggio persistenti, errori
+  `role=alert`; risposta di pagina porta ai risultati senza interrompere chi
+  si è spostato sui filtri durante l'attesa.
+- Dettaglio con titoli, lista descrittiva, date nullable esplicite e azioni
+  coerenti con lo stato, mai comunicate soltanto tramite colore.
+- Conferma nativa `dialog` con titolo e descrizione; focus iniziale su Annulla,
+  Esc prima dell'invio, blocco durante invio e ritorno al trigger o ad Aggiorna
+  stato se il comando ha rimosso il pulsante. Durante il salvataggio il focus
+  resta su una descrizione accessibile e non su un controllo disabilitato.
+- Successo, conflitto ed esito incerto hanno messaggi persistenti. Una rilettura
+  non sottrae il focus a un controllo sul quale l'operatore si è già spostato.
+- Axe su lista piena/vuota/errore/form invalido/URL invalida e dettaglio nei tre
+  stati, mancante, conferma aperta e conflitto. Test HTTP coprono focus e comandi;
+  dialog API simulate in jsdom, contenimento reale e zoom restano prove browser.
+
 ## Accettazione manuale di una pagina
 
 - Usare solo tastiera: Tab, Shift+Tab, Invio, Spazio e, per le modali, Esc.

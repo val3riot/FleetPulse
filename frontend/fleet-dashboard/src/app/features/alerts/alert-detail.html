@@ -1,0 +1,107 @@
+<a routerLink="/alerts" [queryParams]="returnParams()">Torna agli alert</a>
+<h1 #detailHeading tabindex="-1">Dettaglio alert</h1>
+<p class="live-status" role="status">{{ statusMessage() }}</p>
+@if (error(); as failure) {
+  <app-api-error-notice [error]="failure" />
+  @if (alert()) {
+    <p>I dati visualizzati appartengono all’ultima lettura riuscita.</p>
+  }
+}
+@if (mutationError(); as failure) {
+  <app-api-error-notice [error]="failure" />
+}
+<button
+  #reloadButton
+  type="button"
+  [attr.aria-disabled]="loading() || saving() || !!pending()"
+  (click)="reload()"
+>
+  {{ error() ? 'Riprova lettura' : 'Aggiorna stato' }}
+</button>
+@if (item(); as alert) {
+  <section class="panel" aria-label="Dati alert" [attr.aria-busy]="loading()">
+    <h2>{{ alert.typeLabel }}</h2>
+    <p>{{ alert.description }}</p>
+    <dl>
+      <dt>Severità</dt>
+      <dd>{{ alert.severityLabel }}</dd>
+      <dt>Stato</dt>
+      <dd>{{ alert.statusLabel }}</dd>
+      <dt>Creato il</dt>
+      <dd>
+        <time [attr.datetime]="alert.createdAt">{{ alert.createdAt | utcDateTime }}</time>
+      </dd>
+      <dt>Preso in carico il</dt>
+      <dd>
+        @if (alert.acknowledgedAt) {
+          <time [attr.datetime]="alert.acknowledgedAt">{{
+            alert.acknowledgedAt | utcDateTime
+          }}</time>
+        } @else {
+          Non ancora preso in carico
+        }
+      </dd>
+      <dt>Chiuso il</dt>
+      <dd>
+        @if (alert.closedAt) {
+          <time [attr.datetime]="alert.closedAt">{{ alert.closedAt | utcDateTime }}</time>
+        } @else {
+          Non chiuso
+        }
+      </dd>
+      <dt>Veicolo</dt>
+      <dd>
+        <a [routerLink]="['/vehicles', alert.vehicleId]">{{ alert.vehicleId }}</a>
+      </dd>
+      <dt>Identificativo alert</dt>
+      <dd>{{ alert.id }}</dd>
+    </dl>
+    <div class="actions">
+      @if (alert.status === 'OPEN') {
+        <button
+          #ackButton
+          type="button"
+          [attr.aria-disabled]="actionsBlocked()"
+          (click)="requestChange('ACKNOWLEDGED', ackButton)"
+        >
+          Prendi in carico
+        </button>
+      }
+      @if (alert.status === 'OPEN' || alert.status === 'ACKNOWLEDGED') {
+        <button
+          #closeButton
+          type="button"
+          [attr.aria-disabled]="actionsBlocked()"
+          (click)="requestChange('CLOSED', closeButton)"
+        >
+          Chiudi alert
+        </button>
+      }
+    </div>
+  </section>
+}
+<dialog
+  #confirmationDialog
+  class="confirmation-dialog"
+  aria-labelledby="alert-dialog-title"
+  aria-describedby="alert-dialog-description"
+  [attr.aria-busy]="saving()"
+  (cancel)="onCancel($event)"
+>
+  <h2 id="alert-dialog-title">
+    {{ pending() === 'CLOSED' ? 'Conferma chiusura' : 'Conferma presa in carico' }}
+  </h2>
+  <p #dialogDescription id="alert-dialog-description" tabindex="-1">
+    @if (saving()) {
+      Salvataggio in corso…
+    } @else if (pending() === 'CLOSED') {
+      Vuoi chiudere questo alert? Non sarà possibile riaprirlo.
+    } @else {
+      Vuoi prendere in carico questo alert?
+    }
+  </p>
+  <div class="actions">
+    <button type="button" [disabled]="saving()" (click)="confirm()">Conferma</button
+    ><button #cancelButton type="button" [disabled]="saving()" (click)="cancel()">Annulla</button>
+  </div>
+</dialog>

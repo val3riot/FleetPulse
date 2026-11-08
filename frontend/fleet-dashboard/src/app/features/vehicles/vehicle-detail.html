@@ -26,6 +26,7 @@
     </dl>
     <div class="actions">
       <a [routerLink]="['/vehicles', item.id, 'telemetry']">Storico telemetria</a>
+      <a routerLink="/alerts" [queryParams]="{ vehicleId: item.id }">Alert del veicolo</a>
       <button
         type="button"
         #statusChangeButton

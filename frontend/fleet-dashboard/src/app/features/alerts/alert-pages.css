@@ -1,0 +1,125 @@
+form {
+  background: var(--color-surface);
+  border: 1px solid var(--color-control-border);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-block: 1rem;
+}
+.filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  gap: 1rem;
+}
+label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+input,
+select,
+button {
+  font: inherit;
+  border: 1px solid var(--color-control-border);
+  border-radius: 0.25rem;
+  color: var(--color-text);
+  background: var(--color-surface);
+  padding: 0.5rem;
+  min-height: 2.75rem;
+}
+input,
+select {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+}
+button {
+  cursor: pointer;
+}
+button[aria-disabled='true'] {
+  cursor: default;
+  background: var(--color-muted-surface);
+}
+.field-error {
+  color: var(--color-error);
+  margin-block: 0.25rem;
+}
+.field-error:empty {
+  margin: 0;
+}
+.interval {
+  overflow-wrap: anywhere;
+}
+.table-scroll {
+  overflow-x: auto;
+  max-width: 100%;
+  border: 1px solid var(--color-control-border);
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  background: var(--color-surface);
+}
+caption {
+  text-align: left;
+  padding: 0.75rem;
+  font-weight: 600;
+}
+th,
+td {
+  text-align: left;
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--color-control-border);
+}
+th {
+  background: var(--color-muted-surface);
+}
+time {
+  white-space: nowrap;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-block: 1rem;
+}
+.pagination p {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+.panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-control-border);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-block: 1rem;
+}
+dl {
+  display: grid;
+  grid-template-columns: minmax(0, 12rem) minmax(0, 1fr);
+  gap: 0.5rem 1rem;
+}
+dt {
+  font-weight: 600;
+}
+dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.confirmation-dialog {
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-control-border);
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  max-width: min(32rem, calc(100vw - 5rem));
+}
+.confirmation-dialog::backdrop {
+  background: rgb(0 0 0 / 55%);
+}
+@media (max-width: 36rem) {
+  dl {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

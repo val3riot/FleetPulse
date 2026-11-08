@@ -32,8 +32,12 @@ export const routes: Routes = [
   {
     path: 'alerts',
     title: 'Alert | FleetPulse',
-    loadComponent: () => import('./features/feature-preview').then((m) => m.FeaturePreview),
-    data: { heading: 'Alert', description: 'La gestione degli alert sarà disponibile con FP-065.' },
+    loadComponent: () => import('./features/alerts/alert-list').then((m) => m.AlertList),
+  },
+  {
+    path: 'alerts/:id',
+    title: 'Dettaglio alert | FleetPulse',
+    loadComponent: () => import('./features/alerts/alert-detail').then((m) => m.AlertDetail),
   },
   ...DEV_ROUTES,
   {

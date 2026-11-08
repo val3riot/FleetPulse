@@ -39,7 +39,7 @@ describe('Navigazione FleetPulse', () => {
   it.each([
     ['/dashboard', 'Dashboard', ''],
     ['/vehicles', 'Veicoli', ''],
-    ['/alerts', 'Alert', 'FP-065'],
+    ['/alerts', 'Alert', ''],
   ])('apre %s e aggiorna titolo e navigazione', async (url, heading, ticket) => {
     const fixture = await open(url);
     const element: HTMLElement = fixture.nativeElement;

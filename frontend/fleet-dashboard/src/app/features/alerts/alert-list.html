@@ -1,0 +1,253 @@
+<h1>Alert</h1>
+<p id="alert-filter-help">
+  Filtri facoltativi, combinati tra loro. Gli orari corrispondono a quelli del database. I campi con
+  * sono obbligatori.
+</p>
+<form
+  #filterForm
+  [formGroup]="filters"
+  (ngSubmit)="applyFilters()"
+  aria-label="Filtri alert"
+  aria-describedby="alert-filter-help"
+  novalidate
+>
+  <div class="filters">
+    <div>
+      <label for="alert-vehicleId">Veicolo (UUID)</label
+      ><input
+        id="alert-vehicleId"
+        formControlName="vehicleId"
+        [attr.aria-invalid]="fieldError('vehicleId') ? 'true' : null"
+        aria-describedby="alert-vehicleId-error"
+        type="text"
+        maxlength="36"
+      />
+      <p id="alert-vehicleId-error" class="field-error">{{ fieldError('vehicleId') }}</p>
+    </div>
+    <div>
+      <label for="alert-status">Stato</label
+      ><select
+        id="alert-status"
+        formControlName="status"
+        [attr.aria-invalid]="fieldError('status') ? 'true' : null"
+        aria-describedby="alert-status-error"
+      >
+        <option value="">Tutti</option>
+        @for (option of statuses; track option[0]) {
+          <option [value]="option[0]">{{ option[1] }}</option>
+        }
+      </select>
+      <p id="alert-status-error" class="field-error">{{ fieldError('status') }}</p>
+    </div>
+    <div>
+      <label for="alert-type">Tipo</label
+      ><select
+        id="alert-type"
+        formControlName="type"
+        [attr.aria-invalid]="fieldError('type') ? 'true' : null"
+        aria-describedby="alert-type-error"
+      >
+        <option value="">Tutti</option>
+        @for (option of types; track option[0]) {
+          <option [value]="option[0]">{{ option[1] }}</option>
+        }
+      </select>
+      <p id="alert-type-error" class="field-error">{{ fieldError('type') }}</p>
+    </div>
+    <div>
+      <label for="alert-severity">Severità</label
+      ><select
+        id="alert-severity"
+        formControlName="severity"
+        [attr.aria-invalid]="fieldError('severity') ? 'true' : null"
+        aria-describedby="alert-severity-error"
+      >
+        <option value="">Tutti</option>
+        @for (option of severities; track option[0]) {
+          <option [value]="option[0]">{{ option[1] }}</option>
+        }
+      </select>
+      <p id="alert-severity-error" class="field-error">{{ fieldError('severity') }}</p>
+    </div>
+    <div>
+      <label for="alert-from">Da</label
+      ><input
+        id="alert-from"
+        formControlName="from"
+        [attr.aria-invalid]="fieldError('from') ? 'true' : null"
+        aria-describedby="alert-from-error"
+        type="datetime-local"
+        step="1"
+      />
+      <p id="alert-from-error" class="field-error">{{ fieldError('from') }}</p>
+    </div>
+    <div>
+      <label for="alert-to">A</label
+      ><input
+        id="alert-to"
+        formControlName="to"
+        [attr.aria-invalid]="fieldError('to') ? 'true' : null"
+        aria-describedby="alert-to-error"
+        type="datetime-local"
+        step="1"
+      />
+      <p id="alert-to-error" class="field-error">{{ fieldError('to') }}</p>
+    </div>
+    <div>
+      <label for="alert-size">Alert per pagina *</label
+      ><input
+        id="alert-size"
+        formControlName="size"
+        [attr.aria-invalid]="fieldError('size') ? 'true' : null"
+        aria-describedby="alert-size-error"
+        type="number"
+        required
+        min="1"
+        max="100"
+        step="1"
+      />
+      <p id="alert-size-error" class="field-error">{{ fieldError('size') }}</p>
+    </div>
+    <div>
+      <label for="alert-sort">Data di creazione *</label
+      ><select
+        id="alert-sort"
+        formControlName="sort"
+        [attr.aria-invalid]="fieldError('sort') ? 'true' : null"
+        aria-describedby="alert-sort-error"
+        required
+      >
+        <option value="createdAt,desc">Dalla più recente</option>
+        <option value="createdAt,asc">Dalla meno recente</option>
+      </select>
+      <p id="alert-sort-error" class="field-error">{{ fieldError('sort') }}</p>
+    </div>
+  </div>
+  <div class="actions">
+    <button type="submit">Applica filtri</button
+    ><button type="button" (click)="resetFilters()">Azzera filtri</button>
+  </div>
+</form>
+@if (issues().length) {
+  <section role="alert" aria-label="Filtri non validi">
+    <p>Correggi i filtri e applicali per caricare gli alert.</p>
+    <ul>
+      @for (issue of issues(); track $index) {
+        <li>{{ issue }}</li>
+      }
+    </ul>
+  </section>
+}
+<section
+  #resultsRegion
+  tabindex="-1"
+  aria-labelledby="alert-results-title"
+  [attr.aria-busy]="loading()"
+>
+  <h2 id="alert-results-title">Risultati ricerca</h2>
+  <p role="status" class="live-status">{{ statusMessage() }}</p>
+  @if (error(); as failure) {
+    <app-api-error-notice [error]="failure" />
+  }
+  @if (applied()) {
+    <button type="button" [attr.aria-disabled]="loading()" (click)="reload()">
+      {{ error() ? 'Riprova' : 'Aggiorna risultati' }}
+    </button>
+  }
+  @if (result(); as page) {
+    @if (page.content.length) {
+      <p id="alert-scroll-help">
+        La tabella può scorrere orizzontalmente: da tastiera porta il focus sul contenitore e usa le
+        frecce.
+      </p>
+      <div
+        class="table-scroll"
+        role="region"
+        aria-label="Tabella alert"
+        aria-describedby="alert-scroll-help"
+        tabindex="0"
+      >
+        <table>
+          <caption>
+            Alert · pagina
+            {{
+              page.page + 1
+            }}
+            di
+            {{
+              page.totalPages
+            }}
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Tipo e descrizione</th>
+              <th scope="col">Severità</th>
+              <th scope="col">Stato</th>
+              <th
+                scope="col"
+                [attr.aria-sort]="applied()?.sort === 'createdAt,asc' ? 'ascending' : 'descending'"
+              >
+                Creato il
+              </th>
+              <th scope="col">Veicolo</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (alert of rows(); track alert.id) {
+              <tr>
+                <th scope="row">
+                  <a [routerLink]="['/alerts', alert.id]" [queryParams]="appliedParams()">{{
+                    alert.typeLabel
+                  }}</a>
+                  <p>{{ alert.description }}</p>
+                </th>
+                <td>{{ alert.severityLabel }}</td>
+                <td>{{ alert.statusLabel }}</td>
+                <td>
+                  <time [attr.datetime]="alert.createdAt">{{ alert.createdAt | utcDateTime }}</time>
+                </td>
+                <td>
+                  <a [routerLink]="['/vehicles', alert.vehicleId]">Veicolo {{ alert.vehicleId }}</a>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <p>
+        {{
+          page.totalElements === 0
+            ? 'Nessun alert corrisponde ai filtri.'
+            : 'Questa pagina non contiene alert. Torna alla prima pagina.'
+        }}
+      </p>
+    }
+    <nav class="actions pagination" aria-label="Paginazione alert">
+      <p>
+        Pagina {{ page.page + 1 }} di {{ page.totalPages || 1 }} · {{ page.totalElements }} alert
+      </p>
+      <button
+        type="button"
+        [attr.aria-disabled]="loading() || page.page === 0"
+        (click)="page.page > 0 && changePage(0)"
+      >
+        Prima pagina
+      </button>
+      <button
+        type="button"
+        [attr.aria-disabled]="loading() || page.first || page.page === 0"
+        (click)="!page.first && page.page > 0 && changePage(page.page - 1)"
+      >
+        Precedente
+      </button>
+      <button
+        type="button"
+        [attr.aria-disabled]="loading() || page.last"
+        (click)="!page.last && changePage(page.page + 1)"
+      >
+        Successiva
+      </button>
+    </nav>
+  }
+</section>

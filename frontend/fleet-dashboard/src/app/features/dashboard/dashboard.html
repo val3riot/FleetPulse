@@ -48,7 +48,7 @@
             @for (alert of alerts(); track alert.id) {
               <tr>
                 <td>
-                  {{ alert.typeLabel }}
+                  <a [routerLink]="['/alerts', alert.id]">{{ alert.typeLabel }}</a>
                   <p>{{ alert.description }}</p>
                 </td>
                 <td>{{ alert.severityLabel }}</td>
