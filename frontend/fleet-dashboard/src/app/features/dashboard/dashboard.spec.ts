@@ -182,4 +182,50 @@ describe('Dashboard operativa', () => {
     ) as HTMLTimeElement;
     expect(readTime.textContent).toMatch(/^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}:\d{2}$/);
   });
+  it('mantiene snapshot, KPI, righe e focus per risposte identiche senza salti durante la lettura', () => {
+    const { fixture, component, http } = setup();
+    http.expectOne('/api/v1/dashboard').flush(dashboard);
+    fixture.detectChanges();
+    const snapshot = component.resource.data();
+    const kpis = component.kpis();
+    const alerts = component.alerts();
+    const row = fixture.nativeElement.querySelector('tbody tr');
+    const link = row.querySelector('a') as HTMLAnchorElement;
+    link.focus();
+    component.resource.refresh();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).not.toContain('Aggiornamento in corso');
+    expect(component.resource.loading()).toBe(true);
+    http.expectOne('/api/v1/dashboard').flush(structuredClone(dashboard));
+    fixture.detectChanges();
+    expect(component.resource.data()).toBe(snapshot);
+    expect(component.kpis()).toBe(kpis);
+    expect(component.alerts()).toBe(alerts);
+    expect(fixture.nativeElement.querySelector('tbody tr')).toBe(row);
+    expect(document.activeElement).toBe(link);
+    component.resource.refresh();
+    http.expectOne('/api/v1/dashboard').flush({ ...dashboard, openAlerts: 99 });
+    fixture.detectChanges();
+    expect(component.resource.data()?.openAlerts).toBe(99);
+    expect(component.kpis()).not.toBe(kpis);
+  });
+  it('recupera da errore anche se i dati non sono cambiati e aggiorna la data della verifica', () => {
+    const { fixture, component, http } = setup();
+    http.expectOne('/api/v1/dashboard').flush(dashboard);
+    fixture.detectChanges();
+    const data = component.resource.data();
+    const time = component.resource.lastSuccessfulAt();
+    component.resource.refresh();
+    http
+      .expectOne('/api/v1/dashboard')
+      .flush({ code: 'SERVICE_UNAVAILABLE' }, { status: 503, statusText: 'Unavailable' });
+    fixture.detectChanges();
+    expect(component.resource.error()).not.toBeNull();
+    component.resource.refresh();
+    http.expectOne('/api/v1/dashboard').flush(structuredClone(dashboard));
+    fixture.detectChanges();
+    expect(component.resource.data()).toBe(data);
+    expect(component.resource.error()).toBeNull();
+    expect(component.resource.lastSuccessfulAt()).not.toBe(time);
+  });
 });

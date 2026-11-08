@@ -6,6 +6,8 @@ import { createPollingResource } from '../../core/polling/polling-resource';
 import { ApiErrorNotice } from '../../shared/api-error-notice';
 import { PollingControls } from '../../shared/polling-controls';
 
+import { sameDashboard } from './dashboard-equality';
+
 const counts = new Intl.NumberFormat('it-IT', { maximumFractionDigits: 0 });
 const types: Record<string, string> = {
   ENGINE_TEMPERATURE_HIGH: 'Temperatura motore alta',
@@ -34,6 +36,7 @@ export class Dashboard {
   private readonly api = inject(FleetApi);
   readonly resource = createPollingResource(() => this.api.getDashboard(), {
     pauseScope: 'dashboard',
+    equal: sameDashboard,
   });
   readonly statusMessage = computed(() => {
     if (this.resource.initialLoading()) return 'Caricamento dashboard…';

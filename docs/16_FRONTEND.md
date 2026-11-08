@@ -195,6 +195,15 @@ timer JavaScript. Può essere sostituito nei provider applicativi o nei test.
   fermano l'automatismo per evitare loop; l'utente può riprovare esplicitamente.
   L'assenza di telemetria è l'eccezione di dominio che continua a essere verificata.
 
+La dashboard confronta i valori del DTO, inclusi tutti i campi e l'ordine degli
+alert. Una risposta identica mantiene il riferimento del signal dati e delle
+proiezioni KPI/alert; un cambiamento effettivo viene pubblicato. Il confronto è
+configurabile sulla risorsa, senza cache globale. Successo, errori e data di
+verifica restano indipendenti: anche una risposta identica aggiorna l'ultima
+lettura riuscita e cancella un errore precedente. Il testo di caricamento è
+visibile soltanto prima del primo successo, evitando salti del layout ai cicli
+in background. Richieste e attesa di cinque secondi rimangono invariate.
+
 I controlli di aggiornamento rimangono nel DOM. Quando una lettura è in corso,
 aria-disabled indica l'indisponibilità del refresh e l'handler impedisce un
 secondo invio, mantenendo il pulsante focusabile. I cicli non spostano il focus,

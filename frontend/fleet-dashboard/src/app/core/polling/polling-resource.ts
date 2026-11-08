@@ -22,7 +22,8 @@ export interface PollingResource<T> extends PollingControlsState {
   readonly initialLoading: Signal<boolean>;
 }
 
-interface PollingOptions {
+interface PollingOptions<T> {
+  readonly equal?: (previous: T, current: T) => boolean;
   readonly pauseScope?: PollingPauseScope;
   readonly key?: Signal<string>;
   readonly suspended?: Signal<boolean>;
@@ -33,7 +34,7 @@ interface PollingOptions {
 /** One resource per component: completion-based polling, never a global cache. */
 export function createPollingResource<T>(
   request: () => Observable<T>,
-  options: PollingOptions = {},
+  options: PollingOptions<T> = {},
 ): PollingResource<T> {
   const { intervalMs } = inject(POLLING_CONFIG);
   if (!Number.isSafeInteger(intervalMs) || intervalMs <= 0 || intervalMs > 2147483647) {
@@ -41,7 +42,11 @@ export function createPollingResource<T>(
   }
   const document = inject(DOCUMENT);
   const destroyRef = inject(DestroyRef);
-  const data = signal<T | null>(null);
+  const data = signal<T | null>(null, {
+    equal: (previous, current) =>
+      Object.is(previous, current) ||
+      (previous !== null && current !== null && (options.equal?.(previous, current) ?? false)),
+  });
   const error = signal<ApiError | null>(null);
   const loading = signal(false);
   const completed = signal(false);

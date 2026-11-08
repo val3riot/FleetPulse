@@ -15,7 +15,7 @@ import { PollingControlsState } from '../core/polling/polling-resource';
       </button>
     </div>
     <p class="live-status" role="status">{{ modeMessage() }}</p>
-    @if (resource().loading()) {
+    @if (resource().loading() && !resource().lastSuccessfulAt()) {
       <p>Aggiornamento in corso…</p>
     }
     @if (resource().lastSuccessfulAt(); as time) {
