@@ -2,7 +2,7 @@
   display: block;
 }
 header {
-  background: white;
+  background: var(--color-surface);
   border-bottom: 1px solid #d5dee8;
   padding: 1rem 1.5rem;
   display: flex;
@@ -20,6 +20,10 @@ nav {
   flex-wrap: wrap;
 }
 nav a {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 2.75rem;
+  box-sizing: border-box;
   padding: 0.4rem 0.2rem;
   text-decoration: none;
 }

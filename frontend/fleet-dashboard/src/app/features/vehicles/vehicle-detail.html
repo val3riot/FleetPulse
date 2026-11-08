@@ -1,0 +1,67 @@
+<a routerLink="/vehicles">Torna ai veicoli</a>
+<h1 #detailHeading tabindex="-1">Dettaglio veicolo</h1>
+<p class="live-status" role="status">{{ statusMessage() }}</p>
+@if (error(); as failure) {
+  <app-api-error-notice [error]="failure" />
+  <button type="button" (click)="reload()">Riprova</button>
+}
+@if (vehicle(); as item) {
+  <section class="panel" aria-label="Anagrafica veicolo">
+    <h2>{{ item.externalCode }}</h2>
+    <dl>
+      <dt>Targa</dt>
+      <dd>{{ item.plate }}</dd>
+      <dt>Stato</dt>
+      <dd>
+        <span class="badge">{{ item.status === 'ACTIVE' ? 'Attivo' : 'Disabilitato' }}</span>
+      </dd>
+      <dt>Intervallo manutenzione</dt>
+      <dd>{{ item.serviceIntervalKm }} km</dd>
+      <dt>Prossima manutenzione</dt>
+      <dd>{{ item.nextServiceAtKm }} km</dd>
+      <dt>Registrato il</dt>
+      <dd>{{ item.createdAt | date: 'dd/MM/yyyy HH:mm:ss Z' }}</dd>
+      <dt>Identificativo</dt>
+      <dd>{{ item.id }}</dd>
+    </dl>
+    <div class="actions">
+      <button
+        type="button"
+        #statusChangeButton
+        [disabled]="saving() || uncertain() || !!pendingStatus()"
+        (click)="requestStatusChange()"
+      >
+        {{ item.status === 'ACTIVE' ? 'Disabilita veicolo' : 'Attiva veicolo' }}
+      </button>
+      <button #reloadButton type="button" [disabled]="saving()" (click)="reload()">Aggiorna</button>
+    </div>
+  </section>
+}
+<dialog
+  #statusDialog
+  class="confirmation-dialog"
+  aria-labelledby="status-dialog-title"
+  aria-describedby="status-dialog-description"
+  [attr.aria-busy]="saving()"
+  (cancel)="onDialogCancel($event)"
+>
+  <h2 id="status-dialog-title">Conferma cambio stato</h2>
+  <p #dialogDescription id="status-dialog-description" tabindex="-1">
+    @if (saving()) {
+      Salvataggio del nuovo stato in corso…
+    } @else {
+      Vuoi {{ pendingStatus() === 'DISABLED' ? 'disabilitare' : 'attivare' }} questo veicolo?
+    }
+  </p>
+  <div class="actions">
+    <button type="button" [disabled]="saving()" (click)="confirmStatusChange()">
+      {{ saving() ? 'Salvataggio…' : 'Conferma' }}
+    </button>
+    <button #cancelButton type="button" [disabled]="saving()" (click)="cancelStatusChange()">
+      Annulla
+    </button>
+  </div>
+</dialog>
+@if (mutationError(); as failure) {
+  <app-api-error-notice [error]="failure" />
+}

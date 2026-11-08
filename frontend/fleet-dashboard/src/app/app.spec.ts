@@ -1,3 +1,5 @@
+import { createFleetApiStub } from './testing/fleet-api.stub';
+import { FleetApi } from './core/api/fleet-api';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { Title } from '@angular/platform-browser';
@@ -7,7 +9,16 @@ import { DEV_ROUTES as productionDevRoutes } from './dev/dev.routes.production';
 
 describe('Navigazione FleetPulse', () => {
   beforeEach(() =>
-    TestBed.configureTestingModule({ imports: [App], providers: [provideRouter(routes)] }),
+    TestBed.configureTestingModule({
+      imports: [App],
+      providers: [
+        provideRouter(routes),
+        {
+          provide: FleetApi,
+          useValue: createFleetApiStub(),
+        },
+      ],
+    }),
   );
 
   async function open(url: string) {
@@ -27,13 +38,13 @@ describe('Navigazione FleetPulse', () => {
 
   it.each([
     ['/dashboard', 'Dashboard', 'FP-063'],
-    ['/vehicles', 'Veicoli', 'FP-062'],
+    ['/vehicles', 'Veicoli', ''],
     ['/alerts', 'Alert', 'FP-065'],
-  ])('apre %s e indica la funzionalità in preparazione', async (url, heading, ticket) => {
+  ])('apre %s e aggiorna titolo e navigazione', async (url, heading, ticket) => {
     const fixture = await open(url);
     const element: HTMLElement = fixture.nativeElement;
     expect(element.querySelector('h1')?.textContent).toBe(heading);
-    expect(element.textContent).toContain(ticket);
+    if (ticket) expect(element.textContent).toContain(ticket);
     expect(TestBed.inject(Title).getTitle()).toBe(`${heading} | FleetPulse`);
     expect(element.querySelector('[aria-current="page"]')?.textContent).toBe(heading);
   });
@@ -64,7 +75,14 @@ describe('Navigazione FleetPulse', () => {
     const header = element.querySelector('app-header');
     const main = element.querySelector('main');
 
-    for (const url of ['/vehicles', '/alerts', '/non-esiste', '/dashboard']) {
+    for (const url of [
+      '/vehicles',
+      '/vehicles/new',
+      '/vehicles/id',
+      '/alerts',
+      '/non-esiste',
+      '/dashboard',
+    ]) {
       await TestBed.inject(Router).navigateByUrl(url);
       await fixture.whenStable();
       fixture.detectChanges();
@@ -77,6 +95,34 @@ describe('Navigazione FleetPulse', () => {
         url === '/non-esiste' ? 0 : 1,
       );
     }
+  });
+
+  it('porta il focus al contenuto dopo una navigazione di pagina', async () => {
+    const fixture = await open('/dashboard');
+    const link: HTMLAnchorElement = fixture.nativeElement.querySelector('a[href="/vehicles"]');
+    link.focus();
+    link.click();
+    await fixture.whenStable();
+    expect(document.activeElement).toBe(fixture.nativeElement.querySelector('main'));
+    expect(document.activeElement?.textContent).toContain('Veicoli');
+  });
+
+  it('mantiene il focus quando cambiano solo i parametri query', async () => {
+    const fixture = await open('/vehicles');
+    const input: HTMLInputElement = fixture.nativeElement.querySelector('#vehicle-query');
+    input.focus();
+    await TestBed.inject(Router).navigateByUrl('/vehicles?page=1');
+    await fixture.whenStable();
+    expect(document.activeElement).toBe(input);
+  });
+
+  it('rispetta un frammento esplicito senza forzare il focus sul main', async () => {
+    const fixture = await open('/dashboard');
+    const link: HTMLAnchorElement = fixture.nativeElement.querySelector('a[href="/vehicles"]');
+    link.focus();
+    await TestBed.inject(Router).navigateByUrl('/vehicles#main-content');
+    await fixture.whenStable();
+    expect(document.activeElement).toBe(link);
   });
 
   it('esclude le rotte diagnostiche dalla configurazione di produzione', () => {

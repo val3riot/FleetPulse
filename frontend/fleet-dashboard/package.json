@@ -11,10 +11,11 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint src --max-warnings=0",
-    "verify": "npm run lint && npm run format:check && npm run test:ci && npm run build",
+    "verify": "npm run lint && npm run format:check && npm run check:contrast && npm run test:ci && npm run build",
     "audit": "npm audit --audit-level=low",
     "mock:api": "node scripts/mock-api.mjs",
-    "start:api-check": "ng serve --proxy-config proxy.api-check.json"
+    "start:api-check": "ng serve --proxy-config proxy.api-check.json",
+    "check:contrast": "node scripts/check-contrast.mjs"
   },
   "private": true,
   "packageManager": "npm@10.9.8",
@@ -34,6 +35,7 @@
     "@angular/compiler-cli": "22.2.5",
     "@eslint/js": "10.0.1",
     "angular-eslint": "22.6.0",
+    "axe-core": "4.14.0",
     "eslint": "10.14.0",
     "jsdom": "^30.0.0",
     "prettier": "^3.8.1",

@@ -90,3 +90,28 @@ Refs: FP-001
 - Testare i punti di conteggio, failure/replay e confini temporali con un clock
   controllato; evitare sleep e soglie di durata dipendenti dalla macchina.
   Verificare anche nomi/tag/bucket sull'export Prometheus reale.
+
+
+## 4. Frontend — leggibilità, responsabilità e accessibilità
+
+- Componenti standalone organizzati per funzionalità. Il layout possiede
+  navigazione e focus delle pagine; i componenti funzionali possiedono i propri
+  dati, form e azioni. Il client REST e il mapping errori rimangono centralizzati.
+- Usare signals per lo stato visualizzato e computed per i valori derivati,
+  evitando copie sincronizzate dello stesso dato. RxJS gestisce HTTP e
+  cancellazione delle richieste; Reactive Forms gestisce valori e validazione.
+- Limitare gli effetti a operazioni esterne come il focus e le API native DOM.
+  Eseguirle dopo il rendering e cancellare sottoscrizioni/callback alla distruzione.
+  Nessuna richiesta HTTP deve partire dai metodi di lettura del template.
+- Estrarre componenti/helper quando esiste un riuso o una responsabilità distinta;
+  evitare store globali, librerie o astrazioni generiche per singole operazioni.
+  Nomi espliciti, metodi brevi e commenti che spiegano i vincoli non evidenti.
+- Limiti del dominio in costanti coerenti con API e schema; stessi valori nei
+  validatori e negli attributi HTML. Colori comuni nei token CSS della palette.
+- Applicare [i requisiti di accessibilità](17_ACCESSIBILITA_FRONTEND.md) insieme
+  alla funzionalità. Ogni modifica include test del comportamento e degli errori
+  pertinenti; condividere fixture di test senza accoppiare il codice prodotto
+  agli strumenti di test.
+- Un gate automatico verde non sostituisce la checklist manuale. Registrare in
+  tmp evidenze, limiti e controlli non eseguiti; mantenere i requisiti stabili in docs
+  e i comandi operativi nel README frontend.

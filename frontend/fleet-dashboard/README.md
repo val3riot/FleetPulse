@@ -40,7 +40,8 @@ compatibile sul backend.
 npm start             # server sviluppo su 127.0.0.1:4200
 npm run build         # build produzione in dist/fleet-dashboard/browser
 npm run watch         # build sviluppo continua
-npm run verify        # lint, formato, test e build produzione
+npm run verify        # lint, formato, contrasto, test e build produzione
+npm run check:contrast # verifica contrasti della palette CSS
 npm run lint          # ESLint TypeScript e template Angular
 npm test              # Vitest in modalità watch
 npm run test:ci        # singola esecuzione test, senza backend
@@ -80,6 +81,7 @@ e l'inoltro delle richieste API; il proxy di sviluppo non è incluso nella build
 
 ## Documentazione
 
+- [Requisiti di accessibilità](../../docs/17_ACCESSIBILITA_FRONTEND.md).
 - [Architettura frontend e client API](../../docs/16_FRONTEND.md).
 - [Contratto REST Fleet API](../../docs/09_SPECIFICA_API.md).
 - [Deployment della piattaforma](../../docs/13_DEPLOYMENT.md).

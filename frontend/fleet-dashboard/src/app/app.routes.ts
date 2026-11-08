@@ -15,11 +15,17 @@ export const routes: Routes = [
   {
     path: 'vehicles',
     title: 'Veicoli | FleetPulse',
-    loadComponent: () => import('./features/feature-preview').then((m) => m.FeaturePreview),
-    data: {
-      heading: 'Veicoli',
-      description: 'La gestione dei veicoli sarà disponibile con FP-062.',
-    },
+    loadComponent: () => import('./features/vehicles/vehicle-list').then((m) => m.VehicleList),
+  },
+  {
+    path: 'vehicles/new',
+    title: 'Registra veicolo | FleetPulse',
+    loadComponent: () => import('./features/vehicles/vehicle-create').then((m) => m.VehicleCreate),
+  },
+  {
+    path: 'vehicles/:id',
+    title: 'Dettaglio veicolo | FleetPulse',
+    loadComponent: () => import('./features/vehicles/vehicle-detail').then((m) => m.VehicleDetail),
   },
   {
     path: 'alerts',

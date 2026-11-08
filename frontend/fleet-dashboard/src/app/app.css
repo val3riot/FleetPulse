@@ -2,17 +2,24 @@
   display: block;
 }
 main {
+  min-width: 0;
+  overflow-wrap: anywhere;
   max-width: 76rem;
   margin: 0 auto;
   padding: 2rem 1.5rem;
 }
 .skip-link {
+  z-index: 1;
   position: absolute;
   left: 1rem;
   top: -5rem;
   padding: 0.5rem;
-  background: white;
+  background: var(--color-surface);
 }
 .skip-link:focus {
   top: 0.5rem;
+}
+
+main:focus-visible {
+  outline-offset: -3px;
 }

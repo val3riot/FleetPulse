@@ -724,3 +724,18 @@ costituisce un vulnerability scan o una certificazione di sicurezza.
 
 Istruzioni e configurazione in
 [infrastructure/quality](../infrastructure/quality/README.md).
+
+
+## Quality gate e accessibilità del frontend
+
+`npm run verify` nella cartella frontend verifica lint, formato, contrasto dei
+colori della palette, test dei componenti/client, controlli axe-core e build
+produzione. I test coprono anche focus dopo navigazione e validazione, errori,
+stati live e comportamento applicativo delle conferme.
+
+I controlli axe in jsdom coprono semantica e associazioni accessibili; non
+certificano contrasto renderizzato, geometria, zoom o comportamento nativo della
+modale. I rapporti della palette sono calcolati separatamente sui token CSS reali.
+Tastiera, screen reader, target, text spacing e reflow richiedono le verifiche
+manuali definite in [Accessibilità frontend](17_ACCESSIBILITA_FRONTEND.md).
+Resoconti delle singole esecuzioni e accettazione delle issue restano in tmp.

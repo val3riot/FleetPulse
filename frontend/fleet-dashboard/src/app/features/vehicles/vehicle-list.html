@@ -1,0 +1,101 @@
+<div class="page-heading">
+  <h1>Veicoli</h1>
+  <a routerLink="/vehicles/new" class="button-link">Registra veicolo</a>
+</div>
+<form [formGroup]="filters" (ngSubmit)="applyFilters()" class="filters">
+  <div class="field">
+    <label for="vehicle-query">Codice o targa</label>
+    <input id="vehicle-query" formControlName="query" type="search" />
+  </div>
+  <div class="field">
+    <label for="vehicle-status">Stato</label>
+    <select id="vehicle-status" formControlName="status">
+      <option value="">Tutti</option>
+      <option value="ACTIVE">Attivo</option>
+      <option value="DISABLED">Disabilitato</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for="vehicle-sort">Ordinamento</label>
+    <select id="vehicle-sort" formControlName="sort">
+      <option value="createdAt,desc">Più recenti</option>
+      <option value="createdAt,asc">Meno recenti</option>
+      <option value="externalCode,asc">Codice crescente</option>
+      <option value="plate,asc">Targa crescente</option>
+      <option value="status,asc">Stato crescente</option>
+    </select>
+  </div>
+  <button type="submit">Applica filtri</button>
+  <button type="button" (click)="resetFilters()">Azzera filtri</button>
+</form>
+<section
+  #resultsRegion
+  aria-label="Risultati ricerca veicoli"
+  tabindex="-1"
+  [attr.aria-busy]="loading()"
+>
+  <p class="live-status" role="status">{{ statusMessage() }}</p>
+  @if (error(); as failure) {
+    <app-api-error-notice [error]="failure" />
+    <button type="button" (click)="reload()">Riprova</button>
+  }
+  @if (result(); as page) {
+    @if (page.content.length) {
+      <div class="table-scroll" role="region" aria-label="Elenco veicoli" tabindex="0">
+        <table>
+          <caption>
+            Veicoli registrati
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Codice</th>
+              <th scope="col">Targa</th>
+              <th scope="col">Stato</th>
+              <th scope="col">Intervallo manutenzione</th>
+              <th scope="col">Prossima manutenzione</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (vehicle of page.content; track vehicle.id) {
+              <tr>
+                <td>
+                  <a [routerLink]="['/vehicles', vehicle.id]">{{ vehicle.externalCode }}</a>
+                </td>
+                <td>{{ vehicle.plate }}</td>
+                <td>
+                  <span class="badge">{{
+                    vehicle.status === 'ACTIVE' ? 'Attivo' : 'Disabilitato'
+                  }}</span>
+                </td>
+                <td>{{ vehicle.serviceIntervalKm }} km</td>
+                <td>{{ vehicle.nextServiceAtKm }} km</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <p>
+        {{
+          page.totalElements === 0
+            ? 'Nessun veicolo corrisponde ai filtri.'
+            : 'Nessun veicolo in questa pagina.'
+        }}
+      </p>
+    }
+    @if (page.totalPages > 0) {
+      <nav aria-label="Paginazione veicoli" class="actions">
+        <button type="button" (click)="changePage(page.page - 1)" [disabled]="page.first">
+          Precedente
+        </button>
+        <span>Pagina {{ page.page + 1 }} di {{ page.totalPages }}</span>
+        <button type="button" (click)="changePage(page.page + 1)" [disabled]="page.last">
+          Successiva
+        </button>
+        @if (page.page >= page.totalPages) {
+          <button type="button" (click)="changePage(0)">Torna alla prima pagina</button>
+        }
+      </nav>
+    }
+  }
+</section>

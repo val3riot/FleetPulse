@@ -163,6 +163,7 @@ esclusa da Git.
 | [Strategia di test](docs/12_STRATEGIA_DI_TEST.md) | Unit, integration ed end-to-end test |
 | [Deployment](docs/13_DEPLOYMENT.md) | Topologia dei container e configurazione |
 | [Architettura frontend](docs/16_FRONTEND.md) | Layout, client REST, errori e configurazione frontend |
+| [Accessibilità frontend](docs/17_ACCESSIBILITA_FRONTEND.md) | Requisiti WCAG, focus, form e verifiche |
 | [ADR](docs/adr/) | Decisioni architetturali |
 
 ## Operazioni

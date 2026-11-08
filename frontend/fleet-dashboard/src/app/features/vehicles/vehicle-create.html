@@ -1,0 +1,90 @@
+<a routerLink="/vehicles">Torna ai veicoli</a>
+<h1>Registra veicolo</h1>
+<p>Il nuovo veicolo sarà registrato come attivo.</p>
+<p>I campi contrassegnati con * sono obbligatori.</p>
+@if (error(); as failure) {
+  <div role="alert">
+    <p>{{ failure.message }}</p>
+    @for (detail of failure.details; track $index) {
+      @if (!form.get(detail.field)) {
+        <p>{{ detail.field }}: {{ detail.message }}</p>
+      }
+    }
+  </div>
+}
+@if (uncertain()) {
+  <p role="status">
+    L'esito della registrazione non è confermato. Cerca il codice o la targa nell'elenco prima di
+    ripetere la registrazione.
+  </p>
+  <a routerLink="/vehicles">Verifica nell'elenco veicoli</a>
+}
+<p class="live-status" role="status">{{ saving() ? 'Registrazione in corso…' : '' }}</p>
+<form #vehicleForm [formGroup]="form" (ngSubmit)="submit()" class="editor" novalidate>
+  <div class="field">
+    <label for="external-code">Codice esterno <span aria-hidden="true">*</span></label>
+    <input
+      id="external-code"
+      formControlName="externalCode"
+      [maxlength]="limits.externalCodeMaxLength"
+      required
+      aria-describedby="external-code-hint external-code-error"
+      [attr.aria-invalid]="!!fieldError('externalCode')"
+    />
+    <small id="external-code-hint">Massimo {{ limits.externalCodeMaxLength }} caratteri.</small>
+    <p id="external-code-error" class="field-error">{{ fieldError('externalCode') }}</p>
+  </div>
+  <div class="field">
+    <label for="plate">Targa <span aria-hidden="true">*</span></label>
+    <input
+      id="plate"
+      formControlName="plate"
+      [maxlength]="limits.plateMaxLength"
+      required
+      aria-describedby="plate-hint plate-error"
+      [attr.aria-invalid]="!!fieldError('plate')"
+    />
+    <small id="plate-hint">Massimo {{ limits.plateMaxLength }} caratteri.</small>
+    <p id="plate-error" class="field-error">{{ fieldError('plate') }}</p>
+  </div>
+  <div class="field">
+    <label for="service-interval"
+      >Intervallo manutenzione (km) <span aria-hidden="true">*</span></label
+    >
+    <input
+      id="service-interval"
+      type="number"
+      formControlName="serviceIntervalKm"
+      [min]="limits.serviceIntervalMinKm"
+      [max]="limits.serviceIntervalMaxKm"
+      step="1"
+      required
+      aria-describedby="service-interval-hint service-interval-error"
+      [attr.aria-invalid]="!!fieldError('serviceIntervalKm')"
+    />
+    <small id="service-interval-hint">Numero intero maggiore di zero.</small>
+    <p id="service-interval-error" class="field-error">{{ fieldError('serviceIntervalKm') }}</p>
+  </div>
+  <div class="field">
+    <label for="next-service">Prossima manutenzione (km) <span aria-hidden="true">*</span></label>
+    <input
+      id="next-service"
+      type="number"
+      formControlName="nextServiceAtKm"
+      [min]="limits.nextServiceMinKm"
+      [max]="limits.nextServiceMaxKm"
+      step="1"
+      required
+      aria-describedby="next-service-hint next-service-error"
+      [attr.aria-invalid]="!!fieldError('nextServiceAtKm')"
+    />
+    <small id="next-service-hint">Numero intero maggiore o uguale a zero.</small>
+    <p id="next-service-error" class="field-error">{{ fieldError('nextServiceAtKm') }}</p>
+  </div>
+  <div class="actions">
+    <button type="submit" [disabled]="saving() || uncertain()">
+      {{ saving() ? 'Registrazione…' : 'Registra veicolo' }}
+    </button>
+    <a routerLink="/vehicles">Annulla</a>
+  </div>
+</form>

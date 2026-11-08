@@ -218,6 +218,19 @@ Le integrazioni devono poter essere verificate tramite container temporanei.
 
 Nel repository e negli ambienti di test devono essere usati soltanto dati sintetici.
 
+### RNF-013 — Accessibilità e qualità del frontend
+
+Il Fleet Dashboard assume WCAG 2.2 livello AA come obiettivo di accessibilità
+per tutte le funzionalità consegnate. Etichette, tastiera, focus, gestione degli
+errori, contrasti, reflow e messaggi dinamici fanno parte dell'accettazione delle
+pagine, insieme al comportamento funzionale. Una scansione automatica senza
+violazioni non dimostra da sola la conformità.
+
+Requisiti verificabili e modalità di controllo sono definiti in
+[Accessibilità frontend](17_ACCESSIBILITA_FRONTEND.md). Il codice deve mantenere
+responsabilità separate, limiti coerenti con i contratti e test comportamentali
+per ogni funzionalità, secondo le [convenzioni](14_CONVENZIONI_DI_SVILUPPO.md).
+
 ## 3. Vincoli
 
 - runtime Java 21;

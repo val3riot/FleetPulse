@@ -1,0 +1,147 @@
+:host {
+  display: block;
+}
+.page-heading,
+.actions,
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.page-heading {
+  justify-content: space-between;
+}
+.filters {
+  align-items: end;
+  margin: 1.5rem 0;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+label {
+  font-weight: 600;
+}
+input,
+select,
+button,
+.button-link {
+  font: inherit;
+  min-block-size: 2.75rem;
+  box-sizing: border-box;
+  border: 1px solid var(--color-control-border);
+  border-radius: 0.3rem;
+  padding: 0.5rem 0.75rem;
+}
+input,
+select {
+  background: var(--color-surface);
+  color: inherit;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+button,
+.button-link {
+  background: var(--color-surface);
+  color: var(--color-link);
+  cursor: pointer;
+}
+.button-link {
+  text-decoration: none;
+}
+button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.editor {
+  max-width: 36rem;
+  display: grid;
+  gap: 0.75rem;
+}
+.field-error {
+  color: var(--color-error);
+  margin: 0;
+  min-height: 1.5em;
+}
+[aria-invalid='true'] {
+  border-color: var(--color-error);
+}
+.table-scroll {
+  overflow-x: auto;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--color-surface);
+}
+caption {
+  text-align: left;
+  padding: 0.75rem 0;
+  font-weight: 600;
+}
+th,
+td {
+  padding: 0.8rem;
+  text-align: left;
+  border-bottom: 1px solid #d5dee8;
+}
+.badge {
+  display: inline-block;
+  border-radius: 0.3rem;
+  background: var(--color-muted-surface);
+  padding: 0.15rem 0.5rem;
+}
+.panel {
+  background: var(--color-surface);
+  border: 1px solid #d5dee8;
+  border-radius: 0.4rem;
+  padding: 1.25rem;
+  margin: 1rem 0;
+}
+dl {
+  display: grid;
+  grid-template-columns: minmax(10rem, 1fr) 2fr;
+  gap: 0.75rem 1rem;
+}
+dt {
+  font-weight: 600;
+}
+dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 40rem) {
+  dl {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
+  }
+  dd {
+    margin-bottom: 0.75rem;
+  }
+  .filters .field {
+    flex: 1 1 100%;
+  }
+}
+
+.confirmation-dialog {
+  box-sizing: border-box;
+  width: min(28rem, calc(100vw - 3rem));
+  max-height: calc(100dvh - 3rem);
+  overflow: auto;
+  margin: auto;
+  padding: 1.5rem;
+  border: 1px solid var(--color-control-border);
+  border-radius: 0.5rem;
+  background: var(--color-surface);
+  color: inherit;
+  box-shadow: 0 1rem 3rem rgb(0 0 0 / 25%);
+}
+.confirmation-dialog::backdrop {
+  background: rgb(10 25 40 / 55%);
+}
+.confirmation-dialog h2 {
+  margin-top: 0;
+}
