@@ -76,8 +76,8 @@ FleetPulse/
 ```
 
 I servizi, le librerie e il simulator fanno parte del reactor Maven. Il Fleet
-Dashboard è progettato ma non ancora implementato e comunica esclusivamente con
-Fleet API. Grafana è un'interfaccia tecnica distinta, riservata
+Dashboard dispone della base Angular e della navigazione; le funzionalità
+operative sono ancora da implementare e useranno esclusivamente Fleet API. Grafana è un'interfaccia tecnica distinta, riservata
 all'observability.
 
 ## Avvio locale

@@ -1,0 +1,29 @@
+:host {
+  display: block;
+}
+header {
+  background: white;
+  border-bottom: 1px solid #d5dee8;
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+.brand {
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+nav {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+nav a {
+  padding: 0.4rem 0.2rem;
+  text-decoration: none;
+}
+nav a.active {
+  font-weight: 700;
+  border-bottom: 3px solid currentColor;
+}
