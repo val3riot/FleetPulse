@@ -271,4 +271,11 @@ describe('Dettaglio e stato veicolo', () => {
     expect(component.vehicle()!.id).toBe('next');
     expect(component.saving()).toBe(false);
   });
+  it('non avvia più riletture equivalenti mentre la prima è pendente', () => {
+    const { component, http } = setup();
+    http.expectOne('/api/v1/vehicles/id').flush(vehicle);
+    component.reload();
+    component.reload();
+    http.expectOne('/api/v1/vehicles/id').flush(vehicle);
+  });
 });

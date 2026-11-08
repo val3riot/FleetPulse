@@ -115,7 +115,7 @@ export class VehicleDetail {
   }
 
   reload(): void {
-    if (this.saving()) return;
+    if (this.loading() || this.saving() || this.pendingStatus()) return;
     this.refreshFocusRequested = true;
     this.refresh.next();
   }

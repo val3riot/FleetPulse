@@ -128,6 +128,20 @@ Queste esclusioni sono limiti dello strumento, non deroghe ai requisiti.
   stati, mancante, conferma aperta e conflitto. Test HTTP coprono focus e comandi;
   dialog API simulate in jsdom, contenimento reale e zoom restano prove browser.
 
+## Recupero da errori generali
+
+Il riepilogo di registrazione non completata è nominato, `role=alert` e
+focusabile programmaticamente con tabindex=-1. Il focus vi arriva soltanto
+quando mancano errori campo e l'operatore non ha già lasciato il form; gli
+errori campo conservano il percorso sul primo campo invalido. L'elenco veicoli
+ripristina il punto di lettura dopo Riprova rispettando il focus spostato sui
+filtri. I tentativi di recupero equivalenti già in corso non si duplicano.
+
+Un test axe aggiuntivo copre il riepilogo generale e l'avviso di esito incerto.
+I test di pagina attraversano errori sconosciuti e recupero con il client HTTP
+reale e backend di test Angular. Le prove manuali usano dati isolati; non
+sostituiscono la verifica con screen reader, zoom e tastiera nel browser.
+
 ## Accettazione manuale di una pagina
 
 - Usare solo tastiera: Tab, Shift+Tab, Invio, Spazio e, per le modali, Esc.

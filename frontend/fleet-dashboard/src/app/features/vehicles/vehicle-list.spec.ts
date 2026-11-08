@@ -216,4 +216,38 @@ describe('Elenco veicoli', () => {
     button!.click();
     http.expectOne((r) => r.params.get('page') === '0').flush(page());
   });
+  it('Riprova non duplica la lettura e riporta il focus ai risultati preservando i filtri applicati', async () => {
+    const { fixture, component, http } = setup();
+    http.expectOne((request) => request.url === '/api/v1/vehicles').flush(page());
+    component.filters.controls.query.setValue('VAN-001');
+    component.applyFilters();
+    http
+      .expectOne((request) => request.params.get('query') === 'VAN-001')
+      .flush({ code: 'SERVICE_UNAVAILABLE' }, { status: 503, statusText: 'Unavailable' });
+    await fixture.whenStable();
+    const retry = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>('button'),
+    ).find((button) => button.textContent?.trim() === 'Riprova')!;
+    retry.focus();
+    retry.click();
+    component.reload();
+    const read = http.expectOne((request) => request.params.get('query') === 'VAN-001');
+    await fixture.whenStable();
+    read.flush(page());
+    await fixture.whenStable();
+    expect(document.activeElement?.getAttribute('aria-label')).toBe('Risultati ricerca veicoli');
+  });
+  it('il recupero non sottrae il focus spostato sui filtri durante la lettura', async () => {
+    const { fixture, component, http } = setup();
+    http
+      .expectOne((request) => request.url === '/api/v1/vehicles')
+      .flush({ code: 'SERVICE_UNAVAILABLE' }, { status: 503, statusText: 'Unavailable' });
+    component.reload();
+    const read = http.expectOne((request) => request.url === '/api/v1/vehicles');
+    const field = fixture.nativeElement.querySelector('#vehicle-query') as HTMLInputElement;
+    field.focus();
+    read.flush(page());
+    await fixture.whenStable();
+    expect(document.activeElement).toBe(field);
+  });
 });

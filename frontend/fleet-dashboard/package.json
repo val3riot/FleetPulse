@@ -11,11 +11,14 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint src --max-warnings=0",
-    "verify": "npm run lint && npm run format:check && npm run check:contrast && npm run test:ci && npm run build",
+    "verify": "npm run lint && npm run format:check && npm run check:contrast && npm run test:ci && npm run test:fixtures && npm run build",
     "audit": "npm audit --audit-level=low",
     "mock:api": "node scripts/mock-api.mjs",
     "start:api-check": "ng serve --proxy-config proxy.api-check.json",
-    "check:contrast": "node scripts/check-contrast.mjs"
+    "check:contrast": "node scripts/check-contrast.mjs",
+    "mock:ui": "node scripts/ui-fixture/cli.mjs",
+    "start:ui-check": "ng serve --port 4201 --proxy-config proxy.ui-check.json",
+    "test:fixtures": "node --test scripts/ui-fixture/*.test.mjs"
   },
   "private": true,
   "packageManager": "npm@10.9.8",

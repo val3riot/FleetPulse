@@ -747,3 +747,41 @@ Dashboard e stato telemetrico coprono separatamente caricamento, vuoto, assenza
 telemetria, stale, errori e cambio identità. Test di integrazione verificano che
 la conferma del cambio stato sospenda la sezione telemetrica senza bloccare
 l'anagrafica. Non usare sleep reali per attestare il comportamento temporale.
+
+## Frontend: isolamento e scenari degradati
+
+I test HTTP usano HttpTestingController con il client applicativo reale:
+aspettano metodo/query/body, rispondono in modo controllato e verificano che
+non rimangano richieste inattese. Errori e retry sono distinti dal rendering
+pagina. Fake clock per timeout e attese evitano sleep reali e test lenti;
+nessun retry della suite serve a nascondere un fallimento intermittente.
+
+I test delle pagine verificano comportamento osservabile: messaggi, contenuto,
+focus, conservazione del form/query, disponibilità delle azioni e recupero.
+I casi comuni di mapping non vengono ripetuti inutilmente per ogni route;
+una matrice rappresentativa attraversa tutte le pagine con errore sconosciuto,
+mentre casi mirati verificano rete/503/timeout e numero di tentativi.
+Le regressioni di race, cancellazione, pause, modali ed esiti incerti restano
+nelle suite dedicate. Nessuna chiamata a servizi reali in questi test.
+
+La fixture delle prove UI è un processo HTTP locale distinto, senza dipendenze
+aggiuntive né accesso al backend/database, con dati fissi e sequenze esplicite.
+Ogni test della fixture crea una propria istanza su porta effimera e chiude
+connessioni e timer in teardown. Lo scenario errore/recupero considera ogni
+tentativo HTTP, inclusi i retry, e conserva l'ultimo passo senza casualità.
+I test della fixture usano il runner Node integrato e fanno parte di verify.
+
+Le prove manuali della UI usano un proxy dedicato e una porta separata. La
+simulazione di errore HTTP non viene confusa con assenza di rete: quest'ultima
+si prova con backend di test Angular e DevTools Offline nel browser. La
+fixture non è una sostituzione dei test di contratto/integrativi del backend
+reale e non pretende di implementare tutte le sue regole di dominio.
+
+Axe/contrasto e test del focus accompagnano le verifiche funzionali. JSDOM
+non verifica rendering, zoom o screen reader reali: i controlli manuali non
+eseguiti sono riportati esplicitamente. README FE contiene solo comandi e
+configurazione; checklist e risultati di ciascuna issue restano in tmp.
+
+Riferimenti: [testing HTTP Angular](https://angular.dev/guide/http/testing),
+[isolamento e comportamento osservabile](https://playwright.dev/docs/best-practices).
+Questi principi non implicano l'introduzione di Playwright come dipendenza.

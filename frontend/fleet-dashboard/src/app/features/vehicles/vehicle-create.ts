@@ -38,6 +38,7 @@ export class VehicleCreate {
   private readonly destroyRef = inject(DestroyRef);
   private readonly injector = inject(Injector);
   private readonly formElement = viewChild.required<ElementRef<HTMLFormElement>>('vehicleForm');
+  private readonly errorSummary = viewChild<ElementRef<HTMLElement>>('errorSummary');
   readonly limits = VEHICLE_LIMITS;
   readonly saving = signal(false);
   readonly error = signal<ApiError | null>(null);
@@ -133,7 +134,20 @@ export class VehicleCreate {
               control.markAsTouched();
             }
           }
-          if (this.form.invalid) this.focusFirstInvalidField();
+          const active = this.formElement().nativeElement.ownerDocument.activeElement;
+          const mayMoveFocus =
+            active === this.formElement().nativeElement.ownerDocument.body ||
+            (!!active && this.formElement().nativeElement.contains(active));
+          if (mayMoveFocus) {
+            if (this.form.invalid) this.focusFirstInvalidField();
+            else
+              afterNextRender(
+                () => {
+                  if (!this.destroyRef.destroyed) this.errorSummary()?.nativeElement.focus();
+                },
+                { injector: this.injector },
+              );
+          }
         },
       });
   }

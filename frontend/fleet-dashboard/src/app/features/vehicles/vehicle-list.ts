@@ -103,6 +103,8 @@ export class VehicleList {
   }
 
   reload(): void {
+    if (this.loading()) return;
+    this.paginationFocusRequested = true;
     this.requests.next(this.requests.value);
   }
 }

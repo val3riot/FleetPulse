@@ -1,3 +1,4 @@
+import axe from 'axe-core';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
@@ -213,5 +214,45 @@ describe('Registrazione veicolo', () => {
     const request = http.expectOne('/api/v1/vehicles');
     fixture.destroy();
     expect(request.cancelled).toBe(true);
+  });
+  it('porta il focus al riepilogo generale senza perdere il form e non espone diagnostica backend', async () => {
+    const { fixture, component, http } = setup();
+    component.form.setValue(values);
+    const button = fixture.nativeElement.querySelector(
+      'button[type="submit"]',
+    ) as HTMLButtonElement;
+    button.focus();
+    button.click();
+    http
+      .expectOne('/api/v1/vehicles')
+      .flush(
+        { code: 'FUTURE_ERROR', message: '<script>diagnostica privata</script>' },
+        { status: 503, statusText: 'Unavailable' },
+      );
+    await fixture.whenStable();
+    expect(document.activeElement?.getAttribute('aria-label')).toBe('Registrazione non completata');
+    expect(fixture.nativeElement.textContent).not.toContain('diagnostica privata');
+    expect(component.form.getRawValue()).toEqual(values);
+    expect(component.uncertain()).toBe(true);
+    const report = await axe.run(fixture.nativeElement, {
+      runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'] },
+      rules: { 'color-contrast': { enabled: false } },
+    });
+    expect(report.violations.map((violation) => violation.id)).toEqual([]);
+    button.click();
+    http.expectNone((request) => request.method === 'POST');
+  });
+  it('non sottrae il focus a chi ha lasciato il form prima dell’errore generale', async () => {
+    const { fixture, component, http } = setup();
+    component.form.setValue(values);
+    component.submit();
+    const back = fixture.nativeElement.querySelector('a') as HTMLAnchorElement;
+    back.focus();
+    http
+      .expectOne('/api/v1/vehicles')
+      .flush({ code: 'REQUEST_INVALID' }, { status: 400, statusText: 'Bad Request' });
+    await fixture.whenStable();
+    expect(document.activeElement).toBe(back);
+    expect(component.form.getRawValue()).toEqual(values);
   });
 });

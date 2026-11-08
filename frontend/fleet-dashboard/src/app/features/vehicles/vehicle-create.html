@@ -3,7 +3,7 @@
 <p>Il nuovo veicolo sarà registrato come attivo.</p>
 <p>I campi contrassegnati con * sono obbligatori.</p>
 @if (error(); as failure) {
-  <div role="alert">
+  <div #errorSummary role="alert" tabindex="-1" aria-label="Registrazione non completata">
     <p>{{ failure.message }}</p>
     @for (detail of failure.details; track $index) {
       @if (!form.get(detail.field)) {

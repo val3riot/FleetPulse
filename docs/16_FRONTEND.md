@@ -306,6 +306,37 @@ Annullare un'operazione HTTP non garantisce rollback server: una nuova visita
 rilegge sempre lo stato. La semantica di concorrenza resta quella dell'API e di
 [ADR-011](adr/ADR-011-ALERT-OPTIMISTIC-LOCKING.md), senza versioni JPA nel frontend.
 
+## Stati degradati e recupero
+
+Gli errori rimangono locali alla pagina o sezione: un problema di rete non
+implica un banner globale offline e non viene dedotto da `navigator.onLine`.
+HTTP status0 segnala impossibilità di contattare il servizio; timeout, 503 noto,
+errore interno, codice futuro e proxy HTML restano categorie distinte secondo
+il client comune. Un proxy HTTP502 non viene presentato come errore di rete.
+
+Non si converte un errore in una risposta vuota: uno zero è mostrato soltanto
+quando l'API lo restituisce con successo. Quando una pagina mantiene l'ultimo
+snapshot dopo errore, lo identifica come appartenente all'ultima lettura
+riuscita; nuova ricerca o cambio identità non riusano dati del vecchio contesto.
+
+- Riprova/Aggiorna non duplicano una lettura equivalente già in corso. Cambiare
+  deliberatamente i filtri può invece cancellare e sostituire una ricerca.
+- Nell'elenco veicoli il recupero ha lo stesso comportamento di focus di storico
+  e alert: porta ai risultati se il focus è rimasto nella regione o si è perso
+  rimuovendo il controllo; non interrompe chi è già passato ai filtri.
+- La registrazione conserva il form. Gli errori di campo portano al primo campo
+  invalido; un errore generale senza errori campo porta a un riepilogo nominato
+  e focusabile, senza sottrarre il focus a chi ha lasciato il form durante l'invio.
+- Esiti incerti di scrittura richiedono la verifica prevista dal flusso, anche
+  quando la rete torna disponibile. Non si inviano POST/PATCH automaticamente.
+- Nessun cambio a timeout, retry, polling, pause o confronto DTO della dashboard.
+
+La fixture HTTP per le pagine operative gira solo in sviluppo, su un processo
+locale dedicato, con dati fissi in memoria e scenari deterministici per endpoint.
+Non inoltra richieste al backend. Il proxy UI dedicato usa una porta frontend
+diversa e non modifica il proxy normale. Avvio/configurazione sono nel README;
+procedure di accettazione e resoconti delle issue restano in tmp.
+
 ## Diagnostica di sviluppo
 
 La rotta `/dev/api` esegue soltanto letture di dashboard e veicoli tramite lo
