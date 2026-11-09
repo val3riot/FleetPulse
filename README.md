@@ -182,3 +182,6 @@ Base Angular del client web e comandi di sviluppo:
 
 Build, avvio e verifica dello stack da sorgenti appena clonati:
 [Verifica da clone pulito](infrastructure/clean-clone/README.md).
+
+Limiti del runtime, identità non-root e scansione delle immagini:
+[Verifica container](infrastructure/hardening/README.md).

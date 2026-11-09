@@ -29,3 +29,6 @@ SIGKILL, può richiedere pulizia manuale del solo progetto riportato nell'output
 La baseline e i limiti di sicurezza sono definiti in
 [Deployment](../../docs/13_DEPLOYMENT.md#security-baseline-locale).
 Questa verifica non è un penetration test né una scansione CVE.
+
+Pinning, budget CPU/memoria, inventario immagini e gate CVE runtime:
+[Verifica container](../hardening/README.md).

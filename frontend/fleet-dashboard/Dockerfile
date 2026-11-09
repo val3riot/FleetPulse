@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
-ARG FRONTEND_NODE_IMAGE=node:22.23.2-alpine3.23@sha256:72c5815a06aed9a2273aea5628d74d348af57843a7b547af2fe53dd3e4b95261
-ARG FRONTEND_NGINX_IMAGE=nginx/nginx-unprivileged:1.30.6-alpine@sha256:44e74ca483234093081138b6d7b6f561d55557756a2deefc3a5056148defeb99
+ARG FRONTEND_NODE_IMAGE=node:22.23.4-alpine3.24@sha256:0e1754758c2df4cfa3e68d59e2e1b7374bb7fd9ea6328eaaacf15cc934af8202
+ARG FRONTEND_NGINX_IMAGE=nginx/nginx-unprivileged:1.30.6-alpine3.24@sha256:c3fc8fa482be50ef709c6438eb1bc98d50dbfe5a9b48be90711b8814f4dfd701
 
 FROM ${FRONTEND_NODE_IMAGE} AS build
 WORKDIR /workspace

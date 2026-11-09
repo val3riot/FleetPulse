@@ -1,5 +1,7 @@
 services:
   postgres:
+    mem_limit: 512m
+    cpus: 1
     user: "postgres"
     image: postgres:${POSTGRES_VERSION:?POSTGRES_VERSION must be set}
     environment:
@@ -19,6 +21,8 @@ services:
     restart: unless-stopped
 
   flyway:
+    mem_limit: 512m
+    cpus: 1
     user: "10001:10001"
     image: flyway/flyway:${FLYWAY_VERSION:?FLYWAY_VERSION must be set}
     command: migrate
@@ -36,6 +40,8 @@ services:
     restart: "no"
 
   redis:
+    mem_limit: 128m
+    cpus: 0.5
     user: "redis"
     image: redis:${REDIS_VERSION:?REDIS_VERSION must be set}
     command:
@@ -58,6 +64,8 @@ services:
     restart: unless-stopped
 
   kafka:
+    mem_limit: 1024m
+    cpus: 2
     image: apache/kafka:${KAFKA_VERSION:?KAFKA_VERSION must be set}
     hostname: kafka
     environment:
@@ -91,6 +99,8 @@ services:
     restart: unless-stopped
 
   kafka-init:
+    mem_limit: 512m
+    cpus: 1
     image: apache/kafka:${KAFKA_VERSION:?KAFKA_VERSION must be set}
     depends_on:
       kafka:
@@ -105,6 +115,8 @@ services:
     restart: "no"
 
   fleet-api:
+    mem_limit: 512m
+    cpus: 2
     build:
       context: .
       dockerfile: services/fleet-api/Dockerfile
@@ -146,6 +158,8 @@ services:
     restart: unless-stopped
 
   fleet-dashboard:
+    mem_limit: 128m
+    cpus: 0.5
     build:
       context: ./frontend/fleet-dashboard
       dockerfile: Dockerfile
@@ -163,6 +177,8 @@ services:
     restart: unless-stopped
 
   telemetry-gateway:
+    mem_limit: 512m
+    cpus: 2
     build:
       context: .
       dockerfile: services/telemetry-gateway/Dockerfile
@@ -201,6 +217,8 @@ services:
     restart: unless-stopped
 
   telemetry-processor:
+    mem_limit: 512m
+    cpus: 2
     build:
       context: .
       dockerfile: services/telemetry-processor/Dockerfile
@@ -258,6 +276,8 @@ services:
     restart: unless-stopped
 
   vehicle-simulator:
+    mem_limit: 256m
+    cpus: 1
     build:
       context: .
       dockerfile: simulators/vehicle-simulator/Dockerfile
@@ -288,6 +308,8 @@ services:
     restart: unless-stopped
 
   prometheus:
+    mem_limit: 512m
+    cpus: 1
     image: prom/prometheus:${PROMETHEUS_VERSION:?PROMETHEUS_VERSION must be set}
     command:
       - --config.file=/etc/prometheus/prometheus.yml
@@ -298,6 +320,8 @@ services:
     restart: unless-stopped
 
   grafana:
+    mem_limit: 512m
+    cpus: 1
     image: grafana/grafana:${GRAFANA_VERSION:?GRAFANA_VERSION must be set}
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:?GRAFANA_ADMIN_USER must be set}

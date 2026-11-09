@@ -4,7 +4,7 @@ Angular standalone/zoneless, TypeScript strict, CSS e Vitest.
 
 ## Prerequisiti e avvio
 
-Node 22.23.2 (`.nvmrc`), npm 10+; versioni compatibili in `package.json`.
+Node 22.23.4 (`.nvmrc`), npm 10+; versioni compatibili in `package.json`.
 
 ```bash
 cd frontend/fleet-dashboard

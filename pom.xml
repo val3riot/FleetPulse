@@ -7,7 +7,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>4.1.0</version>
+		<version>4.1.2</version>
 		<relativePath/>
 	</parent>
 
@@ -30,6 +30,8 @@
 
 	<properties>
 		<java.version>21</java.version>
+		<!-- Align the client family with the broker, including patched compression codecs. -->
+		<kafka.version>4.3.2</kafka.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 	</properties>

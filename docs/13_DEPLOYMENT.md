@@ -53,21 +53,18 @@ La configurazione usa:
 
 Nessun secret reale nel repository. Il frammento seguente è un estratto:
 [`.env.example`](../.env.example) definisce l’elenco completo delle variabili
-richieste dal Compose, incluse immagini Java, topic e monitoring.
+richieste dal Compose, incluse immagini con digest, topic e monitoring.
+Le versioni delle immagini hanno un’unica fonte in `.env.example` e nei Dockerfile.
 
 ```dotenv
-POSTGRES_VERSION=17.10-alpine3.23
 POSTGRES_DB=fleetpulse
 POSTGRES_USER=fleetpulse
 POSTGRES_PASSWORD=change-me
 POSTGRES_PORT=5432
-FLYWAY_VERSION=13.0.0-alpine
 
-REDIS_VERSION=8.2.8-alpine
 REDIS_PASSWORD=change-me
 REDIS_PORT=6379
 
-KAFKA_VERSION=4.3.1
 KAFKA_PORT=9092
 
 TELEMETRY_ALERT_MAXIMUM_ENGINE_TEMPERATURE_C=110.0
@@ -417,9 +414,10 @@ Questa baseline non rende il progetto production-ready: mancano autenticazione e
 autorizzazione REST/TCP, TLS e autenticazione Kafka, separazione dei privilegi DB
 (il ruolo locale è condiviso con Flyway), gestione/rotazione centralizzata dei segreti
 e isolamento delle reti per ruolo. Prometheus non richiede autenticazione; Redis
-usa password senza TLS. Il pinning tramite digest, la scansione delle vulnerabilità
-e l'hardening finale delle immagini richiedono controlli dedicati. Non pubblicare questo
-Compose su interfacce pubbliche o tramite proxy/tunnel senza progettare tali controlli.
+usa password senza TLS. Il pinning e i limiti del runtime sono controllati dalla
+[verifica container](../infrastructure/hardening/README.md), che include la scansione
+delle vulnerabilità. Non pubblicare questo Compose su interfacce pubbliche o tramite
+proxy/tunnel senza progettare i controlli di accesso mancanti.
 
 ## Container frontend
 

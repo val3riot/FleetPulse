@@ -42,6 +42,12 @@ class IsolationTest(unittest.TestCase):
         self.assertEqual(api['ports'][0]['host_ip'], '127.0.0.1')
         self.assertEqual(config['services']['postgres']['image'], 'postgres:test')
 
+    def test_runtime_budgets_are_preserved_by_isolation(self):
+        self.source['services']['api'].update(mem_limit=268435456, cpus=0.5)
+        config = isolated_config(self.source, self.root)
+        self.assertEqual(config['services']['api']['mem_limit'], 268435456)
+        self.assertEqual(config['services']['api']['cpus'], 0.5)
+
     def test_external_networks_and_volumes_are_rejected(self):
         for section in ('networks', 'volumes'):
             config = copy.deepcopy(self.source)

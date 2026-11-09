@@ -47,8 +47,8 @@ def isolated_config(source, checkout):
         require(not service.get('privileged') and service.get('network_mode') != 'host', 'Unsafe network/container mode')
         service.pop('container_name', None)
         service['restart'] = 'no'
-        service['mem_limit'] = limits.get(name, '512m')
-        service['cpus'] = 2.0
+        service.setdefault('mem_limit', limits.get(name, '512m'))
+        service.setdefault('cpus', 2.0)
         if 'build' in service:
             require(inside(service['build']['context'], checkout), 'Build context outside clone')
             service.pop('image', None)
