@@ -188,3 +188,6 @@ Limiti del runtime, identità non-root e scansione delle immagini:
 
 Presentazione interattiva del flusso e del recupero da un guasto isolato:
 [Demo locale](infrastructure/demo/README.md).
+
+Gate automatici su push e pull request, cache e artefatti:
+[Continuous integration](infrastructure/ci/README.md).

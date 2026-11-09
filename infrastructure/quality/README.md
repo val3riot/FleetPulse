@@ -52,8 +52,8 @@ Maven Enforcer 3.6.3, fase validate:
 - convergenza delle versioni nel grafo Maven risolto di ciascun modulo.
 
 La dependencyManagement Spring Boot resta la fonte delle versioni gestite;
-nessuna esclusione globale della convergence rule e nessun aggiornamento forzato
-delle dipendenze applicative introdotto in questa FP. Le regole analizzano
+le eventuali proprietà di override sono motivate nel POM e verificate dalla
+convergence rule, senza esclusioni globali. Le regole analizzano
 le dipendenze del progetto, non la supply chain interna di ogni plugin.
 Non è una scansione CVE, una verifica licenze o una certificazione di sicurezza.
 
@@ -79,5 +79,26 @@ di formatting bloccano il gate. I warning di runtime/test infrastructure non son
 warning javac: i test di guasto possono produrre log WARN/ERROR attesi. Valutare
 l'esito Surefire e le asserzioni, non imporre l'assenza di ogni stringa ERROR nei log.
 Le immagini Testcontainers restano configurate nei test e richiedono Docker/rete.
-La pipeline CI automatica rimane nell'epica dedicata; il gate locale è già
-riproducibile tramite wrapper, configurazioni e versioni fissate nel repository.
+Il gate locale è riproducibile tramite wrapper, configurazioni e versioni
+fissate nel repository.
+
+## Rapporti di validazione
+
+Conservare risultati datati, log e checklist in `tmp`, separati dalle linee tecniche.
+Un report identifica commit o snapshot verificato, toolchain, immagini, fixture,
+scenari ed evidenze originali con checksum. Se riusa risultati precedenti, deve
+mostrare la continuità dei sorgenti e indicare differenze di ambiente o dipendenze;
+un dato storico non diventa una nuova esecuzione sul commit corrente.
+
+Separare unit test, prove di integrazione, carico, controlli statici e accettazione
+manuale. Riportare il denominatore dei percentili, warm-up, durata, risorse e
+intervallo di campionamento; ACK e timestamp di elaborazione non sostituiscono
+l’evidenza del commit SQL. Indicare errori e tentativi falliti conservati.
+
+L’esito funzionale, il gate CVE e la presenza della CI sono risultati distinti.
+Non sommare prove sovrapposte come test nuovi, non presentare smoke come benchmark
+e non dedurre accessibilità completa da axe/jsdom. Una pubblicazione richiede
+riesame dei rischi aperti e dei limiti della configurazione locale.
+
+Il [workflow CI](../ci/README.md) esegue questi gate su runner GitHub separati,
+con test di integrazione e artefatti diagnostici anche dopo un fallimento.

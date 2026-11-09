@@ -63,3 +63,7 @@ credentials/
 
 # Ignore temporary folders
 tmp/
+
+# Python verifier bytecode
+__pycache__/
+*.py[cod]

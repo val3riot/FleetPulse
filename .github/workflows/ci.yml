@@ -1,0 +1,204 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  CI: 'true'
+
+jobs:
+  backend:
+    name: Backend
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          distribution: temurin
+          java-version: '21'
+          overwrite-settings: false
+          cache: maven
+          cache-dependency-path: |
+            **/pom.xml
+            .mvn/wrapper/maven-wrapper.properties
+      - name: Toolchain and Docker
+        run: |
+          ./mvnw --version
+          docker info --format 'Docker {{.ServerVersion}} ({{.Architecture}})'
+      - name: Full Maven gate including integration tests
+        run: ./mvnw --batch-mode --no-transfer-progress -Dstyle.color=never clean verify 2>&1 | tee "$RUNNER_TEMP/backend.log"
+      - name: Backend diagnostics
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: backend-diagnostics-${{ github.sha }}-${{ github.run_attempt }}
+          retention-days: 7
+          if-no-files-found: warn
+          path: |
+            ${{ runner.temp }}/backend.log
+            **/target/surefire-reports/*.xml
+            **/target/surefire-reports/*.txt
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend/fleet-dashboard
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: frontend/fleet-dashboard/.nvmrc
+          cache: npm
+          cache-dependency-path: frontend/fleet-dashboard/package-lock.json
+          package-manager-cache: false
+      - name: Toolchain
+        run: |
+          node --version
+          npm --version
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund 2>&1 | tee "$RUNNER_TEMP/npm-ci.log"
+      - name: Frontend quality gate
+        run: npm run verify 2>&1 | tee "$RUNNER_TEMP/frontend.log"
+      - name: npm vulnerability gate
+        run: npm audit --audit-level=low --json > "$RUNNER_TEMP/npm-audit.json"
+      - name: Frontend diagnostics
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: frontend-diagnostics-${{ github.sha }}-${{ github.run_attempt }}
+          retention-days: 7
+          if-no-files-found: warn
+          path: |
+            ${{ runner.temp }}/npm-ci.log
+            ${{ runner.temp }}/frontend.log
+            ${{ runner.temp }}/npm-audit.json
+            frontend/fleet-dashboard/coverage/fleet-dashboard/
+      - name: Production assets
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: frontend-production-${{ github.sha }}-${{ github.run_attempt }}
+          retention-days: 7
+          if-no-files-found: error
+          path: frontend/fleet-dashboard/dist/fleet-dashboard/browser/
+
+  tooling:
+    name: Tooling and documentation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.14'
+          cache: pip
+          cache-dependency-path: infrastructure/consistency/requirements.txt
+      - name: Install documentation tools
+        run: python -m pip install -r infrastructure/consistency/requirements.txt
+      - name: Verify workflow syntax
+        env:
+          ACTIONLINT_VERSION: 1.7.12
+          ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+        run: |
+          archive="$RUNNER_TEMP/actionlint.tar.gz"
+          curl --fail --silent --show-error --location --retry 3 \
+            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz" \
+            --output "$archive"
+          printf '%s  %s\n' "$ACTIONLINT_SHA256" "$archive" | sha256sum --check
+          tar -xzf "$archive" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" -color
+      - name: Verifier unit tests
+        run: |
+          for suite in load operations e2e clean-clone hardening demo ci; do
+            python -m unittest discover -s "infrastructure/$suite" -p 'test_*.py' -v 2>&1 | tee "$RUNNER_TEMP/tooling-$suite.log"
+          done
+      - name: Documentation and configuration consistency
+        run: |
+          python infrastructure/consistency/verify_links.py | tee "$RUNNER_TEMP/links.json"
+          python infrastructure/consistency/verify_config.py | tee "$RUNNER_TEMP/config.log"
+          git diff --exit-code
+      - name: Tooling diagnostics
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: tooling-diagnostics-${{ github.sha }}-${{ github.run_attempt }}
+          retention-days: 7
+          if-no-files-found: warn
+          path: |
+            ${{ runner.temp }}/tooling-*.log
+            ${{ runner.temp }}/links.json
+            ${{ runner.temp }}/config.log
+
+  integration:
+    name: Isolated end-to-end demo
+    needs: [backend, frontend, tooling]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.14'
+      - name: Docker toolchain
+        run: |
+          docker --version
+          docker compose version
+      - name: Real services and controlled processor outage
+        run: python infrastructure/demo/run.py --output tmp/ci-demo 2>&1 | tee "$RUNNER_TEMP/integration.log"
+      - name: Integration diagnostics
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: integration-diagnostics-${{ github.sha }}-${{ github.run_attempt }}
+          retention-days: 7
+          if-no-files-found: warn
+          path: |
+            ${{ runner.temp }}/integration.log
+            tmp/ci-demo/checks.json
+            tmp/ci-demo/summary.json
+            tmp/ci-demo/session.json
+            tmp/ci-demo/failure.json
+            tmp/ci-demo/cleanup-failure.json
+            tmp/ci-demo/startup.log
+            tmp/ci-demo/cleanup.log
+
+  quality:
+    name: Quality gate
+    if: ${{ !cancelled() }}
+    needs: [backend, frontend, tooling, integration]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Require every gate to succeed
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: python3 infrastructure/ci/summary.py
