@@ -185,3 +185,6 @@ Build, avvio e verifica dello stack da sorgenti appena clonati:
 
 Limiti del runtime, identità non-root e scansione delle immagini:
 [Verifica container](infrastructure/hardening/README.md).
+
+Presentazione interattiva del flusso e del recupero da un guasto isolato:
+[Demo locale](infrastructure/demo/README.md).
