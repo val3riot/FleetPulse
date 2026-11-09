@@ -179,3 +179,6 @@ Coerenza tra documentazione, OpenAPI, schema SQL, configurazione e diagrammi:
 
 Base Angular del client web e comandi di sviluppo:
 [Fleet Dashboard](frontend/fleet-dashboard/README.md).
+
+Build, avvio e verifica dello stack da sorgenti appena clonati:
+[Verifica da clone pulito](infrastructure/clean-clone/README.md).
