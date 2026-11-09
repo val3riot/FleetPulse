@@ -12,6 +12,11 @@ espone i dati tramite REST al Fleet Dashboard destinato agli operatori.
 Tutti i dati sono sintetici. Il progetto non implementa né emula protocolli
 automotive proprietari.
 
+## Versione
+
+`v0.1.0` è la prima pre-release del MVP, destinata a sviluppo e demo locale
+con dati sintetici. Funzionalità e limiti sono descritti nel [changelog](CHANGELOG.md).
+
 ## Architettura
 
 ```mermaid
